@@ -3,10 +3,6 @@
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import Button from '../components/Button';
-'use client';
-import { useSearchParams, useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
-import Button from '../components/Button';
 
 export default function GenerateToolClient() {
   const searchParams = useSearchParams();
