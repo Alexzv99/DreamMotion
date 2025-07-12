@@ -1,3 +1,4 @@
+          <p>The AI said, &quot;Welcome to the future.&quot;</p>
 'use client';
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
