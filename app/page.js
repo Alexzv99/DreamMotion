@@ -202,3 +202,7 @@ const boxTitle = {
 const boxText = {
   color: "#444"
 };
+
+<p style={{ marginBottom: '25px', fontSize: '1rem' }}>
+  This website uses cookies to enhance user experience. By clicking &quot;Accept&quot;, you agree to our use of cookies.
+</p>
