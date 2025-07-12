@@ -154,8 +154,9 @@ export default function Home() {
             boxShadow: '0 0 25px rgba(0,0,0,0.5)'
           }}>
             <h3 style={{ marginBottom: '15px', fontSize: '1.5rem' }}>Cookie Consent</h3>
-            <p style={{ marginBottom: '25px', fontSize: '1rem' }}>
-              This website uses cookies to enhance user experience.
+           <p style={{ marginBottom: '25px', fontSize: '1rem' }}>
+  This website uses cookies to enhance user experience. By clicking &quot;Accept&quot;, you agree to our use of cookies.
+</p>
 By clicking &quot;Accept&quot;, you agree to our use of cookies.
             </p>
             <div style={{ display: 'flex', justifyContent: 'center', gap: '15px' }}>
