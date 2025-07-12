@@ -100,18 +100,22 @@ export default function Home() {
           </p>
 
           {/* CTA Button */}
-          <button onClick={handleEnterClick} style={{
-            padding: '16px 40px',
-            borderRadius: '12px',
-            backgroundColor: '#fff',
-            color: '#000',
-            fontSize: '1.3rem',
-            fontWeight: 'bold',
-            border: 'none',
-            cursor: 'pointer',
-            boxShadow: '0 0 25px rgba(255,255,255,0.2)',
-            transition: 'all 0.3s ease'
-          }}>
+          <button
+            onClick={handleEnterClick}
+            style={{
+              padding: '16px 40px',
+              borderRadius: '12px',
+              backgroundColor: '#fff',
+              color: '#000',
+              fontSize: '1.3rem',
+              fontWeight: 'bold',
+              border: 'none',
+              cursor: 'pointer',
+              boxShadow: '0 0 25px rgba(255,255,255,0.2)',
+              transition: 'all 0.3s ease',
+              marginBottom: '20px'
+            }}
+          >
             Enter Website
           </button>
 
