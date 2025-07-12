@@ -63,6 +63,7 @@ export default function Home() {
           </p>
         </div>
 
+<<<<<<< HEAD
         {/* Tools Section */}
         <div style={toolsGrid}>
           <div style={rowStyle}>
@@ -114,6 +115,61 @@ export default function Home() {
                 }}
               >
                 Contact Support
+=======
+      {/* Cookie Modal */}
+      {showBanner && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.85)',
+          zIndex: 999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          <div style={{
+            backgroundColor: '#222',
+            padding: '30px 40px',
+            borderRadius: '16px',
+            textAlign: 'center',
+            maxWidth: '500px',
+            color: '#fff',
+            boxShadow: '0 0 25px rgba(0,0,0,0.5)'
+          }}>
+            <h3 style={{ marginBottom: '15px', fontSize: '1.5rem' }}>Cookie Consent</h3>
+           <p style={{ marginBottom: '25px', fontSize: '1rem' }}>
+  This website uses cookies to enhance user experience. By clicking &quot;Accept&quot;, you agree to our use of cookies.
+</p>
+By clicking &quot;Accept&quot;, you agree to our use of cookies.
+            </p>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '15px' }}>
+              <button onClick={acceptCookies} style={{
+                padding: '12px 24px',
+                borderRadius: '8px',
+                backgroundColor: '#fff',
+                color: '#000',
+                fontWeight: 'bold',
+                border: 'none',
+                fontSize: '1rem',
+                cursor: 'pointer'
+              }}>
+                Accept & Continue
+              </button>
+              <button onClick={rejectCookies} style={{
+                padding: '12px 24px',
+                borderRadius: '8px',
+                backgroundColor: '#555',
+                color: '#fff',
+                fontWeight: 'bold',
+                border: '1px solid #aaa',
+                fontSize: '1rem',
+                cursor: 'pointer'
+              }}>
+                Reject
+>>>>>>> 160b2241bd791597ccfcb9053c2002e088e650b4
               </button>
             </div>
           </div>
