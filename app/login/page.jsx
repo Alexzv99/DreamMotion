@@ -1,0 +1,150 @@
+'use client';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { supabase } from '../supabaseClient';
+
+export default function LoginPage() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const router = useRouter();
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    setLoading(false);
+
+    if (error) {
+      alert('Login failed: ' + error.message);
+    } else {
+      router.push('/dashboard');
+    }
+  };
+
+  return (
+    <main style={{
+      minHeight: '100vh',
+      backgroundImage: 'url("/background-4.png")',
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      fontFamily: 'Inter, Helvetica, Arial, sans-serif',
+      color: '#222',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '0',
+      margin: '0',
+      backdropFilter: 'blur(2px)'
+    }}>
+      <div style={styles.overlay} />
+      <button onClick={() => router.back()} style={styles.backBtn}>← Back</button>
+      <div style={styles.card}>
+        <h1 style={styles.heading}>Login</h1>
+        <form onSubmit={handleLogin} style={styles.form}>
+          <input
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            style={styles.input}
+            required
+          />
+          <input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            style={styles.input}
+            required
+          />
+          <button type="submit" style={styles.button} disabled={loading}>
+            {loading ? 'Logging in...' : 'Log In'}
+          </button>
+        </form>
+        <p style={styles.note}>
+          Don’t have an account? <a href="/register" style={{...styles.link, color: '#c00', fontWeight: 'bold'}}>Sign up</a>
+        </p>
+      </div>
+    </main>
+  );
+}
+
+// Keep your styles unchanged
+const styles = {
+  overlay: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0, bottom: 0,
+    background: 'rgba(0, 0, 0, 0.65)',
+    zIndex: 0
+  },
+  backBtn: {
+    position: 'absolute',
+    top: 20,
+    left: 20,
+    zIndex: 2,
+    backgroundColor: '#fff',
+    color: '#000',
+    padding: '8px 14px',
+    border: '1px solid #ccc',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    fontWeight: 'bold'
+  },
+  card: {
+    position: 'relative',
+    zIndex: 1,
+    backgroundColor: '#fff',
+    padding: '40px 30px',
+    borderRadius: '16px',
+    width: '100%',
+    maxWidth: '400px',
+    textAlign: 'center',
+    boxShadow: '0 0 20px rgba(0,0,0,0.3)'
+  },
+  heading: {
+    fontSize: '2rem',
+    fontWeight: 'bold',
+    marginBottom: '20px',
+    color: '#111'
+  },
+  form: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '16px'
+  },
+  input: {
+    padding: '12px',
+    fontSize: '1rem',
+    borderRadius: '8px',
+    border: '1px solid #ccc',
+    backgroundColor: '#fff',
+    color: '#000'
+  },
+  button: {
+    backgroundColor: '#111',
+    color: '#fff',
+    padding: '12px',
+    border: 'none',
+    borderRadius: '8px',
+    fontWeight: 'bold',
+    cursor: 'pointer',
+    transition: 'background 0.2s',
+    boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
+  },
+  note: {
+    marginTop: '20px',
+    color: '#444'
+  },
+  link: {
+    color: '#007bff',
+    textDecoration: 'none',
+    fontWeight: 'bold'
+  }
+};

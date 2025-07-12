@@ -1,0 +1,8 @@
+:root {
+  --background: #111111;
+  --foreground: #f2f2f2;
+  --accent: #888888;
+  --primary: #ffffff;
+  --button: #1f1f1f;
+  --highlight: #00bcd4; /* Optional bright blue accent */
+}

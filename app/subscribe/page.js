@@ -1,0 +1,230 @@
+"use client";
+import { useRouter } from "next/navigation";
+
+export default function SubscribePage() {
+  const router = useRouter();
+  return (
+    <div style={{
+      minHeight: '100vh',
+      background: '#111',
+      color: 'white',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      padding: '50px',
+      fontFamily: 'sans-serif',
+      backgroundImage: "url('/background-5.png')",
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      position: 'relative'
+    }}>
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.75)', zIndex: 0 }} />
+      {/* Back Button */}
+      <button
+        onClick={() => router.back()}
+        style={{
+          position: 'absolute',
+          top: 24,
+          left: 24,
+          zIndex: 2,
+          background: 'white',
+          color: 'black',
+          border: 'none',
+          borderRadius: '6px',
+          padding: '8px 18px',
+          fontSize: '16px',
+          fontFamily: 'inherit',
+          cursor: 'pointer',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.12)'
+        }}
+      >← Back</button>
+      <h1 style={{ fontSize: '32px', marginBottom: '16px', zIndex: 1 }}>Subscription Plans</h1>
+      <div style={{ fontSize: '16px', color: 'white', marginBottom: '32px', textAlign: 'center', zIndex: 1 }}>
+        Choose the best plan for your creative journey — buy credits once and use them freely on any tool, anytime.
+      </div>
+      <div style={{
+        display: 'flex',
+        gap: '30px',
+        flexWrap: 'wrap',
+        justifyContent: 'center',
+        zIndex: 1
+      }}>
+        {[
+          {
+            title: "Starter Plan",
+            price: "$4.99",
+            credits: "100 Credits",
+            usage: "Estimated 2–8 generations",
+            features: [
+              "✔ Access to basic tools",
+              "✔ Standard resolution export",
+              "✔ Great for testing new styles"
+            ]
+          },
+          {
+            title: "Basic Plan — Most Popular",
+            price: "$9.99",
+            credits: "250 Credits",
+            usage: "Estimated 6–20 generations",
+            features: [
+              "✔ Unlock all image & video models",
+              "✔ HD video generation",
+              "✔ Designed for casual creators"
+            ]
+          },
+          {
+            title: "Pro Plan — Best Value",
+            price: "$19.99",
+            credits: "600 Credits",
+            usage: "Estimated 15–50 generations",
+            features: [
+              "✔ Includes all Basic features",
+              "✔ High-resolution cinematic quality",
+              "✔ Priority video rendering queue",
+              "✔ Ideal for regular creators and animators"
+            ]
+          },
+          {
+            title: "Elite Plan",
+            price: "$49.99",
+            credits: "2,000 Credits",
+            usage: "Estimated 50–160 generations",
+            features: [
+              "✔ Includes all Pro features",
+              "✔ Maximum rendering speed",
+              "✔ Early access to new tools",
+              "✔ Perfect for power users or studios"
+            ]
+          },
+        ].map((plan, i) => (
+          <div key={i} style={{
+            background: 'white',
+            color: 'black',
+            padding: '20px',
+            borderRadius: '10px',
+            width: '220px',
+            textAlign: 'center',
+            boxShadow: '0 0 20px rgba(255,255,255,0.05)'
+          }}>
+            <h2 style={{ fontSize: '20px', marginBottom: '10px' }}>{plan.title}</h2>
+            <p style={{ fontSize: '24px', fontWeight: 'bold', margin: '10px 0' }}>{plan.price}</p>
+            <p style={{ margin: '5px 0' }}>{plan.credits}</p>
+            <p style={{ fontSize: '14px', color: '#aaa', marginBottom: plan.features ? '8px' : '0' }}>{plan.usage}</p>
+            {plan.features && (
+              <div style={{ fontSize: '14px', color: '#222', marginBottom: '8px', textAlign: 'left' }}>
+                {plan.features.map((feature, idx) => (
+                  <div key={idx} style={{ marginBottom: '2px' }}>{feature}</div>
+                ))}
+              </div>
+            )}
+            <button style={{
+              marginTop: '15px',
+              background: 'black',
+              color: 'white',
+              padding: '10px 20px',
+              border: 'none',
+              borderRadius: '5px',
+              cursor: 'pointer'
+            }}>Buy Now</button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// Plans
+const plans = [
+  {
+    name: "Free Trial",
+    price: "200 credits",
+    credits: "",
+    features: [
+      "✔ Use credits on any tool",
+      "✖ NSFW content disabled",
+      "✖ No HD resolution"
+    ]
+  },
+  {
+    name: "Basic Plan",
+    price: "$9.99/month",
+    credits: "500 credits/month",
+    features: [
+      "✖ NSFW generation locked",
+      "✔ High-resolution exports",
+      "✔ Priority processing"
+    ]
+  },
+  {
+    name: "Pro Plan",
+    price: "$17.99/month",
+    credits: "1000 credits/month",
+    features: [
+      "✔ All Basic features",
+      "✔ Faster video generation",
+      "✔ Private mode support"
+    ]
+  },
+  {
+    name: "Plus Plan",
+    price: "$49.99/month",
+    credits: "3000 credits/month",
+    features: [
+      "✔ All Pro features",
+      "✔ Maximum speed access",
+      "✔ Early access to new tools"
+    ]
+  }
+];
+
+// Styles
+const planCardStyle = {
+  background: '#f5f5f7',
+  color: '#111',
+  padding: '25px',
+  borderRadius: '12px',
+  width: '260px',
+  minWidth: '260px',
+  boxShadow: '0 0 20px rgba(0,0,0,0.25)',
+  textAlign: 'left',
+  display: 'flex',
+  flexDirection: 'column',
+  justifyContent: 'space-between'
+};
+
+const planTitle = {
+  marginBottom: '10px',
+  fontSize: '1.4rem',
+  fontWeight: 'bold'
+};
+
+const planPrice = {
+  fontSize: '1.2rem',
+  fontWeight: 'bold',
+  marginBottom: '5px'
+};
+
+const creditNote = {
+  fontSize: '1rem',
+  marginBottom: '15px'
+};
+
+const featureList = {
+  listStyle: 'none',
+  padding: 0,
+  lineHeight: '1.6',
+  marginBottom: '20px'
+};
+
+const chooseBtn = {
+  padding: '10px 15px',
+  borderRadius: '6px',
+  backgroundColor: '#111',
+  color: '#fff',
+  fontWeight: 'bold',
+  fontSize: '0.95rem',
+  border: 'none',
+  cursor: 'pointer',
+  transition: 'background 0.2s',
+  boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
+};
