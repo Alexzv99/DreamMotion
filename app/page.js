@@ -1,192 +1,203 @@
-          <p>The AI said, &quot;Welcome to the future.&quot;</p>
-'use client';
-import { useEffect, useState } from 'react';
-import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+"use client";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 export default function Home() {
   const router = useRouter();
-  const [showBanner, setShowBanner] = useState(false);
-
-  useEffect(() => {
-    const accepted = localStorage.getItem('cookiesAccepted');
-    if (accepted) {
-      setShowBanner(false);
-    }
-  }, []);
-
-  const handleEnterClick = () => {
-    const accepted = localStorage.getItem('cookiesAccepted');
-    if (!accepted) {
-      setShowBanner(true);
-    } else {
-      router.push('/dashboard');
-    }
-  };
-
-  const acceptCookies = () => {
-    localStorage.setItem('cookiesAccepted', 'true');
-    setShowBanner(false);
-    router.push('/dashboard');
-  };
-
-  const rejectCookies = () => {
-    localStorage.setItem('cookiesAccepted', 'false');
-    setShowBanner(false);
-    // Stay on the homepage or show a warning — currently just closes
-  };
-
   return (
     <main style={{
-      minHeight: '100vh',
-      backgroundImage: 'url("/background-1.png")',
-      backgroundSize: 'cover',
-      backgroundPosition: 'center',
-      fontFamily: 'Inter, Arial, sans-serif',
-      color: '#222',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '20px 40px 40px 40px', // reduced top padding from 40px to 20px
-      margin: '0',
-      backdropFilter: 'blur(2px)'
+      minHeight: "100vh",
+      backgroundImage: "url('/background-1.png')",
+      backgroundSize: "cover",
+      backgroundPosition: "center",
+      fontFamily: "Inter, Helvetica, Arial, sans-serif",
+      color: "#222",
+      padding: 0,
+      margin: 0,
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      justifyContent: "center",
+      backdropFilter: "blur(2px)"
     }}>
-      <div style={{ marginTop: '-30px' }}>
-        {/* Overlay */}
-        <div style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0, 0, 0, 0.6)',
-          zIndex: 0
-        }} />
+      {/* Dark overlay */}
+      <div style={{
+        position: "absolute",
+        top: 0, left: 0, right: 0, bottom: 0,
+        background: "rgba(0, 0, 0, 0.65)",
+        zIndex: 0
+      }} />
 
-        {/* Content */}
-        <div style={{
-          position: 'relative',
-          zIndex: 1,
-          color: '#fff',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '40px',
-          minHeight: '100vh',
-          textAlign: 'center'
+      <div style={{ position: "relative", zIndex: 1 }}>
+        {/* Navbar */}
+        <nav style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: "40px",
+          color: "#fff"
         }}>
-
-          {/* Logo */}
-          <div style={{ marginBottom: '25px' }}>
-            <Image src="/logo.png" alt="DreamMotion Logo" width={70} height={70} />
+          <h1 style={{ fontSize: "2rem", fontWeight: "bold" }}>DreamMotion</h1>
+          <div style={{ display: "flex", gap: "20px" }}>
+            <Link href="/" style={navLink}>Home</Link>
+            <Link href="/dashboard" style={navLink}>Dashboard</Link>
+            <Link href="/subscribe" style={navLink}>Subscribe</Link>
+            <Link href="/login" style={navLink}>Login</Link>
           </div>
+        </nav>
 
-          {/* Big Title */}
-          <h1 style={{ fontFamily: 'Inter, Arial, sans-serif', fontWeight: 'bold', fontSize: '3.8rem', marginBottom: '20px' }}>
-            DreamMotion
-          </h1>
-
-          {/* Subtitle */}
-          <p style={{
-            fontFamily: 'Inter, Arial, sans-serif',
-            fontSize: '1.4rem',
-            maxWidth: '600px',
-            lineHeight: '1.8',
-            marginBottom: '50px'
-          }}>
-            Animate your fantasies.<br />
-            Realistic AI-generated motion.
-          </p>
-
-          {/* CTA Button */}
-          <button
-            onClick={handleEnterClick}
-            style={{
-              padding: '16px 40px',
-              borderRadius: '12px',
-              backgroundColor: '#fff',
-              color: '#000',
-              fontSize: '1.3rem',
-              fontWeight: 'bold',
-              border: 'none',
-              cursor: 'pointer',
-              boxShadow: '0 0 25px rgba(255,255,255,0.2)',
-              transition: 'all 0.3s ease',
-              marginBottom: '20px'
-            }}
-          >
-            Enter Website
-          </button>
-
-          {/* Register Link */}
-          <p style={{ marginTop: '30px', fontSize: '1rem' }}>
-            Not a member yet?{' '}
-    <a href="/register" style={{ color: '#fff', fontWeight: 'bold', textDecoration: 'none' }}>
-      <span style={{ color: '#c00', fontWeight: 'bold' }}>Register →</span>
-            </a>
+        {/* Welcome */}
+        <div style={{
+          textAlign: "center",
+          marginBottom: "30px",
+          color: "#fff"
+        }}>
+          <h2 style={{ fontSize: "2.5rem", marginBottom: "10px" }}>Welcome to DreamMotion!</h2>
+          <p style={{ fontSize: "1.1rem" }}>
+            <span style={{ color: "#c00", fontWeight: "bold" }}>
+              AI-powered image &amp; video generation. Select your model, aspect ratio, and more!
+            </span><br />
+            <span style={{ color: "#fff" }}>
+              &quot;Unleash your creativity with cinematic motion.&quot;
+            </span>
           </p>
         </div>
-      </div>
 
-      {/* Cookie Modal */}
-      {showBanner && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.85)',
-          zIndex: 999,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center'
-        }}>
-          <div style={{
-            backgroundColor: '#222',
-            padding: '30px 40px',
-            borderRadius: '16px',
-            textAlign: 'center',
-            maxWidth: '500px',
-            color: '#fff',
-            boxShadow: '0 0 25px rgba(0,0,0,0.5)'
-          }}>
-            <h3 style={{ marginBottom: '15px', fontSize: '1.5rem' }}>Cookie Consent</h3>
-            <p style={{ marginBottom: '25px', fontSize: '1rem' }}>
-              This website uses cookies to enhance user experience.
-By clicking &quot;Accept&quot;, you agree to our use of cookies.
-            </p>
-            <div style={{ display: 'flex', justifyContent: 'center', gap: '15px' }}>
-              <button onClick={acceptCookies} style={{
-                padding: '12px 24px',
-                borderRadius: '8px',
-                backgroundColor: '#fff',
-                color: '#000',
-                fontWeight: 'bold',
-                border: 'none',
-                fontSize: '1rem',
-                cursor: 'pointer'
-              }}>
-                Accept & Continue
-              </button>
-              <button onClick={rejectCookies} style={{
-                padding: '12px 24px',
-                borderRadius: '8px',
-                backgroundColor: '#555',
-                color: '#fff',
-                fontWeight: 'bold',
-                border: '1px solid #aaa',
-                fontSize: '1rem',
-                cursor: 'pointer'
-              }}>
-                Reject
+        {/* Tools Section */}
+        <div style={toolsGrid}>
+          <div style={rowStyle}>
+            <ToolBox 
+              title="🖼️ Generate Image"
+              desc="Create stunning images from your prompt using our text-to-image tool."
+              price="1 credit per image"
+              link="/generate-tool?type=genimage"
+            />
+            <ToolBox 
+              title="🎞️ Generate Video"
+              desc="Transform images into cinematic motion with DreamMotion’s engine."
+              price="5 credits / second"
+              link="/generate-tool?type=genvideo"
+            />
+          </div>
+          <div style={rowStyle}>
+            <ToolBox 
+              title="📽️ Text to Video"
+              desc="Describe a scene and let DreamMotion create an animated video for you."
+              price="2 credits / second"
+              link="/generate-tool?type=text2video"
+            />
+            <ToolBox 
+              title="🧬 Image to Video"
+              desc="Upload a photo and animate it with cinematic motion."
+              price="30 credits / second"
+              link="/generate-tool?type=image2video"
+            />
+          </div>
+
+          {/* Help */}
+          <div style={{ display: "flex", justifyContent: "center", marginTop: "40px" }}>
+            <div style={boxStyle}>
+              <h3 style={boxTitle}>🛠️ Need Help?</h3>
+              <p style={boxText}>If you&apos;re stuck or have questions, we&apos;re here for you.</p>
+              <button
+                onClick={() => router.push("/contact")}
+                style={{
+                  marginTop: "15px",
+                  padding: "10px 20px",
+                  fontSize: "1rem",
+                  backgroundColor: "#1a1a1a", // dark grey
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: "8px",
+                  cursor: "pointer",
+                  fontWeight: "bold"
+                }}
+              >
+                Contact Support
               </button>
             </div>
           </div>
         </div>
-      )}
+      </div>
     </main>
   );
 }
+
+function ToolBox({ title, desc, price, link }) {
+  return (
+    <div style={{
+      backgroundColor: "#fff", // white
+      color: "#222", // dark text
+      borderRadius: "12px",
+      boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+      padding: "24px",
+      marginBottom: "24px",
+      cursor: "pointer",
+      transition: "background 0.2s",
+      width: "100%",
+      maxWidth: "460px",
+      textAlign: "center"
+    }}>
+      <h3 style={boxTitle}>{title}</h3>
+      {title.includes("Image to Video") && (
+        <p style={{ color: "#c00", fontWeight: "bold", marginBottom: "8px" }}>NSFW generation is allowed</p>
+      )}
+      <p style={boxText}>{desc}</p>
+      <p style={{ marginTop: "10px", fontWeight: "bold", color: "#c00" }}>{price}</p>
+      <Link href={link}>
+        <button style={{
+          backgroundColor: "#1a1a1a", // dark grey
+          color: "#fff",
+          border: "none",
+          borderRadius: "8px",
+          fontWeight: "bold",
+          padding: "12px 20px",
+          marginBottom: "12px",
+          cursor: "pointer",
+          transition: "background 0.2s",
+        }}>Open Tool</button>
+      </Link>
+    </div>
+  );
+}
+
+// Styles
+const navLink = {
+  color: "#fff",
+  fontWeight: "bold"
+};
+
+const toolsGrid = {
+  maxWidth: "1200px",
+  marginLeft: "auto",
+  marginRight: "auto",
+  display: "flex",
+  flexDirection: "column",
+  gap: "30px"
+};
+
+const rowStyle = {
+  display: "flex",
+  justifyContent: "center",
+  flexWrap: "wrap",
+  gap: "30px"
+};
+
+const boxStyle = {
+  backgroundColor: "#f1f1f1",
+  padding: "25px 30px",
+  borderRadius: "12px",
+  boxShadow: "0 0 12px rgba(0,0,0,0.05)",
+  maxWidth: "460px",
+  width: "100%",
+  textAlign: "center"
+};
+
+const boxTitle = {
+  marginBottom: "10px",
+  color: "#111"
+};
+
+const boxText = {
+  color: "#444"
+};
