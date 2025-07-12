@@ -1,9 +1,9 @@
 'use client';
-import { useSearchParams, useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { Suspense, useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Button from '../components/Button';
 
-export default function GenerateToolPage() {
+function GenerateToolPageInner() {
   const searchParams = useSearchParams();
   const type = searchParams.get('type') || 'genimage';
   const router = useRouter();
@@ -842,5 +842,13 @@ export default function GenerateToolPage() {
         )}
       </div>
     </main>
+  );
+}
+
+export default function GenerateToolPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <GenerateToolPageInner />
+    </Suspense>
   );
 }
