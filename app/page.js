@@ -156,7 +156,7 @@ function ToolBox({ title, desc, price, link }) {
           marginBottom: "12px",
           cursor: "pointer",
           transition: "background 0.2s",
-        }}>Open Tool</button>
+        }}>&quot;Open Tool&quot;</button>
       </Link>
     </div>
   );
