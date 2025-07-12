@@ -150,7 +150,7 @@ export default function Dashboard() {
           <div style={{ display: 'flex', justifyContent: 'center', marginTop: '40px' }}>
             <div style={boxStyle}>
               <h3 style={boxTitle}>🛠️ Need Help?</h3>
-             <p style={boxText}>If you&rsquo;re stuck or have questions, we&rsquo;re here for you.</p>
+             <p style={boxText}>If you&apos;re stuck or have questions, we&apos;re here for you.</p>
               <button
                 onClick={() => router.push('/contact')}
                 style={{
