@@ -41,24 +41,30 @@ export default function Home() {
         pointerEvents: 'auto',
       }}>
         <h1 style={{ fontSize: 60, marginBottom: 20, fontWeight: 700 }}>DreamMotion</h1>
-        <div style={{ fontSize: 22, fontWeight: 400, marginBottom: 28, lineHeight: 1.3 }}>
-          AI-powered image & video generation platform<br />
-          Unleash your creativity with cinematic motion
+        <div style={{ fontSize: 15, fontWeight: 400, marginBottom: 28, lineHeight: 1.3, color: '#b0b0b0' }}>
+          The fastest way to create AI-powered images & videos<br />
+          Bring your creative ideas to life with cinematic motion
         </div>
         <Link href="/dashboard">
-          <a style={{
-            backgroundColor: 'white',
-            color: 'black',
-            padding: '15px 30px',
-            fontSize: 18,
-            border: 'none',
-            borderRadius: 6,
-            textDecoration: 'none',
-            fontWeight: 600,
-            transition: 'background-color 0.3s',
-            display: 'inline-block',
-            marginBottom: 10
-          }}>Enter</a>
+          <button
+            style={{
+              backgroundColor: 'white',
+              color: 'black',
+              padding: '15px 30px',
+              fontSize: 18,
+              border: 'none',
+              borderRadius: 6,
+              textDecoration: 'none',
+              fontWeight: 600,
+              transition: 'background-color 0.3s',
+              display: 'inline-block',
+              marginBottom: 10,
+              cursor: 'pointer'
+            }}
+            onClick={() => window.location.href = '/dashboard'}
+          >
+            Enter
+          </button>
         </Link>
       </div>
       {/* Cookie bar */}
