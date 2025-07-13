@@ -170,7 +170,6 @@ export default function Home() {
               }}
               onClick={() => {
                 setShowCookieBar(true);
-                setErrorBanner('Example error banner!');
               }}
             >
               Enter
@@ -181,7 +180,6 @@ export default function Home() {
                 onClick={e => {
                   e.preventDefault();
                   setShowCookieBar('register');
-                  setErrorBanner('Example error banner!');
                 }}
               >
                 <span style={{ color: '#fff' }}>Not a member yet? </span>

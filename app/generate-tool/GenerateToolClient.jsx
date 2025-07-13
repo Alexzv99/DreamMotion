@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import Button from '../components/Button';
 
 export default function GenerateToolClient() {
+  const [generationTime, setGenerationTime] = useState(null);
   const searchParams = useSearchParams();
   const type = searchParams.get('type') || 'genimage';
   const router = useRouter();
@@ -112,8 +113,10 @@ export default function GenerateToolClient() {
     setLoading(true);
     setError('');
     setPreviewUrl(null);
+    setGenerationTime(null);
+    const start = Date.now();
     try {
-      // Replace this endpoint with your actual backend or third-party API
+      // Send aspect_ratio and use output property from backend
       const res = await fetch('/api/generate-image', {
         method: 'POST',
         headers: {
@@ -121,13 +124,18 @@ export default function GenerateToolClient() {
         },
         body: JSON.stringify({
           prompt,
-          aspectRatio
+          aspect_ratio: aspectRatio
         })
       });
       if (!res.ok) throw new Error('Failed to generate image');
       const data = await res.json();
-      if (!data?.imageUrl) throw new Error('No image returned');
-      setPreviewUrl(data.imageUrl);
+      if (!data?.output) throw new Error('No image returned');
+      setPreviewUrl(data.output);
+      if (data.duration) {
+        setGenerationTime(data.duration);
+      } else {
+        setGenerationTime(((Date.now() - start) / 1000).toFixed(2));
+      }
     } catch (err) {
       setError(err.message || 'Error generating image');
     }
@@ -352,10 +360,46 @@ export default function GenerateToolClient() {
           <div style={{ marginTop: 24, textAlign: 'center' }}>
             <div style={{ marginBottom: 10 }}>
               <img src={previewUrl} alt="Generated" style={{ maxWidth: '100%', borderRadius: 16, boxShadow: '0 2px 12px rgba(0,0,0,0.18)' }} />
+              {generationTime && (
+                <div style={{ marginTop: 8, color: '#22c55e', fontWeight: 600, fontSize: '1.1rem' }}>
+                  Generated in {generationTime} seconds
+                </div>
+              )}
             </div>
-            <Button onClick={handleDownload} style={{ fontSize: '1rem', padding: '8px 24px', borderRadius: 10, background: '#22c55e', color: '#fff', fontWeight: 500 }}>
-              Download
-            </Button>
+            <button
+              onClick={async () => {
+                try {
+                  const res = await fetch(previewUrl);
+                  const blob = await res.blob();
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = 'generated-image.png';
+                  document.body.appendChild(a);
+                  a.click();
+                  a.remove();
+                  URL.revokeObjectURL(url);
+                } catch (err) {
+                  alert('Failed to download image.');
+                }
+              }}
+              style={{
+                display: 'inline-block',
+                fontSize: '1rem',
+                padding: '10px 28px',
+                borderRadius: 10,
+                background: '#222',
+                color: '#fff',
+                fontWeight: 600,
+                textDecoration: 'none',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
+                marginTop: 8,
+                cursor: 'pointer',
+                transition: 'background 0.2s'
+              }}
+            >
+              Download Image
+            </button>
           </div>
         )}
 
