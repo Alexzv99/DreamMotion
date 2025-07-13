@@ -219,6 +219,24 @@ export default function GenerateToolClient() {
       justifyContent: 'center',
       backdropFilter: 'blur(2px)'
     }}>
+      <style>{`
+        @media (max-width: 900px) {
+          .responsive-container {
+            flex-direction: column !important;
+            max-width: 98vw !important;
+            margin: 16px auto !important;
+            min-height: unset !important;
+            border-radius: 8px !important;
+            box-shadow: 0 1px 6px rgba(0,0,0,0.10) !important;
+            padding: 0 !important;
+          }
+          .responsive-panel {
+            padding: 24px 12px 24px 12px !important;
+            min-width: unset !important;
+            max-width: 100vw !important;
+          }
+        }
+      `}</style>
       <div style={{
         position: 'absolute',
         top: 0, left: 0, right: 0, bottom: 0,
@@ -246,7 +264,7 @@ export default function GenerateToolClient() {
       >
         ← Back
       </button>
-      <div style={{
+      <div className="responsive-container" style={{
         position: 'relative',
         zIndex: 1,
         maxWidth: 1200,
@@ -262,7 +280,7 @@ export default function GenerateToolClient() {
         overflow: 'hidden'
       }}>
         {/* Controls Panel */}
-        <div style={{
+        <div className="responsive-panel" style={{
           flex: 1,
           padding: '40px 40px 40px 48px',
           display: 'flex',
@@ -564,7 +582,7 @@ export default function GenerateToolClient() {
           </div>
         )}
         </div>
-        <div style={{
+        <div className="responsive-panel" style={{
           flex: 1.2,
           padding: '40px 48px 40px 40px',
           display: 'flex',
