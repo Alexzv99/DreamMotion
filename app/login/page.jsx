@@ -48,8 +48,30 @@ export default function LoginPage() {
       justifyContent: 'center',
       padding: '0',
       margin: '0',
-      backdropFilter: 'blur(2px)'
+      backdropFilter: 'blur(2px)',
+      position: 'relative'
     }}>
+      <style>{`
+        @media (max-width: 900px) {
+          .login-card {
+            max-width: 98vw !important;
+            padding: 18px 2vw !important;
+            font-size: 1rem !important;
+            border-radius: 10px !important;
+          }
+          .login-form input, .login-form button {
+            font-size: 1rem !important;
+            padding: 10px !important;
+            border-radius: 8px !important;
+          }
+        }
+        @media (max-width: 600px) {
+          .login-card {
+            padding: 12px 1vw !important;
+            font-size: 0.98rem !important;
+          }
+        }
+      `}</style>
       {errorBanner && (
         <div style={{
           position: 'fixed',
@@ -72,9 +94,9 @@ export default function LoginPage() {
       )}
       <div style={styles.overlay} />
       <button onClick={() => router.back()} style={styles.backBtn}>← Back</button>
-      <div style={styles.card}>
+      <div className="login-card" style={styles.card}>
         <h1 style={styles.heading}>Login</h1>
-        <form onSubmit={handleLogin} style={styles.form}>
+        <form className="login-form" onSubmit={handleLogin} style={styles.form}>
           <input
             type="email"
             placeholder="Email"

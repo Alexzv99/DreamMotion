@@ -66,8 +66,47 @@ export default function Dashboard() {
       flexDirection: 'column',
       alignItems: 'center',
       justifyContent: 'center',
-      backdropFilter: 'blur(2px)'
+      backdropFilter: 'blur(2px)',
+      position: 'relative'
     }}>
+      <style>{`
+        @media (max-width: 900px) {
+          .dashboard-container {
+            max-width: 100vw !important;
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+          .tools-grid {
+            flex-direction: column !important;
+            gap: 18px !important;
+            max-width: 100vw !important;
+            padding: 0 2vw !important;
+          }
+          .tools-row {
+            flex-direction: column !important;
+            gap: 18px !important;
+            align-items: stretch !important;
+            padding: 0 !important;
+          }
+          .tool-box, .help-box {
+            max-width: 98vw !important;
+            padding: 18px 2vw !important;
+            font-size: 1rem !important;
+            border-radius: 10px !important;
+          }
+          .dashboard-navbar {
+            flex-direction: column !important;
+            gap: 12px !important;
+            font-size: 1.1rem !important;
+          }
+        }
+        @media (max-width: 600px) {
+          .tool-box, .help-box {
+            padding: 12px 1vw !important;
+            font-size: 0.98rem !important;
+          }
+        }
+      `}</style>
       {/* Dark overlay */}
       <div style={{
         position: 'absolute',
@@ -76,9 +115,9 @@ export default function Dashboard() {
         zIndex: 0
       }} />
 
-      <div style={{ position: 'relative', zIndex: 1 }}>
+      <div className="dashboard-container" style={{ position: 'relative', zIndex: 1 }}>
         {/* Navbar */}
-        <nav style={{
+        <nav className="dashboard-navbar" style={{
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
@@ -117,8 +156,8 @@ export default function Dashboard() {
         </div>
 
         {/* Tools Section */}
-        <div style={toolsGrid}>
-          <div style={rowStyle}>
+        <div className="tools-grid" style={toolsGrid}>
+          <div className="tools-row" style={rowStyle}>
             <ToolBox 
               title="🖼️ Generate Image"
               desc="Create stunning images from your prompt using our text-to-image tool."
@@ -132,7 +171,7 @@ export default function Dashboard() {
               link="/generate-tool?type=genvideo"
             />
           </div>
-          <div style={rowStyle}>
+          <div className="tools-row" style={rowStyle}>
             <ToolBox 
               title="📽️ Text to Video"
               desc="Describe a scene and let DreamMotion create an animated video for you."
@@ -149,7 +188,7 @@ export default function Dashboard() {
 
           {/* Help */}
           <div style={{ display: 'flex', justifyContent: 'center', marginTop: '40px' }}>
-            <div style={boxStyle}>
+            <div className="help-box" style={boxStyle}>
               <h3 style={boxTitle}>🛠️ Need Help?</h3>
               <p style={boxText}>
                 If you&apos;re stuck or have questions, we&apos;re here for you.
@@ -180,7 +219,7 @@ export default function Dashboard() {
 
 function ToolBox({ title, desc, price, link }) {
   return (
-    <div style={{
+    <div className="tool-box" style={{
       backgroundColor: '#fff', // white
       color: '#222', // dark text
       borderRadius: '12px',
@@ -210,6 +249,7 @@ function ToolBox({ title, desc, price, link }) {
           marginBottom: '12px',
           cursor: 'pointer',
           transition: 'background 0.2s',
+          width: '100%'
         }}>Open Tool</button>
       </Link>
     </div>

@@ -223,17 +223,50 @@ export default function GenerateToolClient() {
         @media (max-width: 900px) {
           .responsive-container {
             flex-direction: column !important;
-            max-width: 98vw !important;
-            margin: 16px auto !important;
+            max-width: 100vw !important;
+            margin: 0 !important;
             min-height: unset !important;
-            border-radius: 8px !important;
-            box-shadow: 0 1px 6px rgba(0,0,0,0.10) !important;
+            border-radius: 0 !important;
+            box-shadow: none !important;
             padding: 0 !important;
           }
           .responsive-panel {
-            padding: 24px 12px 24px 12px !important;
-            min-width: unset !important;
+            padding: 18px 6vw 18px 6vw !important;
+            min-width: 0 !important;
             max-width: 100vw !important;
+            border-radius: 0 !important;
+            box-shadow: none !important;
+          }
+          .controls-card {
+            padding: 24px 4vw !important;
+            border-radius: 12px !important;
+            font-size: 1rem !important;
+          }
+          .creative-btn {
+            width: 100% !important;
+            font-size: 1.05rem !important;
+            padding: 14px 0 !important;
+            border-radius: 14px !important;
+          }
+          .preview-panel {
+            padding: 18px 4vw !important;
+            min-width: 0 !important;
+            max-width: 100vw !important;
+            border-radius: 0 !important;
+          }
+          .preview-panel img, .preview-panel video {
+            max-width: 98vw !important;
+            max-height: 40vh !important;
+            border-radius: 10px !important;
+          }
+        }
+        @media (max-width: 600px) {
+          .controls-card {
+            padding: 16px 2vw !important;
+            font-size: 0.98rem !important;
+          }
+          .preview-panel {
+            padding: 12px 2vw !important;
           }
         }
       `}</style>
@@ -289,7 +322,7 @@ export default function GenerateToolClient() {
           minWidth: 340,
           maxWidth: 480,
         }}>
-          <div style={{
+          <div className="controls-card" style={{
             background: '#fff',
             color: '#222',
             borderRadius: '24px',
@@ -582,7 +615,7 @@ export default function GenerateToolClient() {
           </div>
         )}
         </div>
-        <div className="responsive-panel" style={{
+        <div className="responsive-panel preview-panel" style={{
           flex: 1.2,
           padding: '40px 48px 40px 40px',
           display: 'flex',

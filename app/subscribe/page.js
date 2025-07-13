@@ -18,6 +18,35 @@ export default function SubscribePage() {
       backgroundPosition: 'center',
       position: 'relative'
     }}>
+      <style>{`
+        @media (max-width: 900px) {
+          .subscribe-plans {
+            flex-direction: column !important;
+            gap: 18px !important;
+            max-width: 100vw !important;
+            padding: 0 2vw !important;
+          }
+          .plan-card {
+            max-width: 98vw !important;
+            width: 98vw !important;
+            padding: 18px 2vw !important;
+            font-size: 1rem !important;
+            border-radius: 10px !important;
+          }
+          .plan-card button {
+            width: 100% !important;
+            font-size: 1.05rem !important;
+            padding: 14px 0 !important;
+            border-radius: 14px !important;
+          }
+        }
+        @media (max-width: 600px) {
+          .plan-card {
+            padding: 12px 1vw !important;
+            font-size: 0.98rem !important;
+          }
+        }
+      `}</style>
       <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.75)', zIndex: 0 }} />
       {/* Back Button */}
       <button
@@ -42,7 +71,7 @@ export default function SubscribePage() {
       <div style={{ fontSize: '16px', color: 'white', marginBottom: '32px', textAlign: 'center', zIndex: 1 }}>
         Choose the best plan for your creative journey — buy credits once and use them freely on any tool, anytime.
       </div>
-      <div style={{
+      <div className="subscribe-plans" style={{
         display: 'flex',
         gap: '30px',
         flexWrap: 'wrap',
@@ -97,7 +126,7 @@ export default function SubscribePage() {
             ]
           },
         ].map((plan, i) => (
-          <div key={i} style={{
+          <div key={i} className="plan-card" style={{
             background: 'white',
             color: 'black',
             padding: '20px',
