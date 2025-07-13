@@ -4,6 +4,7 @@ import Link from 'next/link';
 
 export default function Home() {
   const [cookiesAccepted, setCookiesAccepted] = useState(false);
+  const [showCookieBar, setShowCookieBar] = useState(false);
 
   return (
     <div
@@ -44,6 +45,9 @@ export default function Home() {
         <div style={{ fontSize: 15, fontWeight: 400, marginBottom: 28, lineHeight: 1.3, color: '#b0b0b0' }}>
           The fastest way to create AI-powered images & videos<br />
           Bring your creative ideas to life with cinematic motion
+          <div style={{ color: '#ff3b3b', marginTop: 8 }}>
+            including realistic Ai NSFW generated motion
+          </div>
         </div>
         <Link href="/dashboard">
           <button
@@ -61,14 +65,22 @@ export default function Home() {
               marginBottom: 10,
               cursor: 'pointer'
             }}
-            onClick={() => window.location.href = '/dashboard'}
+            onClick={() => setShowCookieBar(true)}
           >
             Enter
           </button>
         </Link>
+        <div style={{ marginTop: 12 }}>
+          <Link href="/register" style={{ textDecoration: 'none' }}>
+            <span style={{ fontSize: 14, fontWeight: 400, cursor: 'pointer' }}>
+              <span style={{ color: '#fff' }}>Not a member yet? </span>
+              <span style={{ color: '#ff3b3b', textDecoration: 'underline' }}>Register</span>
+            </span>
+          </Link>
+        </div>
       </div>
-      {/* Cookie bar */}
-      {!cookiesAccepted && (
+      {/* Cookie bar only appears after Enter is pressed */}
+      {showCookieBar && !cookiesAccepted && (
         <div style={{
           position: 'fixed',
           left: 0, right: 0, bottom: 0,
