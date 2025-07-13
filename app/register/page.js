@@ -1,22 +1,29 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabase } from '../supabaseClient';
 
 export default function Register() {
-  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [loading, setLoading] = useState(false);
   const [showCookies, setShowCookies] = useState(true);
+  const [errorMsg, setErrorMsg] = useState('');
+  useEffect(() => {
+    if (errorMsg) {
+      const timer = setTimeout(() => setErrorMsg(''), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [errorMsg]);
+  const router = useRouter();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (password !== confirm) {
-      alert("Passwords do not match.");
+      setErrorMsg('Passwords do not match.');
       return;
     }
 
@@ -30,7 +37,7 @@ export default function Register() {
     setLoading(false);
 
     if (error) {
-      alert("Registration failed: " + error.message);
+      setErrorMsg(error.message.includes('already registered') ? 'User already exists.' : 'Registration failed: ' + error.message);
     } else {
       alert("Check your email to confirm your registration.");
       router.push('/login');
@@ -88,32 +95,28 @@ export default function Register() {
         ← Back
       </button>
 
-      {showCookies && (
-        <div style={{
-          position: 'absolute',
-          bottom: 20,
-          left: 20,
-          right: 20,
-          background: '#fff',
-          color: '#000',
-          padding: '16px',
-          borderRadius: '10px',
-          zIndex: 5,
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          gap: '10px',
-          flexWrap: 'wrap'
-        }}>
-          <span>This site uses cookies to enhance your experience.</span>
-          <div style={{ display: 'flex', gap: '10px' }}>
-            <button onClick={handleAcceptCookies} style={{ padding: '8px 14px', borderRadius: '6px', backgroundColor: '#4caf50', color: '#fff', border: 'none', cursor: 'pointer' }}>Accept</button>
-            <button onClick={handleRejectCookies} style={{ padding: '8px 14px', borderRadius: '6px', backgroundColor: '#f44336', color: '#fff', border: 'none', cursor: 'pointer' }}>Reject</button>
-          </div>
-        </div>
-      )}
 
       <div style={{ position: 'relative', zIndex: 1, textAlign: 'center' }}>
+        {errorMsg && (
+          <div style={{
+            position: 'fixed',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            background: '#ff3b3b',
+            color: 'white',
+            padding: '24px 32px',
+            fontWeight: 'bold',
+            textAlign: 'center',
+            zIndex: 1000,
+            borderRadius: '12px',
+            boxShadow: '0 2px 16px rgba(0,0,0,0.25)',
+            minWidth: '260px',
+            fontSize: '1.2rem'
+          }}>
+            {errorMsg}
+          </div>
+        )}
         <h1 style={{ fontSize: '2rem', marginBottom: '30px', color: '#fff', fontWeight: 'bold' }}>Create Your Account</h1>
 
         <form onSubmit={handleSubmit} style={{

@@ -15,23 +15,25 @@ export default function GenerateToolClient() {
   const [aspectRatio, setAspectRatio] = useState('1:1');
   const aspectOptions = {
     'wan-2.1-i2v-720p': [
+      { value: '1:1', label: '1:1' },
+      { value: '3:4', label: '3:4' },
+      { value: '4:3', label: '4:3' },
       { value: '16:9', label: '16:9' },
-      { value: '9:16', label: '9:16' },
-      { value: '1:1', label: '1:1' }
+      { value: '9:16', label: '9:16' }
     ],
     'seedance-1-pro': [
+      { value: '1:1', label: '1:1' },
+      { value: '3:4', label: '3:4' },
+      { value: '4:3', label: '4:3' },
       { value: '16:9', label: '16:9' },
-      { value: '9:16', label: '9:16' },
-      { value: '1:1', label: '1:1' }
+      { value: '9:16', label: '9:16' }
     ],
     'luma-ray-2-540p': [
-      { value: '16:9', label: '16:9 (Landscape)' },
+      { value: '1:1', label: '1:1' },
+      { value: '3:4', label: '3:4' },
       { value: '4:3', label: '4:3' },
-      { value: '1:1', label: '1:1 (Square)' },
-      { value: '3:4', label: '3:4 (Portrait)' },
-      { value: '9:16', label: '9:16 (Vertical)' },
-      { value: '9:21', label: '9:21' },
-      { value: '21:9', label: '21:9' }
+      { value: '16:9', label: '16:9' },
+      { value: '9:16', label: '9:16' }
     ],
     'hailuo': [],
     'hailuo-v2': [],
@@ -107,7 +109,29 @@ export default function GenerateToolClient() {
 
   const handleGenerate = async () => {
     if (!prompt) return alert('Please enter a prompt.');
-    // ...existing code for generation logic...
+    setLoading(true);
+    setError('');
+    setPreviewUrl(null);
+    try {
+      // Replace this endpoint with your actual backend or third-party API
+      const res = await fetch('/api/generate-image', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          prompt,
+          aspectRatio
+        })
+      });
+      if (!res.ok) throw new Error('Failed to generate image');
+      const data = await res.json();
+      if (!data?.imageUrl) throw new Error('No image returned');
+      setPreviewUrl(data.imageUrl);
+    } catch (err) {
+      setError(err.message || 'Error generating image');
+    }
+    setLoading(false);
   };
 
   const handleDownload = async () => {
@@ -157,6 +181,28 @@ export default function GenerateToolClient() {
       }} />
 
       <div style={{ position: 'relative', zIndex: 1, maxWidth: 700, margin: '0 auto', background: 'rgba(255,255,255,0.85)', borderRadius: 24, boxShadow: '0 8px 32px rgba(0,0,0,0.15)', padding: 32 }}>
+        {/* Creative Banner */}
+        {type === 'genimage' && (
+          <div style={{
+            background: 'linear-gradient(90deg, #ff3b3b 0%, #ffb347 100%)',
+            color: 'white',
+            fontWeight: 700,
+            fontSize: '1.5rem',
+            padding: '18px 32px',
+            borderRadius: '18px',
+            textAlign: 'center',
+            marginBottom: 24,
+            boxShadow: '0 4px 24px rgba(255,59,59,0.15)',
+            letterSpacing: '1px',
+            textShadow: '0 2px 8px rgba(0,0,0,0.12)'
+          }}>
+            Unleash your imagination!<br />
+            Create stunning images from pure text prompts.<br />
+            <span style={{ fontSize: '1.1rem', fontWeight: 400, color: '#fffbe6' }}>
+              Choose your aspect ratio and let creativity flow.
+            </span>
+          </div>
+        )}
         <h1 style={{ fontSize: '2.2rem', fontWeight: 700, marginBottom: 8 }}>{tool.title}</h1>
         <div style={{ fontSize: '1.1rem', marginBottom: 16 }}>{tool.desc}</div>
         {tool.note && <div style={{ color: '#0070f3', fontWeight: 500, marginBottom: 8 }}>{tool.note}</div>}
@@ -175,7 +221,21 @@ export default function GenerateToolClient() {
           </div>
         )}
 
-        {/* Aspect ratio selection */}
+        {/* Aspect ratio selection for genimage */}
+        {type === 'genimage' && (
+          <div style={{ marginBottom: 18 }}>
+            <label style={{ fontWeight: 500 }}>Aspect Ratio:</label>
+            <div style={{ display: 'flex', gap: 12, marginTop: 6 }}>
+              {['1:1', '3:4', '4:3', '16:9', '9:16'].map(ratio => (
+                <label key={ratio} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <input type="radio" name="aspectRatio" value={ratio} checked={aspectRatio === ratio} onChange={() => setAspectRatio(ratio)} />
+                  {ratio}
+                </label>
+              ))}
+            </div>
+          </div>
+        )}
+        {/* Aspect ratio selection for video tools */}
         {(type === 'image2video' || type === 'genvideo' || type === 'text2video') && aspectOptions[videoModel]?.length > 0 && (
           <div style={{ marginBottom: 18 }}>
             <label style={{ fontWeight: 500 }}>Aspect Ratio:</label>
@@ -253,8 +313,37 @@ export default function GenerateToolClient() {
 
         {/* Generate button */}
         {(tool.inputType !== 'none') && (
-          <Button onClick={handleGenerate} style={{ fontSize: '1.1rem', padding: '10px 32px', borderRadius: 12, background: '#0070f3', color: '#fff', fontWeight: 600, marginTop: 8 }}>
-            Generate
+          <Button
+            onClick={handleGenerate}
+            style={{
+              fontSize: '1.2rem',
+              padding: '14px 40px',
+              borderRadius: 16,
+              background: 'linear-gradient(90deg, #222 0%, #444 100%)',
+              color: '#fff',
+              fontWeight: 700,
+              marginTop: 16,
+              boxShadow: '0 4px 18px rgba(0,0,0,0.18)',
+              letterSpacing: '1px',
+              border: 'none',
+              textTransform: 'uppercase',
+              transition: 'background 0.3s',
+              cursor: 'pointer',
+              position: 'relative',
+              overflow: 'hidden'
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = 'linear-gradient(90deg, #444 0%, #222 100%)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'linear-gradient(90deg, #222 0%, #444 100%)'}
+          >
+            <span style={{
+              display: 'inline-block',
+              background: 'linear-gradient(90deg, #ff3b3b 0%, #ffb347 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              fontWeight: 800,
+              fontSize: '1.2em',
+              letterSpacing: '2px'
+            }}>Generate</span>
           </Button>
         )}
 

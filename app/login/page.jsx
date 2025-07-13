@@ -7,7 +7,15 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [errorBanner, setErrorBanner] = useState('');
   const router = useRouter();
+  // Auto-hide error banner after 3 seconds
+  useEffect(() => {
+    if (errorBanner) {
+      const timer = setTimeout(() => setErrorBanner(''), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [errorBanner]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -19,9 +27,8 @@ export default function LoginPage() {
     });
 
     setLoading(false);
-
     if (error) {
-      alert('Login failed: ' + error.message);
+      setErrorBanner('Login failed: ' + error.message);
     } else {
       router.push('/dashboard');
     }
@@ -43,6 +50,26 @@ export default function LoginPage() {
       margin: '0',
       backdropFilter: 'blur(2px)'
     }}>
+      {errorBanner && (
+        <div style={{
+          position: 'fixed',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          background: '#ff3b3b',
+          color: 'white',
+          padding: '24px 32px',
+          fontWeight: 'bold',
+          textAlign: 'center',
+          zIndex: 10001,
+          borderRadius: '12px',
+          boxShadow: '0 2px 16px rgba(0,0,0,0.25)',
+          minWidth: '260px',
+          fontSize: '1.2rem'
+        }}>
+          {errorBanner}
+        </div>
+      )}
       <div style={styles.overlay} />
       <button onClick={() => router.back()} style={styles.backBtn}>← Back</button>
       <div style={styles.card}>
