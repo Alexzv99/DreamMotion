@@ -10,7 +10,7 @@ async function generateImage({ prompt, aspect_ratio }) {
     // Accept type, video_model, duration for video requests
     const { type = 'genimage', video_model, duration } = arguments[0] || {};
     let prediction;
-    if (type === 'text2video') {
+        if (type === 'text2video' || type === 'genvideo') {
       // Use correct video model version for text2video
       let version;
       if (video_model === 'hailuo-02') {
@@ -30,6 +30,27 @@ async function generateImage({ prompt, aspect_ratio }) {
           duration: duration || 6,
         },
       });
+        } else if (type === 'genvideo') {
+            let version;
+            if (video_model === 'hailuo-02') {
+                version = '0d9f5f2f92cfd480087dfe7aa91eadbc1d48fbb1a0260379e2b30ca739fb20bd'; // Hailuo 02
+            } else if (video_model === 'veo-3-fast') {
+                version = 'd7aca9396ea28c4ef46700a43cb59546c9948396eb571ca083df8344391335b3'; // Veo 3 Fast
+            } else if (video_model === 'veo-3') {
+                version = '590348ebd4cb656f3fc5b9270c4c19fb2abc5d1ae6101f7874413a3ec545260d'; // Veo 3
+            } else if (video_model === 'wan-2.1-i2v-720p') {
+                version = '0881fa8c32dcef98861684ad61a062c547d19a15f20bc923ac29996c82d10337'; // New genvideo model
+            } else {
+                version = '0d9f5f2f92cfd480087dfe7aa91eadbc1d48fbb1a0260379e2b30ca739fb20bd'; // Default to Hailuo 02
+            }
+            prediction = await replicate.predictions.create({
+                version,
+                input: {
+                    prompt,
+                    aspect_ratio,
+                    duration: duration || 6,
+                },
+            });
     } else {
       // Default: Flux image model
       const allowedRatios = [

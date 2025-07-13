@@ -33,10 +33,24 @@ export default function GenerateToolClient() {
   const [error, setError] = useState('');
   const [duration, setDuration] = useState(null);
   const [videoModel, setVideoModel] = useState('hailuo-02');
-  const videoModels = [
-    { name: 'Hailuo 02 (Minimax)', value: 'hailuo-02', info: '🎥 minimax / hailuo-02 — 6-10s cinematic video.' },
+  const genvideoModels = [
+    { name: 'Hailuo 02 (Minimax)', value: 'hailuo-02', info: '🎥 minimax/hailuo-02 — 6-10s cinematic video.' },
+    { name: 'WAN 2.1 I2V 720p (WavespeedAI)', value: 'wan-2.1-i2v-720p', info: '🌊 wavespeedai/wan-2.1-i2v-720p cinematic video.' },
+    { name: 'Kling v2.1 (Kwaivgi)', value: 'kling-v2.1', info: '🦾 kwaivgi/kling-v2.1 cinematic video.' },
+    { name: 'Seedance 1 Pro (Bytedance)', value: 'seedance-1-pro', info: '🌊 bytedance/seedance-1-pro cinematic video.' },
+    { name: 'Ray (Luma)', value: 'ray', info: '🌟 luma/ray cinematic video.' }
+  ];
+  const text2videoModels = [
+    { name: 'Hailuo 02 (Minimax)', value: 'hailuo-02', info: '🎥 minimax/hailuo-02 — 6-10s cinematic video.' },
     { name: 'Veo 3 Fast (Google)', value: 'veo-3-fast', info: '🚀 Google / Veo 3 Fast — 16:9 cinematic video.' },
-    { name: 'Veo 3 (Google)', value: 'veo-3', info: '� Google / Veo 3 — 16:9 cinematic video.' }
+    { name: 'Veo 3 (Google)', value: 'veo-3', info: '🎬 Google / Veo 3 — 16:9 cinematic video.' }
+  ];
+  const videoModels = [
+    { name: 'Hailuo 02 (Minimax)', value: 'hailuo-02', info: '🎥 minimax/hailuo-02 — 6-10s cinematic video.' },
+    { name: 'WAN 2.1 I2V 720p (WavespeedAI)', value: 'wan-2.1-i2v-720p', info: '🌊 wavespeedai/wan-2.1-i2v-720p cinematic video.' },
+    { name: 'Kling v2.1 (Kwaivgi)', value: 'kling-v2.1', info: '🦾 kwaivgi/kling-v2.1 cinematic video.' },
+    { name: 'Seedance 1 Pro (Bytedance)', value: 'seedance-1-pro', info: '🌊 bytedance/seedance-1-pro cinematic video.' },
+    { name: 'Ray (Luma)', value: 'ray', info: '🌟 luma/ray cinematic video.' }
   ];
 
   const validRatios = ['1:1', '3:4', '16:9', '9:16'];
@@ -62,7 +76,7 @@ export default function GenerateToolClient() {
       title: '🎞️ Generate Video',
       desc: 'Transform images into cinematic motion.',
       note: '',
-      credits: '20 credits / second',
+      credits: '2 credits / second',
       inputType: 'file',
       bg: '/background-2.png'
     },
@@ -76,7 +90,7 @@ export default function GenerateToolClient() {
     },
     genimage: {
       title: '🖌️ Generate Image',
-      desc: 'Create stunning images from your prompt using our text-to-image tool.',
+      desc: 'Create stunning images from your prompt using Flux model only.',
       note: '',
       credits: '1 credit per image',
       inputType: 'text',
@@ -94,7 +108,10 @@ export default function GenerateToolClient() {
 
   const tool = tools[type];
   let toolCredits = tool ? tool.credits : '';
-  if (tool && (type === 'image2video' || type === 'genvideo' || type === 'text2video')) {
+  if (tool && type === 'genvideo') {
+    toolCredits = '2 credits / second';
+  }
+  if (tool && type === 'image2video') {
     if (videoModel === 'veo-3-fast') {
       toolCredits = '5 credits / second';
     } else if (videoModel === 'veo-3') {
@@ -125,8 +142,8 @@ export default function GenerateToolClient() {
         body.aspect_ratio = aspectRatio;
         if (videoModel === 'hailuo-02') {
           body.duration = duration || 6;
-        } else if (videoModel === 'veo-3-fast' || videoModel === 'veo-3') {
-          body.duration = 8;
+        } else if (videoModel === 'kling-v2.1' || videoModel === 'seedance-1-pro' || videoModel === 'ray' || videoModel === 'wan-2.1-i2v-720p') {
+          body.duration = 8; // Default duration for Kling v2.1, Seedance 1 Pro, Ray, and WAN 2.1 I2V 720p
         }
       } else if (type === 'genimage') {
         body.aspect_ratio = aspectRatio;
@@ -291,42 +308,68 @@ export default function GenerateToolClient() {
           {tool.note && <div style={{ color: '#0070f3', fontWeight: 500, marginBottom: 8 }}>{tool.note}</div>}
           <div style={{ fontSize: '0.95rem', color: '#c00', marginBottom: 16, fontWeight: 'bold' }}>Credits: <b>{toolCredits}</b></div>
           {/* Model selection for video tools */}
-          {(type === 'image2video' || type === 'genvideo' || type === 'text2video') && (
+          {(type === 'genvideo') && (
             <div style={{
               marginBottom: 18,
-            background: '#fff',
-            borderRadius: 14,
-            boxShadow: '0 2px 12px rgba(30,30,40,0.10)',
-            padding: '18px 28px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 18,
-            fontSize: '1.08rem',
-            fontWeight: 600,
-            color: '#222',
-            border: '1.5px solid #e5e7eb'
-          }}>
-            <label htmlFor="videoModel" style={{ fontWeight: 600, marginRight: 8 }}>Model:</label>
-            <select id="videoModel" value={videoModel} onChange={e => setVideoModel(e.target.value)} style={{ padding: '7px 18px', borderRadius: 10, border: '1.5px solid #d1d5db', background: '#f3f4f6', color: '#222', fontWeight: 600, fontSize: '1.05rem', boxShadow: '0 1px 6px rgba(60,60,60,0.08)' }}>
-              {videoModels.map(m => (
-                <option key={m.value} value={m.value}>{m.name}</option>
-              ))}
-            </select>
-            {/* Removed extra info text for video models to match dashboard style */}
-          </div>
-        )}
+              background: '#fff',
+              borderRadius: 14,
+              boxShadow: '0 2px 12px rgba(30,30,40,0.10)',
+              padding: '18px 28px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 18,
+              fontSize: '1.08rem',
+              fontWeight: 600,
+              color: '#222',
+              border: '1.5px solid #e5e7eb'
+            }}>
+              <label htmlFor="videoModel" style={{ fontWeight: 600, marginRight: 8 }}>Model:</label>
+              <select id="videoModel" value={videoModel} onChange={e => setVideoModel(e.target.value)} style={{ padding: '7px 18px', borderRadius: 10, border: '1.5px solid #d1d5db', background: '#f3f4f6', color: '#222', fontWeight: 600, fontSize: '1.05rem', boxShadow: '0 1px 6px rgba(60,60,60,0.08)' }}>
+                {genvideoModels.map(m => (
+                  <option key={m.value} value={m.value}>{m.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+          {(type === 'text2video') && (
+            <div style={{
+              marginBottom: 18,
+              background: '#fff',
+              borderRadius: 14,
+              boxShadow: '0 2px 12px rgba(30,30,40,0.10)',
+              padding: '18px 28px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 18,
+              fontSize: '1.08rem',
+              fontWeight: 600,
+              color: '#222',
+              border: '1.5px solid #e5e7eb'
+            }}>
+              <label htmlFor="videoModel" style={{ fontWeight: 600, marginRight: 8 }}>Model:</label>
+              <select id="videoModel" value={videoModel} onChange={e => setVideoModel(e.target.value)} style={{ padding: '7px 18px', borderRadius: 10, border: '1.5px solid #d1d5db', background: '#f3f4f6', color: '#222', fontWeight: 600, fontSize: '1.05rem', boxShadow: '0 1px 6px rgba(60,60,60,0.08)' }}>
+                {text2videoModels.map(m => (
+                  <option key={m.value} value={m.value}>{m.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
 
-        {/* Aspect ratio selection for image models in genimage */}
+        {/* Aspect ratio selection for image models in genimage (Flux only) */}
         {type === 'genimage' && (
           <div style={{ marginBottom: 18 }}>
             <label style={{ fontWeight: 500 }}>Aspect Ratio:</label>
             <div style={{ display: 'flex', gap: 12, marginTop: 6 }}>
+              {/* Only show Flux model aspect ratios */}
               {['1:1', '3:4', '4:3', '16:9', '9:16'].map(ratio => (
                 <label key={ratio} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                   <input type="radio" name="aspectRatio" value={ratio} checked={aspectRatio === ratio} onChange={() => setAspectRatio(ratio)} />
                   {ratio}
                 </label>
               ))}
+            </div>
+            <div style={{ marginTop: 10, color: '#0070f3', fontWeight: 600 }}>
+              Model: <b>Flux</b> (only)
             </div>
           </div>
         )}
@@ -354,7 +397,7 @@ export default function GenerateToolClient() {
             </div>
           </div>
         )}
-        {(type === 'image2video' || type === 'genvideo' || type === 'text2video') && (videoModel === 'veo-3-fast' || videoModel === 'veo-3') && (
+        {(type === 'image2video' || type === 'genvideo' || type === 'text2video') && (videoModel === 'hailuo-02' || videoModel === 'wan-2.1-i2v-720p' || videoModel === 'kling-v2.1' || videoModel === 'seedance-1-pro' || videoModel === 'ray') && (
           <div style={{
             marginBottom: 18,
             background: '#fff',
@@ -369,7 +412,9 @@ export default function GenerateToolClient() {
             color: '#222',
             border: '1.5px solid #e5e7eb'
           }}>
-            <span style={{ fontWeight: 700, fontSize: '1.05rem', marginRight: 8 }}>Veo 3 Model</span>
+            <span style={{ fontWeight: 700, fontSize: '1.05rem', marginRight: 8 }}>
+              {videoModel === 'hailuo-02' ? 'Hailuo 02 Model' : videoModel === 'wan-2.1-i2v-720p' ? 'WAN 2.1 I2V 720p Model' : videoModel === 'kling-v2.1' ? 'Kling v2.1 Model' : videoModel === 'seedance-1-pro' ? 'Seedance 1 Pro Model' : videoModel === 'ray' ? 'Ray Model' : ''}
+            </span>
             <span>Aspect Ratio: <b>16:9</b> (fixed)</span>
             <span>Duration: <b>8s</b> (fixed)</span>
           </div>
