@@ -1,4 +1,3 @@
-
 'use client';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
@@ -15,42 +14,29 @@ export default function GenerateToolClient() {
   const [prompt, setPrompt] = useState('');
   const [aspectRatio, setAspectRatio] = useState('1:1');
   const aspectOptions = {
-    'wan-2.1-i2v-720p': [
+    'hailuo-02': [
       { value: '1:1', label: '1:1' },
       { value: '3:4', label: '3:4' },
       { value: '4:3', label: '4:3' },
       { value: '16:9', label: '16:9' },
       { value: '9:16', label: '9:16' }
     ],
-    'seedance-1-pro': [
-      { value: '1:1', label: '1:1' },
-      { value: '3:4', label: '3:4' },
-      { value: '4:3', label: '4:3' },
-      { value: '16:9', label: '16:9' },
-      { value: '9:16', label: '9:16' }
+    'veo-3-fast': [
+      { value: '16:9', label: '16:9' }
     ],
-    'luma-ray-2-540p': [
-      { value: '1:1', label: '1:1' },
-      { value: '3:4', label: '3:4' },
-      { value: '4:3', label: '4:3' },
-      { value: '16:9', label: '16:9' },
-      { value: '9:16', label: '9:16' }
-    ],
-    'hailuo': [],
-    'hailuo-v2': [],
-    'veo': [
+    'veo-3': [
       { value: '16:9', label: '16:9' }
     ]
   };
   const [loading, setLoading] = useState(false);
+  const [loadingMinutes, setLoadingMinutes] = useState(0);
   const [error, setError] = useState('');
   const [duration, setDuration] = useState(null);
-  const [videoModel, setVideoModel] = useState('hailuo');
+  const [videoModel, setVideoModel] = useState('hailuo-02');
   const videoModels = [
-    { name: 'WAN 2.1 HD (Image to Video)', value: 'wan-2.1-i2v-720p', info: '🌀 wavespeedai / wan-2.1-i2v-720p — 5s or 10s. Efficient and fast.' },
-    { name: 'Hailuo Live (Fast Animation)', value: 'hailuo', info: '🎥 minimax / video-01 (Hailuo) — 6s default, sometimes 10s.' },
-    { name: 'Seedance Pro (HD 1080p)', value: 'seedance-1-pro', info: '🌊 bytedance / seedance-1-pro — 5s or 10s, 480p or 1080p.' },
-    { name: 'Luma Ray 2 (Lite Quality)', value: 'luma-ray-2-540p', info: '💡 luma / ray (Dream Machine) — 4–8s typical.' }
+    { name: 'Hailuo 02 (Minimax)', value: 'hailuo-02', info: '🎥 minimax / hailuo-02 — 6-10s cinematic video.' },
+    { name: 'Veo 3 Fast (Google)', value: 'veo-3-fast', info: '🚀 Google / Veo 3 Fast — 16:9 cinematic video.' },
+    { name: 'Veo 3 (Google)', value: 'veo-3', info: '� Google / Veo 3 — 16:9 cinematic video.' }
   ];
 
   const validRatios = ['1:1', '3:4', '16:9', '9:16'];
@@ -107,6 +93,14 @@ export default function GenerateToolClient() {
   };
 
   const tool = tools[type];
+  let toolCredits = tool ? tool.credits : '';
+  if (tool && (type === 'image2video' || type === 'genvideo' || type === 'text2video')) {
+    if (videoModel === 'veo-3-fast') {
+      toolCredits = '5 credits / second';
+    } else if (videoModel === 'veo-3') {
+      toolCredits = '20 credits / second';
+    }
+  }
 
   const handleGenerate = async () => {
     if (!prompt) return alert('Please enter a prompt.');
@@ -114,18 +108,39 @@ export default function GenerateToolClient() {
     setError('');
     setPreviewUrl(null);
     setGenerationTime(null);
+    setLoadingMinutes(0);
     const start = Date.now();
+    let timer;
+    if (type === 'text2video' || type === 'genvideo' || type === 'image2video') {
+      timer = setInterval(() => {
+        setLoadingMinutes(prev => prev + 1);
+      }, 60000);
+    }
     try {
-      // Send aspect_ratio and use output property from backend
+      let body = { prompt };
+      // Always send 'type' in the request body
+      body.type = type;
+      if (type === 'image2video' || type === 'genvideo' || type === 'text2video') {
+        body.video_model = videoModel;
+        body.aspect_ratio = aspectRatio;
+        if (videoModel === 'hailuo-02') {
+          body.duration = duration || 6;
+        } else if (videoModel === 'veo-3-fast' || videoModel === 'veo-3') {
+          body.duration = 8;
+        }
+      } else if (type === 'genimage') {
+        body.aspect_ratio = aspectRatio;
+      }
+      // Remove video_model if type is genimage
+      if (type === 'genimage' && 'video_model' in body) {
+        delete body.video_model;
+      }
       const res = await fetch('/api/generate-image', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          prompt,
-          aspect_ratio: aspectRatio
-        })
+        body: JSON.stringify(body)
       });
       if (!res.ok) throw new Error('Failed to generate image');
       const data = await res.json();
@@ -139,6 +154,7 @@ export default function GenerateToolClient() {
     } catch (err) {
       setError(err.message || 'Error generating image');
     }
+    if (timer) clearInterval(timer);
     setLoading(false);
   };
 
@@ -172,64 +188,135 @@ export default function GenerateToolClient() {
   return (
     <main style={{
       minHeight: '100vh',
-      backgroundImage: `url(${tool.bg})`,
+      backgroundImage: 'url("/background-2.png")',
       backgroundSize: 'cover',
       backgroundPosition: 'center',
-      backgroundRepeat: 'no-repeat',
-      fontFamily: 'Inter, Arial, sans-serif',
-      padding: '40px',
+      fontFamily: 'Inter, Helvetica, Arial, sans-serif',
+      color: '#222',
+      padding: '0',
+      margin: '0',
       position: 'relative',
-      color: '#000'
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backdropFilter: 'blur(2px)'
     }}>
       <div style={{
         position: 'absolute',
         top: 0, left: 0, right: 0, bottom: 0,
-        background: 'rgba(0, 0, 0, 0.6)',
+        background: 'rgba(0, 0, 0, 0.65)',
         zIndex: 0
       }} />
 
-      <div style={{ position: 'relative', zIndex: 1, maxWidth: 700, margin: '0 auto', background: 'rgba(255,255,255,0.85)', borderRadius: 24, boxShadow: '0 8px 32px rgba(0,0,0,0.15)', padding: 32 }}>
-        {/* Creative Banner */}
-        {type === 'genimage' && (
+      <button
+        onClick={() => router.push('/dashboard')}
+        style={{
+          position: 'fixed',
+          top: 24,
+          left: 32,
+          background: '#fff',
+          color: '#222',
+          border: '1.5px solid #222',
+          borderRadius: 8,
+          fontWeight: 600,
+          fontSize: '1rem',
+          padding: '7px 18px',
+          cursor: 'pointer',
+          boxShadow: '0 1px 6px rgba(60,60,60,0.08)',
+          zIndex: 100
+        }}
+      >
+        ← Back
+      </button>
+      <div style={{
+        position: 'relative',
+        zIndex: 1,
+        maxWidth: 1200,
+        margin: '40px auto',
+        background: '#fff',
+        borderRadius: '12px',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+        padding: 0,
+        display: 'flex',
+        flexDirection: 'row',
+        gap: 0,
+        minHeight: 520,
+        overflow: 'hidden'
+      }}>
+        {/* Controls Panel */}
+        <div style={{
+          flex: 1,
+          padding: '40px 40px 40px 48px',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'flex-start',
+          minWidth: 340,
+          maxWidth: 480,
+        }}>
           <div style={{
-            background: 'linear-gradient(90deg, #ff3b3b 0%, #ffb347 100%)',
-            color: 'white',
-            fontWeight: 700,
-            fontSize: '1.5rem',
-            padding: '18px 32px',
-            borderRadius: '18px',
+            background: '#fff',
+            color: '#222',
+            borderRadius: '24px',
+            boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.18)',
+            border: '2px solid',
+            borderImage: 'linear-gradient(90deg, #c00 0%, #007bff 100%) 1',
+            padding: '48px 40px',
+            marginBottom: 20,
+            marginTop: 8,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
             textAlign: 'center',
-            marginBottom: 24,
-            boxShadow: '0 4px 24px rgba(255,59,59,0.15)',
-            letterSpacing: '1px',
-            textShadow: '0 2px 8px rgba(0,0,0,0.12)'
+            position: 'relative',
+            overflow: 'hidden',
+            animation: 'popIn 0.7s cubic-bezier(.68,-0.55,.27,1.55)'
           }}>
-            Unleash your imagination!<br />
-            Create stunning images from pure text prompts.<br />
-            <span style={{ fontSize: '1.1rem', fontWeight: 400, color: '#fffbe6' }}>
-              Choose your aspect ratio and let creativity flow.
-            </span>
+            <style>{`
+              @keyframes popIn {
+                0% { transform: scale(0.95); opacity: 0; }
+                60% { transform: scale(1.05); opacity: 1; }
+                100% { transform: scale(1); opacity: 1; }
+              }
+            `}</style>
+            <span style={{
+              fontSize: '2.1rem',
+              fontWeight: 800,
+              letterSpacing: '1px',
+              marginBottom: 8,
+              color: '#111'
+            }}>{tool.title}</span>
+            <span style={{ fontSize: '1.18rem', fontWeight: 500, color: '#444', lineHeight: 1.5 }}>{tool.desc}</span>
           </div>
-        )}
-        <h1 style={{ fontSize: '2.2rem', fontWeight: 700, marginBottom: 8 }}>{tool.title}</h1>
-        <div style={{ fontSize: '1.1rem', marginBottom: 16 }}>{tool.desc}</div>
-        {tool.note && <div style={{ color: '#0070f3', fontWeight: 500, marginBottom: 8 }}>{tool.note}</div>}
-        <div style={{ fontSize: '0.95rem', color: '#555', marginBottom: 16 }}>Credits: <b>{tool.credits}</b></div>
-
-        {/* Model selection for video tools */}
-        {(type === 'image2video' || type === 'genvideo' || type === 'text2video') && (
-          <div style={{ marginBottom: 18 }}>
-            <label htmlFor="videoModel" style={{ fontWeight: 500 }}>Model:</label>
-            <select id="videoModel" value={videoModel} onChange={e => setVideoModel(e.target.value)} style={{ marginLeft: 12, padding: '6px 12px', borderRadius: 8 }}>
+          {tool.note && <div style={{ color: '#0070f3', fontWeight: 500, marginBottom: 8 }}>{tool.note}</div>}
+          <div style={{ fontSize: '0.95rem', color: '#c00', marginBottom: 16, fontWeight: 'bold' }}>Credits: <b>{toolCredits}</b></div>
+          {/* Model selection for video tools */}
+          {(type === 'image2video' || type === 'genvideo' || type === 'text2video') && (
+            <div style={{
+              marginBottom: 18,
+            background: '#fff',
+            borderRadius: 14,
+            boxShadow: '0 2px 12px rgba(30,30,40,0.10)',
+            padding: '18px 28px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 18,
+            fontSize: '1.08rem',
+            fontWeight: 600,
+            color: '#222',
+            border: '1.5px solid #e5e7eb'
+          }}>
+            <label htmlFor="videoModel" style={{ fontWeight: 600, marginRight: 8 }}>Model:</label>
+            <select id="videoModel" value={videoModel} onChange={e => setVideoModel(e.target.value)} style={{ padding: '7px 18px', borderRadius: 10, border: '1.5px solid #d1d5db', background: '#f3f4f6', color: '#222', fontWeight: 600, fontSize: '1.05rem', boxShadow: '0 1px 6px rgba(60,60,60,0.08)' }}>
               {videoModels.map(m => (
                 <option key={m.value} value={m.value}>{m.name}</option>
               ))}
             </select>
-            <div style={{ fontSize: '0.9rem', color: '#666', marginTop: 4 }}>{videoModels.find(m => m.value === videoModel)?.info}</div>
+            {/* Removed extra info text for video models to match dashboard style */}
           </div>
         )}
 
-        {/* Aspect ratio selection for genimage */}
+        {/* Aspect ratio selection for image models in genimage */}
         {type === 'genimage' && (
           <div style={{ marginBottom: 18 }}>
             <label style={{ fontWeight: 500 }}>Aspect Ratio:</label>
@@ -244,35 +331,79 @@ export default function GenerateToolClient() {
           </div>
         )}
         {/* Aspect ratio selection for video tools */}
-        {(type === 'image2video' || type === 'genvideo' || type === 'text2video') && aspectOptions[videoModel]?.length > 0 && (
-          <div style={{ marginBottom: 18 }}>
-            <label style={{ fontWeight: 500 }}>Aspect Ratio:</label>
-            <div style={{ display: 'flex', gap: 12, marginTop: 6 }}>
-              {aspectOptions[videoModel].map(opt => (
-                <label key={opt.value} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <input type="radio" name="aspectRatio" value={opt.value} checked={aspectRatio === opt.value} onChange={() => setAspectRatio(opt.value)} />
+        {(type === 'image2video' || type === 'genvideo' || type === 'text2video') && videoModel === 'hailuo-02' && (
+          <div style={{
+            marginBottom: 18,
+            background: '#fff',
+            borderRadius: 14,
+            boxShadow: '0 2px 12px rgba(30,30,40,0.10)',
+            padding: '18px 28px',
+            fontSize: '1.08rem',
+            fontWeight: 600,
+            color: '#222',
+            border: '1.5px solid #e5e7eb'
+          }}>
+            <label style={{ fontWeight: 600, marginRight: 8 }}>Aspect Ratio:</label>
+            <div style={{ display: 'flex', gap: 12, marginTop: 0 }}>
+              {aspectOptions['hailuo-02'].map(opt => (
+                <label key={opt.value} style={{ display: 'flex', alignItems: 'center', gap: 4, fontWeight: 500 }}>
+                  <input type="radio" name="aspectRatio" value={opt.value} checked={aspectRatio === opt.value} onChange={() => setAspectRatio(opt.value)} style={{ accentColor: '#6366f1', marginRight: 4 }} />
                   {opt.label}
                 </label>
               ))}
             </div>
           </div>
         )}
+        {(type === 'image2video' || type === 'genvideo' || type === 'text2video') && (videoModel === 'veo-3-fast' || videoModel === 'veo-3') && (
+          <div style={{
+            marginBottom: 18,
+            background: '#fff',
+            borderRadius: 14,
+            boxShadow: '0 2px 12px rgba(30,30,40,0.10)',
+            padding: '18px 28px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 18,
+            fontSize: '1.08rem',
+            fontWeight: 600,
+            color: '#222',
+            border: '1.5px solid #e5e7eb'
+          }}>
+            <span style={{ fontWeight: 700, fontSize: '1.05rem', marginRight: 8 }}>Veo 3 Model</span>
+            <span>Aspect Ratio: <b>16:9</b> (fixed)</span>
+            <span>Duration: <b>8s</b> (fixed)</span>
+          </div>
+        )}
 
         {/* Duration slider for video models */}
-        {(type === 'image2video' || type === 'genvideo' || type === 'text2video') && (
+        {(type === 'image2video' || type === 'genvideo' || type === 'text2video') && videoModel === 'hailuo-02' && (
           <div style={{ marginBottom: 18 }}>
-            <label htmlFor="duration" style={{ fontWeight: 500 }}>Duration (seconds):</label>
-            <input
-              id="duration"
-              type="range"
-              min={videoModel === 'wan-2.1-i2v-720p' ? 5 : 4}
-              max={videoModel === 'wan-2.1-i2v-720p' ? 10 : 10}
-              step={videoModel === 'wan-2.1-i2v-720p' ? 5 : 1}
-              value={duration || (videoModel === 'wan-2.1-i2v-720p' ? 5 : 6)}
-              onChange={e => setDuration(Number(e.target.value))}
-              style={{ marginLeft: 12, width: 180 }}
-            />
-            <span style={{ marginLeft: 12, fontWeight: 500 }}>{duration || (videoModel === 'wan-2.1-i2v-720p' ? 5 : 6)}s</span>
+            <label htmlFor="duration" style={{ fontWeight: 600, fontSize: '1rem', marginBottom: 6, display: 'block' }}>Duration (seconds)</label>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {[6, 10].map(val => (
+                <button
+                  key={val}
+                  type="button"
+                  onClick={() => setDuration(val)}
+                  style={{
+                    padding: '7px 18px',
+                    borderRadius: 18,
+                    border: duration === val ? '2px solid #ff3b3b' : '2px solid #eee',
+                    background: duration === val ? 'linear-gradient(90deg,#ffb347 0%,#ff3b3b 100%)' : '#f7f7f7',
+                    color: duration === val ? '#fff' : '#222',
+                    fontWeight: 600,
+                    fontSize: '0.98rem',
+                    cursor: 'pointer',
+                    boxShadow: duration === val ? '0 2px 8px rgba(255,59,59,0.10)' : 'none',
+                    transition: 'all 0.2s',
+                    outline: 'none',
+                    borderBottom: duration === val ? '3px solid #ff3b3b' : 'none',
+                  }}
+                >
+                  {val}s
+                </button>
+              ))}
+            </div>
           </div>
         )}
 
@@ -317,92 +448,68 @@ export default function GenerateToolClient() {
         {error && <div style={{ color: '#c00', fontWeight: 500, marginBottom: 12 }}>{error}</div>}
 
         {/* Loading spinner */}
-        {loading && <div style={{ marginBottom: 12 }}><span>Generating...</span></div>}
+        {loading && (
+          <div style={{ marginBottom: 12, color: '#444', fontWeight: 600, fontSize: '1.08rem' }}>
+            {(type === 'text2video' || type === 'genvideo' || type === 'image2video') ? (() => {
+              let totalEstimate = 5; // default 5 min for Hailuo 02
+              if (videoModel === 'veo-3-fast' || videoModel === 'veo-3') totalEstimate = 8;
+              const left = Math.max(totalEstimate - loadingMinutes, 0);
+              return `Generating video... (~${left} minute${left !== 1 ? 's' : ''} left)`;
+            })() : 'Generating image...'}
+          </div>
+        )}
 
         {/* Generate button */}
         {(tool.inputType !== 'none') && (
           <Button
             onClick={handleGenerate}
+            className="creative-btn"
             style={{
-              fontSize: '1.2rem',
-              padding: '14px 40px',
-              borderRadius: 16,
+              marginTop: 20,
+              fontWeight: 'bold',
+              fontSize: '1.18rem',
+              padding: '16px 28px',
+              borderRadius: '18px',
+              letterSpacing: '0.04em',
+              boxShadow: '0 0 18px 2px #222, 0 0 8px 2px #444',
+              border: 'none',
+              cursor: 'pointer',
               background: 'linear-gradient(90deg, #222 0%, #444 100%)',
               color: '#fff',
-              fontWeight: 700,
-              marginTop: 16,
-              boxShadow: '0 4px 18px rgba(0,0,0,0.18)',
-              letterSpacing: '1px',
-              border: 'none',
-              textTransform: 'uppercase',
-              transition: 'background 0.3s',
-              cursor: 'pointer',
               position: 'relative',
-              overflow: 'hidden'
+              overflow: 'hidden',
+              textTransform: 'uppercase',
+              transition: 'box-shadow 0.3s, transform 0.2s, background 0.3s',
             }}
-            onMouseEnter={e => e.currentTarget.style.background = 'linear-gradient(90deg, #444 0%, #222 100%)'}
-            onMouseLeave={e => e.currentTarget.style.background = 'linear-gradient(90deg, #222 0%, #444 100%)'}
           >
             <span style={{
               display: 'inline-block',
-              background: 'linear-gradient(90deg, #ff3b3b 0%, #ffb347 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
+              color: '#fff',
               fontWeight: 800,
               fontSize: '1.2em',
               letterSpacing: '2px'
             }}>Generate</span>
+            <style>{`
+              .creative-btn {
+                background: linear-gradient(90deg, #222 0%, #444 100%);
+                color: #fff;
+                border: none;
+                font-family: Inter, Arial, sans-serif;
+                font-weight: bold;
+                transition: box-shadow 0.3s, transform 0.2s, background 0.3s;
+                box-shadow: 0 0 18px 2px #222, 0 0 8px 2px #444;
+                position: relative;
+                overflow: hidden;
+              }
+              .creative-btn:hover {
+                box-shadow: 0 0 32px 4px #222, 0 0 16px 4px #444;
+                transform: scale(1.05);
+                background: linear-gradient(90deg, #444 0%, #222 100%);
+                filter: brightness(1.08);
+              }
+            `}</style>
           </Button>
         )}
-
-        {/* Preview and download */}
-        {previewUrl && (
-          <div style={{ marginTop: 24, textAlign: 'center' }}>
-            <div style={{ marginBottom: 10 }}>
-              <img src={previewUrl} alt="Generated" style={{ maxWidth: '100%', borderRadius: 16, boxShadow: '0 2px 12px rgba(0,0,0,0.18)' }} />
-              {generationTime && (
-                <div style={{ marginTop: 8, color: '#22c55e', fontWeight: 600, fontSize: '1.1rem' }}>
-                  Generated in {generationTime} seconds
-                </div>
-              )}
-            </div>
-            <button
-              onClick={async () => {
-                try {
-                  const res = await fetch(previewUrl);
-                  const blob = await res.blob();
-                  const url = URL.createObjectURL(blob);
-                  const a = document.createElement('a');
-                  a.href = url;
-                  a.download = 'generated-image.png';
-                  document.body.appendChild(a);
-                  a.click();
-                  a.remove();
-                  URL.revokeObjectURL(url);
-                } catch (err) {
-                  alert('Failed to download image.');
-                }
-              }}
-              style={{
-                display: 'inline-block',
-                fontSize: '1rem',
-                padding: '10px 28px',
-                borderRadius: 10,
-                background: '#222',
-                color: '#fff',
-                fontWeight: 600,
-                textDecoration: 'none',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
-                marginTop: 8,
-                cursor: 'pointer',
-                transition: 'background 0.2s'
-              }}
-            >
-              Download Image
-            </button>
-          </div>
-        )}
-
         {/* Help tool */}
         {type === 'needhelp' && (
           <div style={{ marginTop: 32, textAlign: 'center' }}>
@@ -411,7 +518,84 @@ export default function GenerateToolClient() {
             </Button>
           </div>
         )}
+        </div>
+        <div style={{
+          flex: 1.2,
+          padding: '40px 48px 40px 40px',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: '#f1f1f1',
+          minWidth: 340,
+          maxWidth: 720,
+          borderRadius: '12px',
+          boxShadow: '0 0 12px rgba(0,0,0,0.05)'
+        }}>
+        {previewUrl ? (
+          <>
+            {(type === 'text2video' || type === 'genvideo' || type === 'image2video') ? (
+              <video
+                src={previewUrl}
+                controls
+                style={{ maxWidth: '90%', maxHeight: '60vh', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.15)', marginBottom: 18 }}
+              />
+            ) : (
+              <img src={previewUrl} alt="Generated Preview" style={{ maxWidth: '90%', maxHeight: '60vh', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.15)', marginBottom: 18 }} />
+            )}
+            {generationTime && (
+              <div style={{
+                marginTop: 8,
+                color: '#ff3b3b',
+                fontWeight: 800,
+                fontSize: '1.3rem',
+                background: 'rgba(255,255,255,0.85)',
+                borderRadius: 10,
+                padding: '8px 18px',
+                boxShadow: '0 2px 8px rgba(255,59,59,0.10)',
+                display: 'inline-block'
+              }}>
+                {(() => {
+                  const mins = (parseFloat(generationTime) / 60).toFixed(2);
+                  return `⏱️ Generated in ${mins} minute${mins !== '1.00' ? 's' : ''}`;
+                })()}
+              </div>
+            )}
+            <button
+              onClick={handleDownload}
+              style={{
+                display: 'inline-block',
+                fontSize: '1.08rem',
+                padding: '12px 32px',
+                borderRadius: '8px',
+                backgroundColor: '#1a1a1a',
+                color: '#fff',
+                fontWeight: 'bold',
+                marginTop: 18,
+                boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                border: 'none',
+                cursor: 'pointer',
+                letterSpacing: '1px',
+                transition: 'background 0.2s',
+              }}
+            >Download</button>
+          </>
+        ) : (
+          <div style={{ color: '#888', fontSize: '1.1rem', textAlign: 'center', marginTop: 80 }}>
+            {loading
+              ? (type === 'text2video' || type === 'genvideo' || type === 'image2video') ? (() => {
+                  let totalEstimate = 5;
+                  if (videoModel === 'veo-3-fast' || videoModel === 'veo-3') totalEstimate = 8;
+                  const left = Math.max(totalEstimate - loadingMinutes, 0);
+                  return `Generating video... (~${left} minute${left !== 1 ? 's' : ''} left)`;
+                })() : 'Generating image...'
+              : (type === 'text2video' || type === 'genvideo' || type === 'image2video')
+                ? 'Your generated video will appear here.'
+                : 'Your generated image will appear here.'}
+          </div>
+        )}
+        </div>
       </div>
-    </main>
+  </main>
   );
 }
