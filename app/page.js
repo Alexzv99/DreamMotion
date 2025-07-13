@@ -13,25 +13,38 @@ export default function Home() {
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat',
         minHeight: '100vh',
+        width: '100vw',
         position: 'relative',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        textAlign: 'center',
-        color: 'white',
-        fontFamily: 'Arial, sans-serif'
+        overflow: 'hidden',
       }}
     >
       {/* Overlay */}
       <div style={{
-        position: 'absolute',
+        position: 'fixed',
         top: 0, left: 0, right: 0, bottom: 0,
         backgroundColor: 'rgba(0,0,0,0.6)',
-        zIndex: 1
+        zIndex: 1,
+        pointerEvents: 'none',
       }} />
-      {/* Content */}
-      <div style={{ position: 'relative', zIndex: 2, width: '100%' }}>
+      {/* Centered Content */}
+      <div style={{
+        position: 'fixed',
+        top: 0, left: 0, right: 0, bottom: 0,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        textAlign: 'center',
+        color: 'white',
+        fontFamily: 'Arial, sans-serif',
+        zIndex: 2,
+        pointerEvents: 'auto',
+      }}>
         <h1 style={{ fontSize: 60, marginBottom: 20, fontWeight: 700 }}>DreamMotion</h1>
+        <div style={{ fontSize: 22, fontWeight: 400, marginBottom: 28, lineHeight: 1.3 }}>
+          AI-powered image & video generation platform<br />
+          Unleash your creativity with cinematic motion
+        </div>
         <Link href="/dashboard">
           <a style={{
             backgroundColor: 'white',
