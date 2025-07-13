@@ -1,43 +1,47 @@
 "use client";
-import Link from "next/link";
+import Link from 'next/link';
+import { useState, useEffect } from 'react';
 
 export default function Home() {
+  const [showCookie, setShowCookie] = useState(false);
+
+  useEffect(() => {
+    const accepted = localStorage.getItem('cookiesAccepted');
+    if (!accepted) setShowCookie(true);
+  }, []);
+
+  const acceptCookies = () => {
+    localStorage.setItem('cookiesAccepted', 'true');
+    setShowCookie(false);
+  };
+
   return (
-    <main style={{
-      minHeight: '100vh',
-      background: 'linear-gradient(135deg, #e0e7ff 0%, #f0fdfa 100%)',
-      fontFamily: 'Inter, Arial, sans-serif',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '40px',
-      color: '#222'
-    }}>
-      <h1 style={{ fontSize: '2.8rem', fontWeight: 800, marginBottom: 12 }}>DreamMotion Platform</h1>
-      <p style={{ fontSize: '1.25rem', marginBottom: 32, maxWidth: 480, textAlign: 'center' }}>
-        Create cinematic AI images and videos with the latest generative models. Choose your tool, upload your file, or enter a prompt to get started!
-      </p>
-      <div style={{ display: 'flex', gap: 24 }}>
-        <Link href="/generate-tool?type=genimage">
-          <button style={{ padding: '16px 32px', fontSize: '1.1rem', borderRadius: 12, background: '#0070f3', color: '#fff', fontWeight: 700, border: 'none', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.10)' }}>
-            Generate Image
+    <div
+      className="flex items-center justify-center min-h-screen text-white flex-col gap-6"
+      style={{
+        backgroundImage: "url('/background-4.png')",
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+        backgroundColor: '#000'
+      }}
+    >
+      <h1 className="text-5xl font-bold">DreamMotion</h1>
+      <Link href="/dashboard">
+        <button className="px-6 py-3 bg-white text-black rounded text-lg hover:bg-gray-300 transition">Enter</button>
+      </Link>
+
+      {showCookie && (
+        <div className="fixed bottom-0 left-0 right-0 bg-white text-black p-4 text-center z-50">
+          <p>This website uses cookies to enhance the user experience.</p>
+          <button
+            className="mt-2 px-4 py-2 bg-black text-white rounded hover:bg-gray-800"
+            onClick={acceptCookies}
+          >
+            Accept Cookies
           </button>
-        </Link>
-        <Link href="/generate-tool?type=image2video">
-          <button style={{ padding: '16px 32px', fontSize: '1.1rem', borderRadius: 12, background: '#22c55e', color: '#fff', fontWeight: 700, border: 'none', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.10)' }}>
-            Image to Video
-          </button>
-        </Link>
-        <Link href="/generate-tool?type=text2video">
-          <button style={{ padding: '16px 32px', fontSize: '1.1rem', borderRadius: 12, background: '#f59e42', color: '#fff', fontWeight: 700, border: 'none', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.10)' }}>
-            Text to Video
-          </button>
-        </Link>
-      </div>
-      <div style={{ marginTop: 48, fontSize: '1rem', color: '#555' }}>
-        <Link href="/dashboard" style={{ textDecoration: 'underline', color: '#0070f3', fontWeight: 500 }}>Go to Dashboard</Link>
-      </div>
-    </main>
+        </div>
+      )}
+    </div>
   );
 }
