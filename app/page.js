@@ -7,36 +7,80 @@ export default function Home() {
 
   return (
     <div
-      className="min-h-screen bg-cover bg-center flex flex-col items-center justify-center text-white relative"
-      style={{ backgroundImage: "url('/background-4.png')" }}
+      style={{
+        backgroundImage: "url('/background-4.png')",
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+        minHeight: '100vh',
+        position: 'relative',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        textAlign: 'center',
+        color: 'white',
+        fontFamily: 'Arial, sans-serif'
+      }}
     >
-      {/* Overlay (optional) */}
-      <div className="absolute inset-0 bg-black bg-opacity-50"></div>
-
-      {/* Main content */}
-      <div className="relative z-10 text-center">
-        <h1 className="text-6xl font-bold mb-6">DreamMotion</h1>
-
+      {/* Overlay */}
+      <div style={{
+        position: 'absolute',
+        top: 0, left: 0, right: 0, bottom: 0,
+        backgroundColor: 'rgba(0,0,0,0.6)',
+        zIndex: 1
+      }} />
+      {/* Content */}
+      <div style={{ position: 'relative', zIndex: 2, width: '100%' }}>
+        <h1 style={{ fontSize: 60, marginBottom: 20, fontWeight: 700 }}>DreamMotion</h1>
         <Link href="/dashboard">
-          <button className="px-8 py-3 bg-white text-black text-lg font-semibold rounded hover:bg-gray-200 transition">
-            Enter
-          </button>
+          <a style={{
+            backgroundColor: 'white',
+            color: 'black',
+            padding: '15px 30px',
+            fontSize: 18,
+            border: 'none',
+            borderRadius: 6,
+            textDecoration: 'none',
+            fontWeight: 600,
+            transition: 'background-color 0.3s',
+            display: 'inline-block',
+            marginBottom: 10
+          }}>Enter</a>
         </Link>
-
-        {!cookiesAccepted && (
-          <div className="mt-6 text-sm bg-black bg-opacity-60 p-4 rounded">
-            <p className="mb-2">
-              This website uses cookies to <strong>enhance the user experience</strong>.
-            </p>
-            <button
-              onClick={() => setCookiesAccepted(true)}
-              className="px-4 py-2 bg-white text-black rounded hover:bg-gray-200 transition"
-            >
-              Accept Cookies
-            </button>
-          </div>
-        )}
       </div>
+      {/* Cookie bar */}
+      {!cookiesAccepted && (
+        <div style={{
+          position: 'fixed',
+          left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.7)',
+          padding: 15,
+          borderRadius: 8,
+          color: 'white',
+          textAlign: 'center',
+          zIndex: 100
+        }}>
+          <p style={{ marginBottom: 8, fontSize: 16 }}>
+            This website uses cookies to <strong>enhance the user experience</strong>.
+          </p>
+          <button
+            onClick={() => setCookiesAccepted(true)}
+            style={{
+              marginTop: 10,
+              padding: '8px 16px',
+              fontSize: 14,
+              border: 'none',
+              backgroundColor: 'white',
+              color: 'black',
+              borderRadius: 4,
+              cursor: 'pointer',
+              fontWeight: 600
+            }}
+          >
+            Accept Cookies
+          </button>
+        </div>
+      )}
     </div>
   );
 }
