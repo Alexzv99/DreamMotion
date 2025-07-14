@@ -34,16 +34,16 @@ export default function GenerateToolClient() {
   const [duration, setDuration] = useState(null);
   const [videoModel, setVideoModel] = useState('hailuo-02');
   const genvideoModels = [
-    { name: 'Hailuo 02 (Minimax)', value: 'hailuo-02', info: '🎥 minimax/hailuo-02 — 6-10s cinematic video.' },
-    { name: 'WAN 2.1 I2V 720p (WavespeedAI)', value: 'wan-2.1-i2v-720p', info: '🌊 wavespeedai/wan-2.1-i2v-720p cinematic video.' },
-    { name: 'Kling v2.1 (Kwaivgi)', value: 'kling-v2.1', info: '🦾 kwaivgi/kling-v2.1 cinematic video.' },
-    { name: 'Seedance 1 Pro (Bytedance)', value: 'seedance-1-pro', info: '🌊 bytedance/seedance-1-pro cinematic video.' },
-    { name: 'Ray (Luma)', value: 'ray', info: '🌟 luma/ray cinematic video.' }
+    { name: 'Hailuo 02', value: 'hailuo-02', info: '🎥 minimax/hailuo-02 — 6-10s cinematic video.' },
+    { name: 'WAN 2.1 I2V 720p', value: 'wan-2.1-i2v-720p', info: '🌊 wavespeedai/wan-2.1-i2v-720p cinematic video.' },
+    { name: 'Kling v2.1', value: 'kling-v2.1', info: '🦾 kwaivgi/kling-v2.1 cinematic video.' },
+    { name: 'Seedance 1 Pro', value: 'seedance-1-pro', info: '🌊 bytedance/seedance-1-pro cinematic video.' },
+    { name: 'Ray', value: 'ray', info: '🌟 luma/ray cinematic video.' }
   ];
   const text2videoModels = [
-    { name: 'Hailuo 02 (Minimax)', value: 'hailuo-02', info: '🎥 minimax/hailuo-02 — 6-10s cinematic video.' },
-    { name: 'Veo 3 Fast (Google)', value: 'veo-3-fast', info: '🚀 Google / Veo 3 Fast — 16:9 cinematic video.' },
-    { name: 'Veo 3 (Google)', value: 'veo-3', info: '🎬 Google / Veo 3 — 16:9 cinematic video.' }
+    { name: 'Hailuo 02', value: 'hailuo-02', info: '🎥 minimax/hailuo-02 — 6-10s cinematic video.' },
+    { name: 'Veo 3 Fast', value: 'veo-3-fast', info: '🚀 Google / Veo 3 Fast — 16:9 cinematic video.' },
+    { name: 'Veo 3', value: 'veo-3', info: '🎬 Google / Veo 3 — 16:9 cinematic video.' }
   ];
   const videoModels = [
     { name: 'Hailuo 02 (Minimax)', value: 'hailuo-02', info: '🎥 minimax/hailuo-02 — 6-10s cinematic video.' },
@@ -419,13 +419,11 @@ export default function GenerateToolClient() {
                 </label>
               ))}
             </div>
-            <div style={{ marginTop: 10, color: '#0070f3', fontWeight: 600 }}>
-              Model: <b>Flux</b> (only)
-            </div>
+            {/* Model name line removed for cleaner UI */}
           </div>
         )}
-        {/* Aspect ratio selection for video tools */}
-        {(type === 'image2video' || type === 'genvideo' || type === 'text2video') && videoModel === 'hailuo-02' && (
+        {/* Aspect ratio selection for video tools (only for image2video and text2video Hailuo 02) */}
+        {(type === 'image2video' || type === 'text2video') && videoModel === 'hailuo-02' && (
           <div style={{
             marginBottom: 18,
             background: '#fff',
@@ -448,7 +446,8 @@ export default function GenerateToolClient() {
             </div>
           </div>
         )}
-        {(type === 'image2video' || type === 'genvideo' || type === 'text2video') && (videoModel === 'hailuo-02' || videoModel === 'wan-2.1-i2v-720p' || videoModel === 'kling-v2.1' || videoModel === 'seedance-1-pro' || videoModel === 'ray') && (
+        {/* Fixed aspect ratio and duration for Veo 3 Fast and Veo 3 in text2video */}
+        {(type === 'text2video') && (videoModel === 'veo-3-fast' || videoModel === 'veo-3') && (
           <div style={{
             marginBottom: 18,
             background: '#fff',
@@ -464,15 +463,15 @@ export default function GenerateToolClient() {
             border: '1.5px solid #e5e7eb'
           }}>
             <span style={{ fontWeight: 700, fontSize: '1.05rem', marginRight: 8 }}>
-              {videoModel === 'hailuo-02' ? 'Hailuo 02 Model' : videoModel === 'wan-2.1-i2v-720p' ? 'WAN 2.1 I2V 720p Model' : videoModel === 'kling-v2.1' ? 'Kling v2.1 Model' : videoModel === 'seedance-1-pro' ? 'Seedance 1 Pro Model' : videoModel === 'ray' ? 'Ray Model' : ''}
+              {videoModel === 'veo-3-fast' ? 'Veo 3 Fast Model' : 'Veo 3 Model'}
             </span>
-            <span>Aspect Ratio: <b>16:9</b> (fixed)</span>
-            <span>Duration: <b>8s</b> (fixed)</span>
+            <span>Aspect Ratio: <b>16:9</b></span>
+            <span>Duration: <b>8s</b></span>
           </div>
         )}
 
-        {/* Duration slider for video models */}
-        {(type === 'image2video' || type === 'genvideo' || type === 'text2video') && videoModel === 'hailuo-02' && (
+        {/* Duration slider for video models (not shown for genvideo) */}
+        {(type === 'image2video' || type === 'text2video') && videoModel === 'hailuo-02' && (
           <div style={{ marginBottom: 18 }}>
             <label htmlFor="duration" style={{ fontWeight: 600, fontSize: '1rem', marginBottom: 6, display: 'block' }}>Duration (seconds)</label>
             <div style={{ display: 'flex', gap: 8 }}>
