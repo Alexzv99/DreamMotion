@@ -5,13 +5,32 @@ import Button from '../components/Button';
 
 export default function GenerateToolClient() {
   // Add placeholder for handleGenerate to prevent ReferenceError
-  const handleGenerate = () => {
-    // TODO: Implement generation logic
+  const handleGenerate = async () => {
+    setError("");
     setLoading(true);
-    setTimeout(() => {
+    if (type === "image2video" && file) {
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
+        const response = await fetch("https://your-remote-backend-url/animate", {
+          method: "POST",
+          body: formData
+        });
+        if (!response.ok) throw new Error("Failed to generate video");
+        const blob = await response.blob();
+        const videoUrl = URL.createObjectURL(blob);
+        setPreviewUrl(videoUrl);
+      } catch (err) {
+        setError("Error generating video: " + err.message);
+      }
       setLoading(false);
-      setPreviewUrl('https://via.placeholder.com/512x512.png?text=Preview');
-    }, 2000);
+    } else {
+      // Fallback for other types
+      setTimeout(() => {
+        setLoading(false);
+        setPreviewUrl('https://via.placeholder.com/512x512.png?text=Preview');
+      }, 2000);
+    }
   };
   // Add missing state and placeholder functions to prevent runtime errors
   const [error, setError] = useState('');

@@ -93,7 +93,7 @@ export default function ContactSupportPage() {
         <p style={{ marginBottom: '10px', color: '#555' }}>
           If you're experiencing issues or need help, reach out to our support team anytime.
         </p>
-        <p style={{ color: '#c00', fontWeight: 'bold' }}>support@dreammotion.ai</p>
+        <p style={{ color: '#c00', fontWeight: 'bold' }}>dreammotion.online</p>
 
         {!submitted ? (
           <form onSubmit={handleSubmit} style={{ marginTop: '30px' }}>

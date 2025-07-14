@@ -15,18 +15,25 @@ export default function Home() {
   }, [errorBanner]);
 
   return (
-    <div
-      style={{
-        backgroundImage: "url('/background-4.png')",
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat',
-        minHeight: '100vh',
-        width: '100vw',
-        position: 'relative',
-        overflow: 'hidden',
-      }}
-    >
+    <div style={{ position: 'relative', minHeight: '100vh', width: '100vw', overflow: 'hidden' }}>
+      {/* Animated video background */}
+      <video
+        autoPlay
+        loop
+        muted
+        playsInline
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          objectFit: 'cover',
+          zIndex: 0,
+          pointerEvents: 'none',
+        }}
+        src="/background-video.mp4"
+      />
       {errorBanner && (
         <div style={{
           position: 'fixed',
