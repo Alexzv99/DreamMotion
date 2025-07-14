@@ -67,7 +67,8 @@ export default function Dashboard() {
       alignItems: 'center',
       justifyContent: 'center',
       backdropFilter: 'blur(2px)',
-      position: 'relative'
+      position: 'relative',
+      zoom: 0.85
     }}>
       <style>{`
         @media (max-width: 900px) {
@@ -125,10 +126,11 @@ export default function Dashboard() {
           color: '#fff'
         }}>
           <h1 style={{ fontSize: '2rem', fontWeight: 'bold' }}>DreamMotion</h1>
-          <div style={{ display: 'flex', gap: '20px' }}>
+          <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
             <Link href="/" style={navLink}>Home</Link>
             <Link href="/dashboard" style={navLink}>Dashboard</Link>
             <Link href="/subscribe" style={navLink}>Subscribe</Link>
+            <Link href="/contact" style={navLink}>Contact</Link>
             {userId ? (
               <button onClick={handleLogout} style={navButton}>Logout</button>
             ) : (
@@ -161,13 +163,13 @@ export default function Dashboard() {
             <ToolBox 
               title="🖼️ Generate Image"
               desc="Create stunning images from your prompt using our text-to-image tool."
-              price="1 credit per image"
+              price="1 credit / image"
               link="/generate-tool?type=genimage"
             />
             <ToolBox 
               title="🎞️ Generate Video"
               desc="Transform images into cinematic motion with DreamMotion’s engine."
-              price="5 credits / second"
+              price="2 credits / second"
               link="/generate-tool?type=genvideo"
             />
           </div>
@@ -181,41 +183,17 @@ export default function Dashboard() {
             <ToolBox 
               title="🧬 Image to Video"
               desc="Upload a photo and animate it with cinematic motion."
-              price="30 credits / second"
+              price="5 credits / second"
               link="/generate-tool?type=image2video"
             />
           </div>
 
-          {/* Help */}
-          <div style={{ display: 'flex', justifyContent: 'center', marginTop: '40px' }}>
-            <div className="help-box" style={boxStyle}>
-              <h3 style={boxTitle}>🛠️ Need Help?</h3>
-              <p style={boxText}>
-                If you&apos;re stuck or have questions, we&apos;re here for you.
-              </p>
-              <button
-                onClick={() => router.push('/contact')}
-                style={{
-                  marginTop: '15px',
-                  padding: '10px 20px',
-                  fontSize: '1rem',
-                  backgroundColor: '#1a1a1a', // dark grey
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  fontWeight: 'bold'
-                }}
-              >
-                Contact Support
-              </button>
-            </div>
-          </div>
         </div>
       </div>
     </main>
   );
 }
+      zoom: 0.75
 
 function ToolBox({ title, desc, price, link }) {
   return (
