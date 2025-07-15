@@ -9,6 +9,15 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [errorBanner, setErrorBanner] = useState('');
   const router = useRouter();
+  // Google login handler
+  const handleGoogleLogin = async () => {
+    setLoading(true);
+    const { error } = await supabase.auth.signInWithOAuth({ provider: 'google' });
+    setLoading(false);
+    if (error) {
+      setErrorBanner('Google login failed: ' + error.message);
+    }
+  };
   // Auto-hide error banner after 3 seconds
   useEffect(() => {
     if (errorBanner) {
@@ -37,9 +46,6 @@ export default function LoginPage() {
   return (
     <main style={{
       minHeight: '100vh',
-      backgroundImage: 'url("/background-4.png")',
-      backgroundSize: 'cover',
-      backgroundPosition: 'center',
       fontFamily: 'Inter, Helvetica, Arial, sans-serif',
       color: '#222',
       display: 'flex',
@@ -49,8 +55,27 @@ export default function LoginPage() {
       padding: '0',
       margin: '0',
       backdropFilter: 'blur(2px)',
-      position: 'relative'
+      position: 'relative',
+      overflow: 'hidden'
     }}>
+      {/* Video Background */}
+      <video
+        autoPlay
+        loop
+        muted
+        playsInline
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          objectFit: 'cover',
+          zIndex: 0
+        }}
+      >
+        <source src="/background-video.mp4" type="video/mp4" />
+      </video>
       <button
         onClick={() => router.back()}
         style={{
@@ -72,6 +97,7 @@ export default function LoginPage() {
       >
         ← Back
       </button>
+      {/* ...existing code... */}
       <style>{`
         @media (max-width: 900px) {
           .login-card {
@@ -135,6 +161,31 @@ export default function LoginPage() {
           />
           <button type="submit" style={styles.button} disabled={loading}>
             {loading ? 'Logging in...' : 'Log In'}
+          </button>
+          {/* Google Login Button below Log In */}
+          <button
+            onClick={handleGoogleLogin}
+            style={{
+              marginTop: '18px',
+              background: '#fff',
+              color: '#4285F4',
+              border: '2px solid #4285F4',
+              borderRadius: '10px',
+              padding: '12px 24px',
+              fontWeight: 'bold',
+              fontSize: '1.08rem',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
+              cursor: 'pointer',
+              transition: 'background 0.2s',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              zIndex: 1
+            }}
+            disabled={loading}
+          >
+            <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" style={{ width: 24, height: 24 }} />
+            Continue with Google
           </button>
         </form>
         <p style={styles.note}>

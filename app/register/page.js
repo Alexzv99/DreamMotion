@@ -1,9 +1,9 @@
 "use client";
-// ...existing code...
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabase } from '../supabaseClient';
+
 
 export default function Register() {
   const [email, setEmail] = useState('');
@@ -12,6 +12,16 @@ export default function Register() {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const router = useRouter();
+
+  // Google login handler (moved inside component)
+  const handleGoogleLogin = async () => {
+    setLoading(true);
+    const { error } = await supabase.auth.signInWithOAuth({ provider: 'google' });
+    setLoading(false);
+    if (error) {
+      setErrorMsg('Google registration failed: ' + error.message);
+    }
+  };
 
   useEffect(() => {
     if (errorMsg) {
@@ -40,9 +50,6 @@ export default function Register() {
   return (
     <main style={{
       minHeight: '100vh',
-      backgroundImage: 'url("/background-2.png")',
-      backgroundSize: 'cover',
-      backgroundPosition: 'center',
       fontFamily: 'Inter, Helvetica, Arial, sans-serif',
       color: '#222',
       padding: '0',
@@ -52,14 +59,33 @@ export default function Register() {
       alignItems: 'center',
       justifyContent: 'center',
       backdropFilter: 'blur(2px)',
-      position: 'relative'
+      position: 'relative',
+      overflow: 'hidden'
     }}>
+      {/* Video Background */}
+      <video
+        autoPlay
+        loop
+        muted
+        playsInline
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          objectFit: 'cover',
+          zIndex: 0
+        }}
+      >
+        <source src="/background-video1.mp4" type="video/mp4" />
+      </video>
       <div style={{
         position: 'absolute',
         top: 0, left: 0, right: 0, bottom: 0,
         background: 'rgba(0, 0, 0, 0.6)',
         zIndex: 0
-      }} />
+      }}></div>
       <button
         onClick={() => router.back()}
         style={{
@@ -124,7 +150,6 @@ export default function Register() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-// ...existing code ends here. No duplicate JSX after this line.
             style={{ padding: '10px', borderRadius: '6px', border: '1px solid #ccc' }}
           />
           <input
@@ -153,7 +178,32 @@ export default function Register() {
             border: 'none',
             cursor: 'pointer'
           }}>
-            {loading ? 'Registering...' : '📝 Register'}
+            Register
+          </button>
+          <button
+            type="button"
+            onClick={handleGoogleLogin}
+            style={{
+              marginTop: '18px',
+              background: '#fff',
+              color: '#4285F4',
+              border: '2px solid #4285F4',
+              borderRadius: '10px',
+              padding: '12px 24px',
+              fontWeight: 'bold',
+              fontSize: '1.08rem',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
+              cursor: 'pointer',
+              transition: 'background 0.2s',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              zIndex: 1
+            }}
+            disabled={loading}
+          >
+            <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" style={{ width: 24, height: 24 }} />
+            Sign up with Google
           </button>
           <Link href="/login" style={{
             marginTop: '12px',
@@ -178,3 +228,4 @@ export default function Register() {
     </main>
   );
 }
+

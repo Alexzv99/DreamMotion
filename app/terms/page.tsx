@@ -108,7 +108,7 @@ export default function TermsPage() {
         <p style={{ fontWeight: 'bold', marginBottom: '8px' }}>5. Data Security</p>
         <p style={{ marginBottom: '18px' }}>We use industry-standard encryption and security protocols to protect your data.</p>
         <p style={{ fontWeight: 'bold', marginBottom: '8px' }}>6. Your Rights</p>
-        <p style={{ marginBottom: '18px' }}>You can access, update, or delete your data at any time. Contact us at <a href="mailto:support@dreammotion.ai">support@dreammotion.ai</a>.</p>
+        <p style={{ marginBottom: '18px' }}>You can access, update, or delete your data at any time. Contact us at <a href="/contact" style={{ color: '#0070f3', textDecoration: 'underline', cursor: 'pointer' }}>support@dreammotion.com</a>.</p>
         <p style={{ fontWeight: 'bold', color: '#111', fontSize: '1.18em', marginBottom: '18px', marginTop: '32px' }}>�📄 Terms of Service</p>
         <p style={{ marginBottom: '18px' }}><b>Effective Date:</b> July 15, 2025</p>
         <p style={{ marginBottom: '18px' }}>Welcome to DreamMotion. By using our website and services, you agree to the following terms:</p>

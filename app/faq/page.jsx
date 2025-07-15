@@ -90,7 +90,7 @@ export default function FAQ() {
         Yes. We use encrypted connections and do not share your personal data with third parties beyond essential services like Stripe.</p>
 
         <p><b>🆘 Need help?</b><br />
-        Contact our support team at <a href="mailto:support@dreammotion.ai">support@dreammotion.ai</a></p>
+        Contact our support team at <Link href="/contact" style={{ color: '#0070f3', textDecoration: 'underline', cursor: 'pointer' }}>support@dreammotion.com</Link></p>
       </div>
       <div style={{ marginTop: 32, textAlign: 'center' }}>
         <Link href="/dashboard" style={{
