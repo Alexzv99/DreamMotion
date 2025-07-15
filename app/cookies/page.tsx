@@ -1,4 +1,7 @@
+import { useRouter } from 'next/navigation';
+
 export default function CookiesPage() {
+  const router = useRouter();
   return (
     <div
       style={{
@@ -15,6 +18,27 @@ export default function CookiesPage() {
         fontFamily: 'Inter, Helvetica, Arial, sans-serif',
       }}
     >
+      <button
+        onClick={() => router.back()}
+        style={{
+          position: 'absolute',
+          top: 20,
+          left: 20,
+          zIndex: 10,
+          background: '#fff',
+          color: '#111',
+          border: '2px solid #222',
+          borderRadius: '10px',
+          padding: '10px 18px',
+          fontWeight: 'bold',
+          fontSize: '1.08rem',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
+          cursor: 'pointer',
+          transition: 'background 0.2s',
+        }}
+      >
+        ← Back
+      </button>
       <h1 style={{ fontSize: '2.4rem', marginBottom: '20px' }}>Cookie Policy</h1>
       <p
         style={{

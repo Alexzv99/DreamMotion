@@ -156,8 +156,9 @@ export default function Home() {
                 The fastest way to create AI-powered images & videos<br />
                 Bring your creative ideas to life with cinematic motion
               </span>
-              <div style={{ color: '#ff3b3b', marginTop: 10, fontSize: 20, fontWeight: 600 }}>
-                Including realistic AI NSFW generated motion
+              <div style={{ color: '#c00', fontWeight: 'bold', fontSize: '1.15rem', marginTop: '14px' }}>
+                Upload an image. Get a cinematic video in seconds.<br />
+                No experience needed. Just create.
               </div>
             </div>
             <button

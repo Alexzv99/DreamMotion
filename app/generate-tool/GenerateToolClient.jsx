@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Button from '../components/Button';
 
 export default function GenerateToolClient() {
-  // Add placeholder for handleGenerate to prevent ReferenceError
+  const router = useRouter();
   const handleGenerate = async () => {
     setError("");
     setLoading(true);
@@ -25,18 +25,17 @@ export default function GenerateToolClient() {
       }
       setLoading(false);
     } else {
-      // Fallback for other types
       setTimeout(() => {
         setLoading(false);
         setPreviewUrl('https://via.placeholder.com/512x512.png?text=Preview');
       }, 2000);
     }
   };
+  // ...existing code...
   // Add missing state and placeholder functions to prevent runtime errors
   const [error, setError] = useState('');
   // Dynamic tool selection based on URL query param 'type'
   const searchParams = useSearchParams();
-  const router = useRouter();
   const typeParam = searchParams.get('type');
   const [type, setType] = useState(typeParam || 'genimage');
   useEffect(() => {
@@ -63,14 +62,11 @@ export default function GenerateToolClient() {
       note: '',
       inputType: 'text'
     },
-    image2video: {
-      title: 'Image to Video',
-      desc: 'Generate videos from images.',
-      note: '',
-      inputType: 'file'
-    }
+    // image2video tool removed
   };
-  const tool = toolMap[type] || toolMap['genimage'];
+  // Remove image2video from tool selection
+  const filteredType = type === 'image2video' ? 'genimage' : type;
+  const tool = toolMap[filteredType] || toolMap['genimage'];
 
   // ...existing state...
   const [videoModel, setVideoModel] = useState('veo-3-fast');
@@ -100,7 +96,7 @@ export default function GenerateToolClient() {
   let toolCredits = '';
   if (type === 'genimage') toolCredits = '1 credit / image';
   else if (type === 'genvideo') toolCredits = '2 credits / second';
-  else if (type === 'image2video') toolCredits = '5 credits / second';
+  // image2video credits removed
   else if (type === 'text2video') {
     if (videoModel === 'veo-3-fast') toolCredits = '5 credits / second';
     else if (videoModel === 'veo-3') toolCredits = '20 credits / second';
@@ -194,20 +190,65 @@ export default function GenerateToolClient() {
   return (
     <main style={{
       minHeight: '100vh',
-      backgroundImage: 'url("/background-2.png")',
-      backgroundSize: 'cover',
-      backgroundPosition: 'center',
+      width: '100vw',
+      overflow: 'hidden',
       fontFamily: 'Inter, Helvetica, Arial, sans-serif',
       color: '#222',
       padding: '0',
       margin: '0',
-      position: 'relative',
       display: 'flex',
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
-      backdropFilter: 'blur(2px)'
+      backdropFilter: 'blur(2px)',
+      position: 'relative'
     }}>
+      <video
+        autoPlay
+        loop
+        muted
+        playsInline
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          objectFit: 'cover',
+          zIndex: 0,
+          pointerEvents: 'none',
+        }}
+        src="/background-video1.mp4"
+      />
+      {/* Dark overlay */}
+      <div style={{
+        position: 'absolute',
+        top: 0, left: 0, right: 0, bottom: 0,
+        background: 'rgba(0, 0, 0, 0.65)',
+        zIndex: 1
+      }} />
+      {/* All content below should have zIndex: 2 or higher if needed */}
+      <button
+        onClick={() => router.back()}
+        style={{
+          position: 'absolute',
+          top: 20,
+          left: 20,
+          zIndex: 2,
+          background: '#fff',
+          color: '#111',
+          border: '2px solid #222',
+          borderRadius: '10px',
+          padding: '10px 18px',
+          fontWeight: 'bold',
+          fontSize: '1.08rem',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
+          cursor: 'pointer',
+          transition: 'background 0.2s',
+        }}
+      >
+        ← Back
+      </button>
       <div className="controls-card" style={{
         background: '#fff',
         borderRadius: 18,
@@ -220,7 +261,9 @@ export default function GenerateToolClient() {
         flexDirection: 'column',
         alignItems: 'stretch',
         justifyContent: 'flex-start',
-        gap: 0
+        gap: 0,
+        zIndex: 3,
+        position: 'relative'
       }}>
         <span style={{
           fontSize: '2.1rem',
@@ -296,7 +339,7 @@ export default function GenerateToolClient() {
             </div>
           </div>
         )}
-        {(type === 'image2video' || type === 'text2video') && videoModel === 'hailuo-02' && (
+        {(type === 'text2video') && videoModel === 'hailuo-02' && (
           <div style={{
             marginBottom: 18,
             background: '#fff',
@@ -319,7 +362,7 @@ export default function GenerateToolClient() {
             </div>
           </div>
         )}
-        {(type === 'image2video' || type === 'text2video') && videoModel === 'hailuo-02' && (
+        {(type === 'text2video') && videoModel === 'hailuo-02' && (
           <div style={{ marginBottom: 18 }}>
             <label htmlFor="duration" style={{ fontWeight: 600, fontSize: '1rem', marginBottom: 6, display: 'block' }}>Duration (seconds)</label>
             <div style={{ display: 'flex', gap: 8 }}>
@@ -362,26 +405,7 @@ export default function GenerateToolClient() {
             />
           </div>
         )}
-        {(tool.inputType === 'file') && (
-          <div style={{ marginBottom: 18 }}>
-            <label htmlFor="file" style={{ fontWeight: 500 }}>Upload Image:</label>
-            <input
-              id="file"
-              type="file"
-              accept="image/*"
-              onChange={e => {
-                setFile(e.target.files[0]);
-                setError('');
-              }}
-              style={{ marginLeft: 12 }}
-            />
-            {file && (
-              <div style={{ marginTop: 10 }}>
-                <img src={previewUrl} alt="Preview" style={{ maxWidth: 180, borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }} />
-              </div>
-            )}
-          </div>
-        )}
+        {/* image2video input removed */}
         {error && <div style={{ color: '#c00', fontWeight: 500, marginBottom: 12 }}>{error}</div>}
         {loading && (
           <div style={{ marginBottom: 12, color: '#444', fontWeight: 600, fontSize: '1.08rem' }}>
@@ -461,12 +485,14 @@ export default function GenerateToolClient() {
         minWidth: 340,
         maxWidth: 720,
         borderRadius: '12px',
-        boxShadow: '0 0 12px rgba(0,0,0,0.05)'
+        boxShadow: '0 0 12px rgba(0,0,0,0.05)',
+        zIndex: 3,
+        position: 'relative'
       }}>
         {previewUrl ? (
           <div>
             <div style={{ fontSize: '0.95rem', color: '#c00', marginBottom: 16, fontWeight: 'bold' }}>Credits: <b>{type === 'genvideo' ? '2 credits / second' : toolCredits}</b></div>
-            {(type === 'text2video' || type === 'genvideo' || type === 'image2video') ? (
+            {(type === 'text2video' || type === 'genvideo') ? (
               <video src={previewUrl} controls style={{ maxWidth: '90%', maxHeight: '60vh', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.15)', marginBottom: 18 }} />
             ) : (
               <img src={previewUrl} alt="Generated Preview" style={{ maxWidth: '90%', maxHeight: '60vh', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.15)', marginBottom: 18 }} />
@@ -486,6 +512,5 @@ export default function GenerateToolClient() {
       </div>
     </main>
   );
-// ...existing code...
 // End of main return block
 }

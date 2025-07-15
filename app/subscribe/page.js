@@ -18,6 +18,27 @@ export default function SubscribePage() {
       backgroundPosition: 'center',
       position: 'relative'
     }}>
+      <button
+        onClick={() => router.back()}
+        style={{
+          position: 'absolute',
+          top: 20,
+          left: 20,
+          zIndex: 10,
+          background: '#fff',
+          color: '#111',
+          border: '2px solid #222',
+          borderRadius: '10px',
+          padding: '10px 18px',
+          fontWeight: 'bold',
+          fontSize: '1.08rem',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
+          cursor: 'pointer',
+          transition: 'background 0.2s',
+        }}
+      >
+        ← Back
+      </button>
       <style>{`
         @media (max-width: 900px) {
           .subscribe-plans {

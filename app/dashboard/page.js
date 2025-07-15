@@ -55,9 +55,8 @@ export default function Dashboard() {
   return (
     <main style={{
       minHeight: '100vh',
-      backgroundImage: 'url("/background-2.png")',
-      backgroundSize: 'cover',
-      backgroundPosition: 'center',
+      width: '100vw',
+      overflow: 'hidden',
       fontFamily: 'Inter, Helvetica, Arial, sans-serif',
       color: '#222',
       padding: '0',
@@ -65,11 +64,27 @@ export default function Dashboard() {
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
-      justifyContent: 'center',
+      justifyContent: 'flex-start',
       backdropFilter: 'blur(2px)',
-      position: 'relative',
-      zoom: 0.85
+      position: 'relative'
     }}>
+      <video
+        autoPlay
+        loop
+        muted
+        playsInline
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          objectFit: 'cover',
+          zIndex: 0,
+          pointerEvents: 'none',
+        }}
+        src="/background-video1.mp4"
+      />
       <style>{`
         @media (max-width: 900px) {
           .dashboard-container {
@@ -113,8 +128,9 @@ export default function Dashboard() {
         position: 'absolute',
         top: 0, left: 0, right: 0, bottom: 0,
         background: 'rgba(0, 0, 0, 0.65)',
-        zIndex: 0
+        zIndex: 1
       }} />
+      {/* All content below should have zIndex: 2 or higher if needed */}
 
       <div className="dashboard-container" style={{ position: 'relative', zIndex: 1 }}>
         {/* Navbar */}
@@ -142,7 +158,8 @@ export default function Dashboard() {
         {/* Welcome */}
         <div style={{
           textAlign: 'center',
-          marginBottom: '30px',
+          marginBottom: '18px',
+          marginTop: '10px',
           color: '#fff'
         }}>
           <h2 style={{ fontSize: '2.5rem', marginBottom: '10px' }}>Welcome!</h2>
@@ -158,8 +175,8 @@ export default function Dashboard() {
         </div>
 
         {/* Tools Section */}
-        <div className="tools-grid" style={toolsGrid}>
-          <div className="tools-row" style={rowStyle}>
+        <div className="tools-grid" style={{ ...toolsGrid, zIndex: 3, position: 'relative' }}>
+          <div className="tools-row" style={{ display: 'flex', flexDirection: 'row', justifyContent: 'center', gap: '30px', zIndex: 3, position: 'relative', marginTop: '10px' }}>
             <ToolBox 
               title="🖼️ Generate Image"
               desc="Create stunning images from your prompt using our text-to-image tool."
@@ -172,28 +189,36 @@ export default function Dashboard() {
               price="2 credits / second"
               link="/generate-tool?type=genvideo"
             />
-          </div>
-          <div className="tools-row" style={rowStyle}>
             <ToolBox 
               title="📽️ Text to Video"
               desc="Describe a scene and let DreamMotion create an animated video for you."
               price="2 credits / second"
               link="/generate-tool?type=text2video"
             />
-            <ToolBox 
-              title="🧬 Image to Video"
-              desc="Upload a photo and animate it with cinematic motion."
-              price="5 credits / second"
-              link="/generate-tool?type=image2video"
-            />
           </div>
-
         </div>
       </div>
+      {/* Footer */}
+      <footer style={{
+        width: '100vw',
+        textAlign: 'center',
+        padding: '24px 0 18px 0',
+        color: '#eee',
+        fontSize: '1.08rem',
+        fontWeight: 500,
+        letterSpacing: '0.02em',
+        zIndex: 4,
+        position: 'relative',
+        marginTop: 'auto',
+        background: 'rgba(0,0,0,0.15)'
+      }}>
+        <Link href="/privacy-policy" style={{ color: '#eee', margin: '0 18px', textDecoration: 'underline' }}>Privacy Policy</Link>
+        <Link href="/faq" style={{ color: '#eee', margin: '0 18px', textDecoration: 'underline' }}>FAQ</Link>
+        <Link href="/terms" style={{ color: '#eee', margin: '0 18px', textDecoration: 'underline' }}>Terms of Service</Link>
+      </footer>
     </main>
   );
 }
-      zoom: 0.75
 
 function ToolBox({ title, desc, price, link }) {
   return (
@@ -202,13 +227,15 @@ function ToolBox({ title, desc, price, link }) {
       color: '#222', // dark text
       borderRadius: '12px',
       boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-      padding: '24px',
-      marginBottom: '24px',
+      padding: '16px',
+      marginBottom: '18px',
       cursor: 'pointer',
       transition: 'background 0.2s',
-      width: '100%',
-      maxWidth: '460px',
-      textAlign: 'center'
+      maxWidth: '320px',
+      flex: '1 1 0',
+      textAlign: 'center',
+      zIndex: 4,
+      position: 'relative'
     }}>
       <h3 style={boxTitle}>{title}</h3>
       {title.includes('Image to Video') && (
@@ -266,10 +293,10 @@ const rowStyle = {
 
 const boxStyle = {
   backgroundColor: '#f1f1f1',
-  padding: '25px 30px',
+  padding: '14px 18px',
   borderRadius: '12px',
   boxShadow: '0 0 12px rgba(0,0,0,0.05)',
-  maxWidth: '460px',
+  maxWidth: '320px',
   width: '100%',
   textAlign: 'center'
 };

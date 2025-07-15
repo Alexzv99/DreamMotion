@@ -1,4 +1,5 @@
-'use client';
+"use client";
+// ...existing code...
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -9,54 +10,37 @@ export default function Register() {
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [loading, setLoading] = useState(false);
-  const [showCookies, setShowCookies] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
+  const router = useRouter();
+
   useEffect(() => {
     if (errorMsg) {
       const timer = setTimeout(() => setErrorMsg(''), 3000);
       return () => clearTimeout(timer);
     }
   }, [errorMsg]);
-  const router = useRouter();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     if (password !== confirm) {
       setErrorMsg('Passwords do not match.');
       return;
     }
-
     setLoading(true);
-
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-    });
-
+    const { error } = await supabase.auth.signUp({ email, password });
     setLoading(false);
-
     if (error) {
       setErrorMsg(error.message.includes('already registered') ? 'User already exists.' : 'Registration failed: ' + error.message);
     } else {
-      alert("Check your email to confirm your registration.");
+      alert('Check your email to confirm your registration.');
       router.push('/login');
     }
-  };
-
-  const handleAcceptCookies = () => {
-    setShowCookies(false);
-  };
-
-  const handleRejectCookies = () => {
-    setShowCookies(false);
-    alert('Cookies rejected.');
   };
 
   return (
     <main style={{
       minHeight: '100vh',
-          backgroundImage: 'url("/background-2.png")',
+      backgroundImage: 'url("/background-2.png")',
       backgroundSize: 'cover',
       backgroundPosition: 'center',
       fontFamily: 'Inter, Helvetica, Arial, sans-serif',
@@ -67,7 +51,8 @@ export default function Register() {
       flexDirection: 'column',
       alignItems: 'center',
       justifyContent: 'center',
-      backdropFilter: 'blur(2px)'
+      backdropFilter: 'blur(2px)',
+      position: 'relative'
     }}>
       <div style={{
         position: 'absolute',
@@ -75,58 +60,60 @@ export default function Register() {
         background: 'rgba(0, 0, 0, 0.6)',
         zIndex: 0
       }} />
-
       <button
         onClick={() => router.back()}
         style={{
           position: 'absolute',
           top: 20,
           left: 20,
-          zIndex: 2,
-          backgroundColor: '#fff',
-          color: '#000',
-          padding: '8px 14px',
-          border: '1px solid #ccc',
-          borderRadius: '8px',
+          zIndex: 1000,
+          background: '#fff',
+          color: '#111',
+          border: '2px solid #222',
+          borderRadius: '10px',
+          padding: '10px 18px',
+          fontWeight: 'bold',
+          fontSize: '1.08rem',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
           cursor: 'pointer',
-          fontWeight: 'bold'
+          transition: 'background 0.2s',
         }}
       >
         ← Back
       </button>
-
-
-      <div style={{ position: 'relative', zIndex: 1, textAlign: 'center' }}>
+      <div style={{
+        zIndex: 1,
+        position: 'relative',
+        maxWidth: '400px',
+        margin: '100px auto 0 auto',
+        backgroundColor: '#fff',
+        borderRadius: '12px',
+        textAlign: 'center',
+        boxShadow: '0 0 25px rgba(0,0,0,0.3)',
+        padding: '25px',
+      }}>
         {errorMsg && (
           <div style={{
-            position: 'fixed',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
             background: '#ff3b3b',
             color: 'white',
-            padding: '24px 32px',
+            padding: '16px 24px',
             fontWeight: 'bold',
             textAlign: 'center',
-            zIndex: 1000,
             borderRadius: '12px',
             boxShadow: '0 2px 16px rgba(0,0,0,0.25)',
             minWidth: '260px',
-            fontSize: '1.2rem'
+            fontSize: '1.2rem',
+            marginBottom: '18px',
           }}>
             {errorMsg}
           </div>
         )}
-        <h1 style={{ fontSize: '2rem', marginBottom: '30px', color: '#fff', fontWeight: 'bold' }}>Create Your Account</h1>
-
+        <h1 style={{ fontSize: '2rem', marginBottom: '30px', color: '#222', fontWeight: 'bold' }}>Create Your Account</h1>
         <form onSubmit={handleSubmit} style={{
-          background: '#fff',
+          background: 'none',
           color: '#000',
           borderRadius: '12px',
-          padding: '25px',
-          boxShadow: '0 0 25px rgba(0,0,0,0.3)',
           width: '100%',
-          maxWidth: '400px',
           display: 'flex',
           flexDirection: 'column',
           gap: '16px'
@@ -137,6 +124,7 @@ export default function Register() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
+// ...existing code ends here. No duplicate JSX after this line.
             style={{ padding: '10px', borderRadius: '6px', border: '1px solid #ccc' }}
           />
           <input
@@ -155,7 +143,6 @@ export default function Register() {
             required
             style={{ padding: '10px', borderRadius: '6px', border: '1px solid #ccc' }}
           />
-
           <button type="submit" disabled={loading} style={{
             padding: '12px',
             borderRadius: '6px',
@@ -168,7 +155,6 @@ export default function Register() {
           }}>
             {loading ? 'Registering...' : '📝 Register'}
           </button>
-
           <Link href="/login" style={{
             marginTop: '12px',
             color: '#c00',
@@ -178,7 +164,6 @@ export default function Register() {
           }}>
             ← Back to login
           </Link>
-
           <Link href="/dashboard" style={{
             marginTop: '6px',
             color: '#c00',

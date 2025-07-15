@@ -49,16 +49,19 @@ export default function ContactSupportPage() {
         onClick={() => router.back()}
         style={{
           position: 'absolute',
-          top: '20px',
-          left: '20px',
-          zIndex: 2,
-          backgroundColor: '#fff',
-          color: '#000',
-          border: '1px solid #ccc',
-          borderRadius: '8px',
-          padding: '8px 14px',
+          top: 20,
+          left: 20,
+          zIndex: 10,
+          background: '#fff',
+          color: '#111',
+          border: '2px solid #222',
+          borderRadius: '10px',
+          padding: '10px 18px',
           fontWeight: 'bold',
-          cursor: 'pointer'
+          fontSize: '1.08rem',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
+          cursor: 'pointer',
+          transition: 'background 0.2s',
         }}
       >
         ← Back
@@ -90,6 +93,7 @@ export default function ContactSupportPage() {
           }
         `}</style>
         <h2 style={{ fontSize: '2rem', marginBottom: '10px' }}>📩 Contact Support</h2>
+        {/* Removed red text for cinematic video */}
         <p style={{ marginBottom: '10px', color: '#555' }}>
           If you're experiencing issues or need help, reach out to our support team anytime.
         </p>
