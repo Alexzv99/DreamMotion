@@ -81,7 +81,35 @@ export default function TermsPage() {
           overflowY: 'auto',
         }}
       >
-        <p style={{ fontWeight: 'bold', color: '#111', fontSize: '1.18em', marginBottom: '18px' }}>📄 Terms of Service</p>
+        <p style={{ fontWeight: 'bold', color: '#111', fontSize: '1.18em', marginBottom: '18px' }}>� Privacy Policy</p>
+        <p style={{ marginBottom: '18px' }}><b>Effective Date:</b> July 15, 2025</p>
+        <p style={{ marginBottom: '18px' }}>At DreamMotion, your privacy is important to us. This Privacy Policy explains how we collect, use, and protect your personal information.</p>
+        <p style={{ fontWeight: 'bold', marginBottom: '8px' }}>1. Information We Collect</p>
+        <ul style={{ marginBottom: '18px', paddingLeft: '18px' }}>
+          <li>Account Details: Name, email address, and login data.</li>
+          <li>Usage Data: How you interact with our platform (e.g., tools used, number of generations, credits spent).</li>
+          <li>Device Info: Browser type, IP address, and device information.</li>
+        </ul>
+        <p style={{ fontWeight: 'bold', marginBottom: '8px' }}>2. How We Use Your Information</p>
+        <ul style={{ marginBottom: '18px', paddingLeft: '18px' }}>
+          <li>To provide and improve our services.</li>
+          <li>To manage your account and credits.</li>
+          <li>To send transactional and promotional emails (opt-out anytime).</li>
+          <li>For analytics and security purposes.</li>
+        </ul>
+        <p style={{ fontWeight: 'bold', marginBottom: '8px' }}>3. Sharing Your Information</p>
+        <ul style={{ marginBottom: '18px', paddingLeft: '18px' }}>
+          <li>We do not sell or share your personal information with third parties, except:</li>
+          <li>With service providers (e.g., payment processors like Stripe).</li>
+          <li>To comply with legal obligations.</li>
+        </ul>
+        <p style={{ fontWeight: 'bold', marginBottom: '8px' }}>4. Cookies</p>
+        <p style={{ marginBottom: '18px' }}>We use cookies to improve user experience. You can control cookie preferences in your browser settings.</p>
+        <p style={{ fontWeight: 'bold', marginBottom: '8px' }}>5. Data Security</p>
+        <p style={{ marginBottom: '18px' }}>We use industry-standard encryption and security protocols to protect your data.</p>
+        <p style={{ fontWeight: 'bold', marginBottom: '8px' }}>6. Your Rights</p>
+        <p style={{ marginBottom: '18px' }}>You can access, update, or delete your data at any time. Contact us at <a href="mailto:support@dreammotion.ai">support@dreammotion.ai</a>.</p>
+        <p style={{ fontWeight: 'bold', color: '#111', fontSize: '1.18em', marginBottom: '18px', marginTop: '32px' }}>�📄 Terms of Service</p>
         <p style={{ marginBottom: '18px' }}><b>Effective Date:</b> July 15, 2025</p>
         <p style={{ marginBottom: '18px' }}>Welcome to DreamMotion. By using our website and services, you agree to the following terms:</p>
         <p style={{ fontWeight: 'bold', marginBottom: '8px' }}>1. Use of Services</p>
