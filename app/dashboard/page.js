@@ -180,19 +180,19 @@ export default function Dashboard() {
             <ToolBox 
               title="🖼️ Generate Image"
               desc="Create stunning images from your prompt using our text-to-image tool."
-              price="1 credit / image"
+              price="2 credits / image"
               link="/generate-tool?type=genimage"
             />
             <ToolBox 
               title="🎞️ Generate Video"
               desc="Transform images into cinematic motion with DreamMotion’s engine."
-              price="2 credits / second"
+              price="From 4 credits / second"
               link="/generate-tool?type=genvideo"
             />
             <ToolBox 
               title="📽️ Text to Video"
               desc="Describe a scene and let DreamMotion create an animated video for you."
-              price="2 credits / second"
+              price="From 5 credits / second"
               link="/generate-tool?type=text2video"
             />
           </div>

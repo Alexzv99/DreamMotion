@@ -31,7 +31,6 @@ export default function GenerateToolClient() {
       }, 2000);
     }
   };
-  // ...existing code...
   // Add missing state and placeholder functions to prevent runtime errors
   const [error, setError] = useState('');
   // Dynamic tool selection based on URL query param 'type'
@@ -80,8 +79,8 @@ export default function GenerateToolClient() {
   const [generationTime, setGenerationTime] = useState(null);
   const [generationTimeString, setGenerationTimeString] = useState('');
   const [genvideoModels] = useState([
-    { value: 'hailuo-02', name: 'Hailuo‑02' },
     { value: 'kling-v2.1', name: 'Kling v2.1' },
+    { value: 'hailuo-02', name: 'Hailuo‑02' },
     { value: 'wan-2.1-i2v-720p', name: 'WAN‑2.1‑i2v‑720p' },
     { value: 'seedance-1-pro', name: 'Seedance‑1‑Pro' },
     { value: 'luma-ray', name: 'Luma / Ray' }
@@ -92,17 +91,75 @@ export default function GenerateToolClient() {
     { value: 'hailuo-02', name: 'Hailuo 02' }
   ]);
   const [loadingMessage, setLoadingMessage] = useState('');
-  // Credits logic
-  let toolCredits = '';
-  if (type === 'genimage') toolCredits = '1 credit / image';
-  else if (type === 'genvideo') toolCredits = '2 credits / second';
-  // image2video credits removed
-  else if (type === 'text2video') {
-    if (videoModel === 'veo-3-fast') toolCredits = '5 credits / second';
-    else if (videoModel === 'veo-3') toolCredits = '20 credits / second';
-    else if (videoModel === 'hailuo-02') toolCredits = '2 credits / second';
-    else toolCredits = '2 credits / second';
+  // Helper to get initial credits and cost for genvideo
+  function getInitialGenVideoCredits(model) {
+    switch (model) {
+      case 'kling-v2.1': return '4 credits / second';
+      case 'hailuo-02': return '5 credits / second';
+      case 'wan-2.1-i2v-720p': return '9 credits / second';
+      case 'seedance-1-pro': return '4 credits / second';
+      case 'luma-ray': return '15 credits / second';
+      default: return '2 credits / second';
+    }
   }
+  function getInitialGenVideoCost(model, durationVal) {
+    const costMapping = {
+      'kling-v2.1': { cost: 4, defaultDuration: 8 },
+      'hailuo-02': { cost: 5, defaultDuration: 6 },
+      'wan-2.1-i2v-720p': { cost: 9, defaultDuration: 10 },
+      'seedance-1-pro': { cost: 4, defaultDuration: 8 },
+      'luma-ray': { cost: 15, defaultDuration: 12 }
+    };
+    const modelData = costMapping[model] || { cost: 2, defaultDuration: durationVal };
+    const costPerSecond = modelData.cost;
+    const dur = durationVal || modelData.defaultDuration;
+    return costPerSecond * dur;
+  }
+
+  const [toolCredits, setToolCredits] = useState(() => {
+    if (typeParam === 'genvideo') {
+      return getInitialGenVideoCredits(videoModel);
+    } else if (typeParam === 'genimage') {
+      return '2 credits / image';
+    } else if (typeParam === 'text2video') {
+      switch (videoModel) {
+        case 'veo-3-fast': return '15 credits / second';
+        case 'veo-3': return '25 credits / second';
+        case 'hailuo-02': return '5 credits / second';
+        default: return '2 credits / second';
+      }
+    }
+    return '';
+  });
+
+  const [totalGenVideoCost, setTotalGenVideoCost] = useState(() => {
+    if (typeParam === 'genvideo') {
+      return getInitialGenVideoCost(videoModel, duration);
+    }
+    return null;
+  });
+  // Credits logic
+  useEffect(() => {
+    if (type === 'genimage') {
+      setToolCredits('2 credits / image');
+    } else if (type === 'genvideo') {
+      if (videoModel === 'hailuo-02') setToolCredits('5 credits / second');
+      else if (videoModel === 'kling-v2.1') setToolCredits('4 credits / second');
+      else if (videoModel === 'wan-2.1-i2v-720p') setToolCredits('9 credits / second');
+      else if (videoModel === 'seedance-1-pro') setToolCredits('4 credits / second');
+      else if (videoModel === 'luma-ray') setToolCredits('15 credits / second');
+      else setToolCredits('2 credits / second');
+    } else if (type === 'text2video') {
+      if (videoModel === 'veo-3-fast') setToolCredits('15 credits / second');
+      else if (videoModel === 'veo-3') setToolCredits('25 credits / second');
+      else if (videoModel === 'hailuo-02') setToolCredits('5 credits / second');
+      else setToolCredits('2 credits / second');
+    }
+  }, [type, videoModel]);
+
+  // Set initial toolCredits based on default videoModel and type
+  // Remove incorrect initial credits effect for kling-v2.1
+  // ...existing code...
 
   const aspectOptions = {
     'hailuo-02': [
@@ -150,16 +207,88 @@ export default function GenerateToolClient() {
   // Calculate total cost for text2video
   let totalCost = null;
   if (type === 'text2video') {
-    let costPerSecond = 2;
-    if (videoModel === 'veo-3-fast') costPerSecond = 5;
-    else if (videoModel === 'veo-3') costPerSecond = 20;
-    let durationVal = duration;
-    if (videoModel === 'veo-3-fast' || videoModel === 'veo-3') durationVal = 8;
-    else if (videoModel === 'hailuo-02') durationVal = duration || 6;
+    const costMapping = {
+      'veo-3-fast': { cost: 15, defaultDuration: 8 },
+      'veo-3': { cost: 25, defaultDuration: 8 },
+      'hailuo-02': { cost: 5, defaultDuration: 6 }
+    };
+
+    const modelData = costMapping[videoModel] || { cost: 2, defaultDuration: duration };
+    const costPerSecond = modelData.cost;
+    let durationVal = duration || modelData.defaultDuration;
+
+    // Ensure duration does not exceed 8 seconds for veo-3 and veo-3-fast
+    if (['veo-3', 'veo-3-fast'].includes(videoModel)) {
+      durationVal = Math.min(durationVal, 8);
+    }
+
     if (durationVal) {
       totalCost = costPerSecond * durationVal;
     }
   }
+
+  useEffect(() => {
+    if (type === 'genvideo' && videoModel === 'hailuo-02') {
+      setToolCredits('5 credits / second');
+    }
+  }, [type, videoModel]);
+
+  useEffect(() => {
+    if (type === 'text2video') {
+      if (videoModel === 'hailuo-02') {
+        setDuration(6); // Automatically set duration to 6 seconds
+        setToolCredits('5 credits / second');
+      } else if (videoModel === 'veo-3-fast') {
+        setToolCredits('15 credits / second');
+      } else if (videoModel === 'veo-3') {
+        setToolCredits('25 credits / second');
+      } else {
+        setToolCredits('2 credits / second');
+      }
+    }
+  }, [type, videoModel]);
+
+  // Update useEffect to ensure kling-v2.1 shows the correct cost when entering genvideo tool
+  useEffect(() => {
+    if (type === 'genvideo') {
+      setToolCredits(() => {
+        switch (videoModel) {
+          case 'kling-v2.1':
+            return '4 credits / second';
+          case 'hailuo-02':
+            return '5 credits / second';
+          case 'wan-2.1-i2v-720p':
+            return '9 credits / second';
+          case 'seedance-1-pro':
+            return '4 credits / second';
+          case 'luma-ray':
+            return '15 credits / second';
+          default:
+            return '4 credits / second';
+        }
+      });
+    }
+  }, [type, videoModel]);
+
+  useEffect(() => {
+    if (type === 'genvideo') {
+      if (videoModel === 'kling-v2.1') {
+        setToolCredits('4 credits / second');
+        setDuration(8); // Default duration for kling-v2.1
+      }
+      const costMapping = {
+        'kling-v2.1': { cost: 4, defaultDuration: 8 },
+        'hailuo-02': { cost: 5, defaultDuration: 6 },
+        'wan-2.1-i2v-720p': { cost: 9, defaultDuration: 10 },
+        'seedance-1-pro': { cost: 4, defaultDuration: 8 },
+        'luma-ray': { cost: 15, defaultDuration: 12 }
+      };
+      const modelData = costMapping[videoModel] || { cost: 4, defaultDuration: duration };
+      const costPerSecond = modelData.cost;
+      const durationVal = duration || modelData.defaultDuration;
+      setTotalGenVideoCost(costPerSecond * durationVal);
+    }
+  }, [type, videoModel]);
 
   if (!tool) {
     return (
@@ -277,6 +406,11 @@ export default function GenerateToolClient() {
         {type === 'text2video' && totalCost !== null && (
           <div style={{ fontSize: '1.05rem', color: '#0070f3', marginBottom: 8, fontWeight: 'bold' }}>
             Total Cost: <b>{totalCost} credits</b>
+          </div>
+        )}
+        {type === 'genvideo' && (
+          <div style={{ fontSize: '1.05rem', color: '#0070f3', marginBottom: 8, fontWeight: 'bold' }}>
+            Total Cost: <b>{totalGenVideoCost} credits</b>
           </div>
         )}
         <div style={{ fontSize: '0.95rem', color: '#c00', marginBottom: 16, fontWeight: 'bold' }}>Credits: <b>{toolCredits}</b></div>
