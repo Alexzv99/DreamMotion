@@ -63,6 +63,32 @@ export default function SubscribePage() {
             font-size: 0.98rem !important;
           }
         }
+        @media (max-width: 480px) {
+          .subscribe-plans {
+            flex-direction: column !important;
+            gap: 12px !important;
+            padding: 0 1vw !important;
+          }
+          .plan-card {
+            max-width: 95vw !important;
+            width: 95vw !important;
+            padding: 10px 1vw !important;
+            font-size: 0.9rem !important;
+            border-radius: 8px !important;
+          }
+          .plan-card button {
+            width: 100% !important;
+            font-size: 1rem !important;
+            padding: 12px 0 !important;
+            border-radius: 12px !important;
+          }
+          h1 {
+            font-size: 24px !important;
+          }
+          div {
+            font-size: 14px !important;
+          }
+        }
       `}</style>
       <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.75)', zIndex: 0 }} />
       {/* Back Button */}

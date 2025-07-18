@@ -122,6 +122,44 @@ export default function Dashboard() {
             font-size: 0.98rem !important;
           }
         }
+        @media (max-width: 480px) {
+          .dashboard-container {
+            padding: 16px 1vw !important;
+          }
+          .tools-grid {
+            flex-direction: column !important;
+            gap: 12px !important;
+          }
+          .tools-row {
+            flex-direction: column !important;
+            gap: 12px !important;
+          }
+          .tool-box, .help-box {
+            max-width: 90vw !important;
+            padding: 12px 1vw !important;
+            font-size: 0.9rem !important;
+            border-radius: 8px !important;
+          }
+          .tool-box img, .tool-box video {
+            display: block;
+            margin: 12px auto 0 auto;
+            max-width: 100%;
+            height: auto;
+          }
+          .dashboard-navbar {
+            flex-direction: column !important;
+            gap: 10px !important;
+            font-size: 1rem !important;
+          }
+          h1 {
+            font-size: 1.5rem !important;
+          }
+          button, a {
+            font-size: 0.9rem !important;
+            padding: 8px 12px !important;
+            border-radius: 6px !important;
+          }
+        }
       `}</style>
       {/* Dark overlay */}
       <div style={{

@@ -108,6 +108,27 @@ export default function TermsPage() {
         <p style={{ fontWeight: 'bold', marginBottom: '8px' }}>6. Changes</p>
         <p style={{ marginBottom: '18px' }}>We may update these terms at any time. Continued use implies acceptance of the new terms.</p>
       </div>
+
+      <style>{`
+        @media (max-width: 480px) {
+          main {
+            padding: 20px !important;
+          }
+          div {
+            max-width: 90vw !important;
+            padding: 16px 1vw !important;
+            border-radius: 8px !important;
+          }
+          p, ul {
+            font-size: 0.9rem !important;
+          }
+          button {
+            font-size: 0.9rem !important;
+            padding: 8px 12px !important;
+            border-radius: 6px !important;
+          }
+        }
+      `}</style>
     </main>
   );
 }

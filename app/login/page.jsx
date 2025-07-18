@@ -118,6 +118,30 @@ export default function LoginPage() {
             font-size: 0.98rem !important;
           }
         }
+        @media (max-width: 480px) {
+          .login-card {
+            max-width: 90vw !important;
+            padding: 16px 1vw !important;
+            font-size: 0.9rem !important;
+            border-radius: 8px !important;
+          }
+          .login-form input, .login-form button {
+            font-size: 0.9rem !important;
+            padding: 8px !important;
+            border-radius: 6px !important;
+          }
+          button {
+            font-size: 0.9rem !important;
+            padding: 8px 12px !important;
+            border-radius: 6px !important;
+          }
+          h1 {
+            font-size: 1.5rem !important;
+          }
+          p {
+            font-size: 0.85rem !important;
+          }
+        }
       `}</style>
       {errorBanner && (
         <div style={{

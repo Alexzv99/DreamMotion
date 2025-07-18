@@ -225,6 +225,31 @@ export default function Register() {
           </Link>
         </form>
       </div>
+      <style>{`
+        @media (max-width: 480px) {
+          main {
+            padding: 20px !important;
+          }
+          div {
+            max-width: 90vw !important;
+            padding: 16px 1vw !important;
+            border-radius: 8px !important;
+          }
+          h1 {
+            font-size: 1.5rem !important;
+          }
+          input, button {
+            font-size: 0.9rem !important;
+            padding: 8px !important;
+            border-radius: 6px !important;
+          }
+          button {
+            font-size: 0.9rem !important;
+            padding: 8px 12px !important;
+            border-radius: 6px !important;
+          }
+        }
+      `}</style>
     </main>
   );
 }

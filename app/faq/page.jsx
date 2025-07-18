@@ -111,6 +111,26 @@ export default function FAQ() {
           transition: 'background 0.2s'
         }}>Back to Dashboard</Link>
       </div>
+      <style>{`
+        @media (max-width: 480px) {
+          main {
+            padding: 20px !important;
+          }
+          div {
+            max-width: 90vw !important;
+            padding: 16px 1vw !important;
+            border-radius: 8px !important;
+          }
+          p {
+            font-size: 0.9rem !important;
+          }
+          a {
+            font-size: 0.9rem !important;
+            padding: 8px 12px !important;
+            border-radius: 6px !important;
+          }
+        }
+      `}</style>
     </main>
   );
 }

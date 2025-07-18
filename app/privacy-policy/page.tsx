@@ -113,6 +113,27 @@ export default function PrivacyPolicyPage() {
         <p style={{ fontWeight: 'bold', marginBottom: '8px' }}>6. Your Rights</p>
         <p style={{ marginBottom: '18px' }}>You can access, update, or delete your data at any time. Contact us at <a href="mailto:support@dreammotion.com" style={{ color: '#0070f3', textDecoration: 'underline', cursor: 'pointer' }}>support@dreammotion.com</a>.</p>
       </div>
+
+      <style>{`
+        @media (max-width: 480px) {
+          main {
+            padding: 20px !important;
+          }
+          div {
+            max-width: 90vw !important;
+            padding: 16px 1vw !important;
+            border-radius: 8px !important;
+          }
+          p {
+            font-size: 0.9rem !important;
+          }
+          button {
+            font-size: 0.9rem !important;
+            padding: 8px 12px !important;
+            border-radius: 6px !important;
+          }
+        }
+      `}</style>
     </main>
   );
 }

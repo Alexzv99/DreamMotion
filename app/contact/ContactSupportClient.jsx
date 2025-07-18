@@ -73,6 +73,27 @@ export default function ContactSupportPage() {
             60% { transform: scale(1.05); opacity: 1; }
             100% { transform: scale(1); opacity: 1; }
           }
+          @media (max-width: 600px) {
+            main {
+              padding: 20px !important;
+            }
+            div {
+              max-width: 90vw !important;
+              padding: 24px 20px !important;
+              border-radius: 16px !important;
+            }
+            h2 {
+              font-size: 1.5rem !important;
+            }
+            p {
+              font-size: 0.9rem !important;
+            }
+            button {
+              font-size: 0.95rem !important;
+              padding: 8px 14px !important;
+              border-radius: 8px !important;
+            }
+          }
         `}</style>
         <h2 style={{ fontSize: "2rem", marginBottom: "10px" }}>📩 Contact Support</h2>
         <p style={{ marginBottom: "10px", color: "#555" }}>
