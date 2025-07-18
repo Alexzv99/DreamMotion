@@ -6,10 +6,6 @@ export default function ContactSupportPage() {
   return (
     <main style={{
       minHeight: '100vh',
-      backgroundImage: 'url(/background-5.png)',
-      backgroundSize: 'cover',
-      backgroundPosition: 'center',
-      backgroundRepeat: 'no-repeat',
       fontFamily: 'Inter, Helvetica, Arial, sans-serif',
       color: '#222',
       display: 'flex',
@@ -21,6 +17,7 @@ export default function ContactSupportPage() {
       position: 'relative',
       backdropFilter: 'blur(2px)'
     }}>
+
       {/* Dark overlay */}
       <div style={{
         position: 'absolute',

@@ -15,7 +15,27 @@ export default function Home() {
   }, [errorBanner]);
 
   return (
-    <div style={{ position: 'relative', minHeight: '100vh', width: '100vw', overflow: 'hidden' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', position: 'relative', width: '100vw', overflow: 'hidden' }}>
+      {/* Footer */}
+      <footer style={{
+        width: '100vw',
+        textAlign: 'center',
+        padding: '18px 0 12px 0',
+        color: '#eee',
+        fontSize: '1rem',
+        fontWeight: 500,
+        letterSpacing: '0.02em',
+        zIndex: 4,
+        background: 'rgba(0,0,0,0.15)'
+      }}>
+        <div style={{ marginTop: '12px', fontSize: '0.9rem', color: '#ccc' }}>
+          © 2025 DreamMotion. All rights reserved.
+        </div>
+        <div style={{ fontSize: '0.9rem', color: '#ccc' }}>
+          Made with ❤️ by Your Team
+        </div>
+      </footer>
+
       {/* Animated video background */}
       <video
         autoPlay

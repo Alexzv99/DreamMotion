@@ -37,20 +37,23 @@ export default function FAQ() {
           display: 'inline-block'
         }}>← Back</Link>
       </div>
-      {/* PNG overlay above FAQ */}
-      <img
-        src="/background-5.png"
-        alt="Background Overlay"
+      {/* Background Video */}
+      <video
+        autoPlay
+        loop
+        muted
+        playsInline
         style={{
-          position: 'absolute',
+          position: 'fixed',
           top: 0,
           left: 0,
           width: '100vw',
           height: '100vh',
           objectFit: 'cover',
           zIndex: 0,
-          pointerEvents: 'none'
+          pointerEvents: 'none',
         }}
+        src="/background-video2.mp4"
       />
       <div style={{
         zIndex: 3,

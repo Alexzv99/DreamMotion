@@ -6,16 +6,12 @@ export default function SubscribePage() {
   return (
     <div style={{
       minHeight: '100vh',
-      background: '#111',
       color: 'white',
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
       padding: '50px',
       fontFamily: 'sans-serif',
-      backgroundImage: "url('/background-5.png')",
-      backgroundSize: 'cover',
-      backgroundPosition: 'center',
       position: 'relative'
     }}>
       <button
@@ -88,8 +84,8 @@ export default function SubscribePage() {
           boxShadow: '0 2px 8px rgba(0,0,0,0.12)'
         }}
       >← Back</button>
-      <h1 style={{ fontSize: '32px', marginBottom: '16px', zIndex: 1 }}>Subscription Plans</h1>
-      <div style={{ fontSize: '16px', color: 'white', marginBottom: '32px', textAlign: 'center', zIndex: 1 }}>
+      <h1 style={{ fontSize: '32px', marginBottom: '16px', zIndex: 2 }}>Subscription Plans</h1>
+      <div style={{ fontSize: '16px', color: 'white', marginBottom: '32px', textAlign: 'center', zIndex: 2 }}>
         Choose the best plan for your creative journey — buy credits once and use them freely on any tool, anytime.
       </div>
       <div className="subscribe-plans" style={{
@@ -97,7 +93,7 @@ export default function SubscribePage() {
         gap: '30px',
         flexWrap: 'wrap',
         justifyContent: 'center',
-        zIndex: 1
+        zIndex: 2 // Increased zIndex to ensure boxes are above the overlay
       }}>
         {[
           {
@@ -179,6 +175,31 @@ export default function SubscribePage() {
           </div>
         ))}
       </div>
+      {/* Background Video */}
+      <video
+        autoPlay
+        loop
+        muted
+        playsInline
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          objectFit: 'cover',
+          zIndex: 0,
+          pointerEvents: 'none',
+        }}
+        src="/background-video1.mp4"
+      />
+      {/* Dark overlay */}
+      <div style={{
+        position: 'absolute',
+        top: 0, left: 0, right: 0, bottom: 0,
+        background: 'rgba(0, 0, 0, 0.65)', // Matched opacity with the dashboard
+        zIndex: 1
+      }} />
     </div>
   );
 }

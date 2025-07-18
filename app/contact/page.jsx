@@ -6,10 +6,6 @@ export default function ContactSupportPage() {
   return (
     <main style={{
       minHeight: '100vh',
-      backgroundImage: 'url(/background-5.png)',
-      backgroundSize: 'cover',
-      backgroundPosition: 'center',
-      backgroundRepeat: 'no-repeat',
       fontFamily: 'Inter, Helvetica, Arial, sans-serif',
       color: '#222',
       display: 'flex',
@@ -21,6 +17,26 @@ export default function ContactSupportPage() {
       position: 'relative',
       backdropFilter: 'blur(2px)'
     }}>
+      {/* Background Video */}
+      <video
+        autoPlay
+        loop
+        muted
+        playsInline
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          objectFit: 'cover',
+          zIndex: 0,
+          pointerEvents: 'none',
+          opacity: 0.7 // Added opacity to the background video
+        }}
+        src="/background-video1.mp4"
+      />
+
       {/* Dark overlay */}
       <div style={{
         position: 'absolute',

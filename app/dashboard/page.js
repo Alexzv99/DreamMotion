@@ -202,9 +202,9 @@ export default function Dashboard() {
       <footer style={{
         width: '100vw',
         textAlign: 'center',
-        padding: '24px 0 18px 0',
+        padding: '18px 0 12px 0',
         color: '#eee',
-        fontSize: '1.08rem',
+        fontSize: '1rem',
         fontWeight: 500,
         letterSpacing: '0.02em',
         zIndex: 4,
@@ -215,6 +215,12 @@ export default function Dashboard() {
         <Link href="/privacy-policy" style={{ color: '#eee', margin: '0 18px', textDecoration: 'underline' }}>Privacy Policy</Link>
         <Link href="/faq" style={{ color: '#eee', margin: '0 18px', textDecoration: 'underline' }}>FAQ</Link>
         <Link href="/terms" style={{ color: '#eee', margin: '0 18px', textDecoration: 'underline' }}>Terms of Service</Link>
+        <div style={{ marginTop: '12px', fontSize: '0.9rem', color: '#ccc' }}>
+          © 2025 DreamMotion. All rights reserved.
+        </div>
+        <div style={{ fontSize: '0.9rem', color: '#ccc' }}>
+          Made with ❤️ by Your Team
+        </div>
       </footer>
     </main>
   );
