@@ -1,13 +1,17 @@
 /* eslint-disable react/no-unescaped-entities */
 'use client';
+import dynamic from 'next/dynamic';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabase } from '../supabaseClient';
 
+const MobileDashboard = dynamic(() => import('./MobileDashboard'));
+
 export default function Dashboard() {
   const [credits, setCredits] = useState(null);
   const [userId, setUserId] = useState(null);
+  const [isMobile, setIsMobile] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -45,12 +49,29 @@ export default function Dashboard() {
     fetchUserCredits();
   }, []);
 
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 480);
+    };
+
+    handleResize();
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setUserId(null);
     setCredits(null);
     // No redirect — stay on dashboard
   };
+
+  if (isMobile) {
+    return <MobileDashboard />;
+  }
 
   return (
     <main style={{
