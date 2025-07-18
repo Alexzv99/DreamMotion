@@ -225,6 +225,30 @@ export default function Register() {
           </Link>
         </form>
       </div>
+      {/* Video Background for Mobile */}
+      <video
+        autoPlay
+        loop
+        muted
+        playsInline
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          objectFit: 'cover',
+          zIndex: 0
+        }}
+      >
+        <source src="/background-video1.mp4" type="video/mp4" />
+      </video>
+      <div style={{
+        position: 'absolute',
+        top: 0, left: 0, right: 0, bottom: 0,
+        background: 'rgba(0, 0, 0, 0.6)',
+        zIndex: 0
+      }}></div>
       <style>{`
         @media (max-width: 480px) {
           main {
@@ -247,6 +271,12 @@ export default function Register() {
             font-size: 0.9rem !important;
             padding: 8px 12px !important;
             border-radius: 6px !important;
+          }
+          video {
+            object-fit: cover !important;
+          }
+          div {
+            background: rgba(0, 0, 0, 0.6) !important;
           }
         }
       `}</style>

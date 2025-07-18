@@ -9,7 +9,7 @@ export default function MobileDashboard() {
       minHeight: '100vh',
       fontFamily: 'Inter, Helvetica, Arial, sans-serif',
       color: '#222',
-      padding: '0',
+      padding: '20px',
       margin: '0',
       display: 'flex',
       flexDirection: 'column',
@@ -67,6 +67,38 @@ export default function MobileDashboard() {
       )}
 
       <h1 style={{ fontSize: '1.5rem', marginTop: '100px' }}>Mobile Dashboard</h1>
+      <section style={{
+        marginTop: '20px',
+        width: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: '20px',
+      }}>
+        <div style={{
+          width: '90%',
+          padding: '20px',
+          backgroundColor: '#fff',
+          borderRadius: '10px',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
+          textAlign: 'center',
+        }}>
+          <h2>Tool 1</h2>
+          <p>Description of Tool 1</p>
+        </div>
+        <div style={{
+          width: '90%',
+          padding: '20px',
+          backgroundColor: '#fff',
+          borderRadius: '10px',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
+          textAlign: 'center',
+        }}>
+          <h2>Tool 2</h2>
+          <p>Description of Tool 2</p>
+        </div>
+        {/* Add more tools or sections as needed */}
+      </section>
     </main>
   );
 }

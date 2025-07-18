@@ -89,23 +89,40 @@ export default function Dashboard() {
       backdropFilter: 'blur(2px)',
       position: 'relative'
     }}>
+      {/* Video Background for Mobile */}
       <video
         autoPlay
         loop
         muted
         playsInline
         style={{
-          position: 'fixed',
+          position: 'absolute',
           top: 0,
           left: 0,
-          width: '100vw',
-          height: '100vh',
+          width: '100%',
+          height: '100%',
           objectFit: 'cover',
-          zIndex: 0,
-          pointerEvents: 'none',
+          zIndex: 0
         }}
-        src="/background-video1.mp4"
-      />
+      >
+        <source src="/background-video1.mp4" type="video/mp4" />
+      </video>
+      <div style={{
+        position: 'absolute',
+        top: 0, left: 0, right: 0, bottom: 0,
+        background: 'rgba(0, 0, 0, 0.6)',
+        zIndex: 0
+      }}></div>
+      <style>{`
+        @media (max-width: 480px) {
+          video {
+            object-fit: cover !important;
+          }
+          div {
+            background: rgba(0, 0, 0, 0.6) !important;
+          }
+        }
+      `}</style>
       <style>{`
         @media (max-width: 900px) {
           .dashboard-container {

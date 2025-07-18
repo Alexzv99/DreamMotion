@@ -28,6 +28,40 @@ export default function MobileGenerateToolClient() {
       justifyContent: 'center',
       backgroundColor: '#f7f7f7',
     }}>
+      {/* Video Background for Mobile */}
+      <video
+        autoPlay
+        loop
+        muted
+        playsInline
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          objectFit: 'cover',
+          zIndex: 0
+        }}
+      >
+        <source src="/background-video1.mp4" type="video/mp4" />
+      </video>
+      <div style={{
+        position: 'absolute',
+        top: 0, left: 0, right: 0, bottom: 0,
+        background: 'rgba(0, 0, 0, 0.6)',
+        zIndex: 0
+      }}></div>
+      <style>{`
+        @media (max-width: 480px) {
+          video {
+            object-fit: cover !important;
+          }
+          div {
+            background: rgba(0, 0, 0, 0.6) !important;
+          }
+        }
+      `}</style>
       <h1 style={{ fontSize: '1.5rem', marginBottom: '20px' }}>Mobile Generate Tool</h1>
       {error && <p style={{ color: 'red' }}>{error}</p>}
       {loading ? (
