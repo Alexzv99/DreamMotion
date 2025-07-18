@@ -31,9 +31,6 @@ export default function Home() {
         <div style={{ marginTop: '12px', fontSize: '0.9rem', color: '#ccc' }}>
           © 2025 DreamMotion. All rights reserved.
         </div>
-        <div style={{ fontSize: '0.9rem', color: '#ccc' }}>
-          Made with ❤️ by Your Team
-        </div>
       </footer>
 
       {/* Animated video background */}
