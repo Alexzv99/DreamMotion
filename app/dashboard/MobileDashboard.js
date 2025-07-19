@@ -1,8 +1,70 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { supabase } from '../supabaseClient';
 
-export default function MobileDashboard() {
+export default function MobileDashboard({ credits: initialCredits, userId, handleLogout }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [credits, setCredits] = useState(initialCredits);
+
+  // Refresh credits when component gains focus
+  useEffect(() => {
+    const fetchUserCredits = async () => {
+      if (!userId) return;
+      
+      const { data, error } = await supabase
+        .from('users')
+        .select('credits')
+        .eq('id', userId)
+        .single();
+
+      if (data && !error) {
+        setCredits(data.credits);
+        console.log('Mobile credits updated:', data.credits); // Debug log
+      }
+    };
+
+    // Update credits when prop changes
+    setCredits(initialCredits);
+
+    // Listen for page focus to refresh credits when user comes back from generation tools
+    const handleFocus = () => {
+      console.log('Mobile page focused, refreshing credits...'); // Debug log
+      fetchUserCredits();
+    };
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        console.log('Mobile page visible, refreshing credits...'); // Debug log
+        fetchUserCredits();
+      }
+    };
+
+    // Add popstate listener for browser back button
+    const handlePopState = () => {
+      console.log('Mobile navigation detected, refreshing credits...'); // Debug log
+      setTimeout(fetchUserCredits, 100);
+    };
+
+    // Add storage listener for cross-tab communication
+    const handleStorageChange = (e) => {
+      if (e.key === 'credits_updated') {
+        console.log('Mobile storage change detected, refreshing credits...'); // Debug log
+        fetchUserCredits();
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('popstate', handlePopState);
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('popstate', handlePopState);
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, [initialCredits, userId]);
 
   return (
     <main style={{
@@ -67,6 +129,25 @@ export default function MobileDashboard() {
       )}
 
       <h1 style={{ fontSize: '1.5rem', marginTop: '100px' }}>Mobile Dashboard</h1>
+      
+      {/* Credits Display */}
+      {credits !== null && (
+        <div style={{
+          marginTop: '20px',
+          padding: '15px 20px',
+          backgroundColor: '#fff',
+          borderRadius: '10px',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
+          fontSize: '1.1rem',
+          fontWeight: 'bold',
+          color: '#0070f3',
+          textAlign: 'center',
+          width: '90%'
+        }}>
+          💰 Your Credits: {credits}
+        </div>
+      )}
+      
       <section style={{
         marginTop: '20px',
         width: '100%',

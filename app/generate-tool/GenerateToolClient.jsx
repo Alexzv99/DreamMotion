@@ -2,9 +2,228 @@
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import Button from '../components/Button';
+import { supabase } from '../supabaseClient';
+import Script from 'next/script';
 
 export default function GenerateToolClient() {
   const router = useRouter();
+  const [user, setUser] = useState(null);
+  const [credits, setCredits] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
+
+  // Check authentication status
+  useEffect(() => {
+    const checkAuth = async () => {
+      console.log('🔍 Starting authentication check...');
+      
+      try {
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        
+        if (authError) {
+          console.error('❌ Auth error:', authError);
+        }
+        
+        console.log('🔍 Authentication result:', { 
+          user: user ? { id: user.id, email: user.email } : null,
+          error: authError 
+        });
+        
+        setUser(user);
+        setAuthLoading(false);
+
+        if (user) {
+          console.log('✅ User authenticated:', { id: user.id, email: user.email });
+          // Fetch user credits with retry logic
+          let retryCount = 0;
+          const maxRetries = 3;
+        
+        const fetchCredits = async () => {
+          try {
+            console.log('🔍 Attempting to fetch credits for user:', user.id);
+            console.log('🔍 User object:', { id: user.id, email: user.email, aud: user.aud, role: user.role });
+            
+            // Check current session
+            console.log('🔍 Checking current session...');
+            const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+            if (sessionError) {
+              console.error('❌ Session error:', sessionError);
+            } else if (session) {
+              console.log('✅ Valid session found:', { 
+                user: session.user?.id, 
+                expires: session.expires_at,
+                token_type: session.token_type 
+              });
+            } else {
+              console.log('⚠️ No active session found');
+            }
+            
+            // First, let's test if we can connect to Supabase at all
+            console.log('🔍 Testing basic Supabase connection...');
+            const { data: testData, error: testError } = await supabase
+              .from('users')
+              .select('count')
+              .limit(1);
+            
+            if (testError) {
+              console.error('❌ Supabase connection test failed:', testError);
+              console.log('Connection error details:', {
+                code: testError.code,
+                message: testError.message,
+                details: testError.details,
+                hint: testError.hint
+              });
+            } else {
+              console.log('✅ Supabase connection test successful, count:', testData);
+            }
+            
+            // Try to fetch all users first (to test table access)
+            console.log('🔍 Testing users table access...');
+            const { data: allUsers, error: allUsersError } = await supabase
+              .from('users')
+              .select('id, email, credits')
+              .limit(5);
+            
+            if (allUsersError) {
+              console.error('❌ Cannot access users table:', allUsersError);
+            } else {
+              console.log('✅ Users table accessible, sample data:', allUsers);
+              const userExists = allUsers.find(u => u.id === user.id);
+              console.log('🔍 Current user exists in table:', userExists ? 'YES' : 'NO', userExists);
+            }
+            
+            // Now try to fetch the specific user
+            console.log('🔍 Fetching specific user data...');
+            const { data: userData, error } = await supabase
+              .from('users')
+              .select('credits')
+              .eq('id', user.id)
+              .single();
+            
+            if (error) {
+              console.error('Error fetching credits:', error);
+              console.log('Error details:', {
+                code: error.code,
+                message: error.message,
+                details: error.details,
+                hint: error.hint,
+                stringified: JSON.stringify(error)
+              });
+              
+              // Try to create user immediately if any error occurs
+              console.log('Attempting to create user due to fetch error...');
+              const { error: insertError } = await supabase
+                .from('users')
+                .insert([{ id: user.id, email: user.email, credits: 10 }]);
+              
+              if (!insertError) {
+                console.log('User created successfully with 10 credits');
+                setCredits(10);
+                return;
+              } else {
+                console.error('Failed to create user:', insertError);
+                
+                // If user already exists, try to fetch again
+                console.log('Retrying fetch after creation attempt...');
+                const { data: retryUserData, error: retryError } = await supabase
+                  .from('users')
+                  .select('credits')
+                  .eq('id', user.id)
+                  .single();
+                
+                if (!retryError && retryUserData) {
+                  console.log('Retry successful, credits:', retryUserData.credits);
+                  setCredits(retryUserData.credits);
+                  return;
+                }
+              }
+              
+              if (retryCount < maxRetries) {
+                retryCount++;
+                console.log(`Retrying credit fetch (${retryCount}/${maxRetries})...`);
+                setTimeout(fetchCredits, 1000); // Retry after 1 second
+                return;
+              }
+              
+              // If all retries failed, set credits to 0
+              console.log('All retries failed, setting credits to 0');
+              setCredits(0);
+            } else {
+              console.log('Credits fetched:', userData?.credits || 0);
+              setCredits(userData?.credits || 0);
+            }
+          } catch (err) {
+            console.error('Unexpected error fetching credits:', err);
+            setCredits(0);
+          }
+        };
+        
+        fetchCredits();
+      } else {
+        console.log('❌ No user authenticated');
+      }
+    } catch (err) {
+      console.error('💥 Unexpected error in auth check:', err);
+      setAuthLoading(false);
+    }
+    };
+
+    checkAuth();
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setUser(session?.user || null);
+      if (!session?.user) {
+        setCredits(null);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // Add missing state and placeholder functions to prevent runtime errors
+  const [error, setError] = useState('');
+  // Dynamic tool selection based on URL query param 'type'
+  const searchParams = useSearchParams();
+  const typeParam = searchParams.get('type');
+  const [type, setType] = useState(typeParam || 'genimage');
+  useEffect(() => {
+    if (typeParam && typeParam !== type) setType(typeParam);
+  }, [typeParam]);
+
+  // ...existing state...
+  const [videoModel, setVideoModel] = useState('veo-3-fast');
+  const [duration, setDuration] = useState(6); // default 6s
+  const [aspectRatio, setAspectRatio] = useState('1:1');
+  const [prompt, setPrompt] = useState('');
+  const [file, setFile] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [loadingMinutes, setLoadingMinutes] = useState(0);
+  const [generationTime, setGenerationTime] = useState(null);
+  const [generationTimeString, setGenerationTimeString] = useState('');
+
+  // Calculate credit cost for current generation
+  const calculateCreditCost = () => {
+    if (type === 'genimage') {
+      return 2;
+    } else if (type === 'genvideo' || type === 'text2video') {
+      const costMapping = {
+        'kling-v2.1': 4,
+        'hailuo-02': 5,
+        'wan-2.1-i2v-720p': 9,
+        'seedance-1-pro': 4,
+        'luma-ray': 15,
+        'veo-3-fast': 15,
+        'veo-3': 25
+      };
+      const costPerSecond = costMapping[videoModel] || 2;
+      return costPerSecond * (duration || 6);
+    }
+    return 2;
+  };
+
+  const hasEnoughCredits = credits !== null && credits >= calculateCreditCost();
+
   const handleGenerate = async () => {
     setError("");
     setLoading(true);
@@ -23,11 +242,23 @@ export default function GenerateToolClient() {
         const videoUrl = URL.createObjectURL(blob);
         setPreviewUrl(videoUrl);
       } else if (type === "genimage") {
+        // Check if user is authenticated
+        if (!user) {
+          throw new Error('Please log in to generate images');
+        }
+
+        // Get session token
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          throw new Error('Authentication session expired. Please log in again.');
+        }
+
         // Generate image using Flux API
         const response = await fetch('/api/generate-image', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`
           },
           body: JSON.stringify({
             prompt: prompt,
@@ -50,6 +281,15 @@ export default function GenerateToolClient() {
           const imageUrl = Array.isArray(data.output) ? data.output[0] : data.output;
           setPreviewUrl(imageUrl);
           
+          // Update credits after successful generation (deduct the cost)
+          const newCredits = credits - calculateCreditCost();
+          console.log(`[IMAGE] Credit update: ${credits} -> ${newCredits} (deducted ${calculateCreditCost()})`);
+          setCredits(newCredits);
+          
+          // Trigger storage event to notify other tabs/windows (like dashboard)
+          localStorage.setItem('creditsUpdated', Date.now().toString());
+          console.log('[IMAGE] Triggered creditsUpdated localStorage event');
+          
           // Calculate generation time
           const endTime = Date.now();
           const timeDiff = endTime - generationTime;
@@ -59,11 +299,23 @@ export default function GenerateToolClient() {
           throw new Error(data.error || 'No image generated');
         }
       } else if (type === "genvideo" || type === "text2video") {
+        // Check if user is authenticated
+        if (!user) {
+          throw new Error('Please log in to generate videos');
+        }
+
+        // Get session token
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          throw new Error('Authentication session expired. Please log in again.');
+        }
+
         // Generate video using existing API
         const response = await fetch('/api/generate-image', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`
           },
           body: JSON.stringify({
             prompt: prompt,
@@ -84,6 +336,15 @@ export default function GenerateToolClient() {
         if (data.output) {
           const videoUrl = Array.isArray(data.output) ? data.output[0] : data.output;
           setPreviewUrl(videoUrl);
+          
+          // Update credits after successful generation (deduct the cost)
+          const newCredits = credits - calculateCreditCost();
+          console.log(`[VIDEO] Credit update: ${credits} -> ${newCredits} (deducted ${calculateCreditCost()})`);
+          setCredits(newCredits);
+          
+          // Trigger storage event to notify other tabs/windows (like dashboard)
+          localStorage.setItem('creditsUpdated', Date.now().toString());
+          console.log('[VIDEO] Triggered creditsUpdated localStorage event');
           
           // Calculate generation time
           const endTime = Date.now();
@@ -106,15 +367,6 @@ export default function GenerateToolClient() {
       setLoading(false);
     }
   };
-  // Add missing state and placeholder functions to prevent runtime errors
-  const [error, setError] = useState('');
-  // Dynamic tool selection based on URL query param 'type'
-  const searchParams = useSearchParams();
-  const typeParam = searchParams.get('type');
-  const [type, setType] = useState(typeParam || 'genimage');
-  useEffect(() => {
-    if (typeParam && typeParam !== type) setType(typeParam);
-  }, [typeParam]);
 
   // Tool definitions
   const toolMap = {
@@ -142,17 +394,6 @@ export default function GenerateToolClient() {
   const filteredType = type === 'image2video' ? 'genimage' : type;
   const tool = toolMap[filteredType] || toolMap['genimage'];
 
-  // ...existing state...
-  const [videoModel, setVideoModel] = useState('veo-3-fast');
-  const [duration, setDuration] = useState(6); // default 6s
-  const [aspectRatio, setAspectRatio] = useState('1:1');
-  const [prompt, setPrompt] = useState('');
-  const [file, setFile] = useState(null);
-  const [previewUrl, setPreviewUrl] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [loadingMinutes, setLoadingMinutes] = useState(0);
-  const [generationTime, setGenerationTime] = useState(null);
-  const [generationTimeString, setGenerationTimeString] = useState('');
   const [genvideoModels] = useState([
     { value: 'kling-v2.1', name: 'Kling v2.1' },
     { value: 'hailuo-02', name: 'Hailuo‑02' },
@@ -442,6 +683,100 @@ export default function GenerateToolClient() {
     }
   }, []);
 
+  if (authLoading) {
+    return (
+      <main style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontFamily: 'Inter, Helvetica, Arial, sans-serif'
+      }}>
+        <div style={{ textAlign: 'center', padding: '50px' }}>
+          <div style={{ fontSize: '1.2rem', color: '#666' }}>Loading...</div>
+        </div>
+      </main>
+    );
+  }
+
+  if (!user) {
+    return (
+      <main style={{
+        minHeight: '100vh',
+        width: '100vw',
+        overflow: 'hidden',
+        fontFamily: 'Inter, Helvetica, Arial, sans-serif',
+        color: '#222',
+        padding: '0',
+        margin: '0',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundImage: 'url("/background-2.png")',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        position: 'relative'
+      }}>
+        <div style={{
+          position: 'absolute',
+          top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0, 0, 0, 0.65)',
+          zIndex: 1
+        }} />
+        <div style={{
+          background: '#fff',
+          borderRadius: 18,
+          boxShadow: '0 2px 18px rgba(30,30,40,0.10)',
+          padding: '48px 48px 42px 48px',
+          maxWidth: 480,
+          textAlign: 'center',
+          zIndex: 2,
+          position: 'relative'
+        }}>
+          <h1 style={{ fontSize: '2.2rem', fontWeight: 800, marginBottom: 16, color: '#111' }}>
+            Login Required
+          </h1>
+          <p style={{ fontSize: '1.2rem', color: '#666', marginBottom: 32, lineHeight: 1.5 }}>
+            You need to be logged in to use the AI generation tools. Please log in to continue.
+          </p>
+          <div style={{ display: 'flex', gap: 16, justifyContent: 'center' }}>
+            <Button 
+              onClick={() => router.push('/login')}
+              style={{
+                fontSize: '1.1rem',
+                padding: '12px 24px',
+                borderRadius: 12,
+                background: '#0070f3',
+                color: '#fff',
+                fontWeight: 600,
+                border: 'none',
+                cursor: 'pointer'
+              }}
+            >
+              Login
+            </Button>
+            <Button 
+              onClick={() => router.push('/register')}
+              style={{
+                fontSize: '1.1rem',
+                padding: '12px 24px',
+                borderRadius: 12,
+                background: '#f3f4f6',
+                color: '#374151',
+                fontWeight: 600,
+                border: '1px solid #d1d5db',
+                cursor: 'pointer'
+              }}
+            >
+              Sign Up
+            </Button>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
   if (!tool) {
     return (
       <main style={{
@@ -469,7 +804,9 @@ export default function GenerateToolClient() {
   }
 
   return (
-    <main style={{
+    <>
+      <Script src="/test-supabase.js" />
+      <main style={{
       minHeight: '100vh',
       width: '100vw',
       overflow: 'hidden',
@@ -554,6 +891,53 @@ export default function GenerateToolClient() {
           color: '#111'
         }}>{tool.title}</span>
         <span style={{ fontSize: '1.18rem', fontWeight: 500, color: '#444', lineHeight: 1.5 }}>{tool.desc}</span>
+        {credits !== null && (
+          <div style={{ 
+            fontSize: '1.1rem', 
+            color: '#0070f3', 
+            marginBottom: 8, 
+            fontWeight: 'bold',
+            background: '#f0f9ff',
+            padding: '8px 16px',
+            borderRadius: 8,
+            marginTop: 12,
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}>
+            <span>💰 Your Credits: <b>{credits}</b></span>
+            <button
+              onClick={async () => {
+                if (user) {
+                  console.log('Refreshing credits for user:', user.id);
+                  const { data: userData, error } = await supabase
+                    .from('users')
+                    .select('credits')
+                    .eq('id', user.id)
+                    .single();
+                  
+                  if (error) {
+                    console.error('Error refreshing credits:', error);
+                  } else {
+                    console.log('Refreshed credits:', userData?.credits);
+                    setCredits(userData?.credits || 0);
+                  }
+                }
+              }}
+              style={{
+                background: '#0070f3',
+                color: 'white',
+                border: 'none',
+                borderRadius: 4,
+                padding: '4px 8px',
+                fontSize: '0.8rem',
+                cursor: 'pointer'
+              }}
+            >
+              🔄
+            </button>
+          </div>
+        )}
         {tool.note && <div style={{ color: '#0070f3', fontWeight: 500, marginBottom: 8 }}>{tool.note}</div>}
         {type === 'text2video' && totalCost !== null && (
           <div style={{ fontSize: '1.05rem', color: '#0070f3', marginBottom: 8, fontWeight: 'bold' }}>
@@ -793,6 +1177,35 @@ export default function GenerateToolClient() {
           </div>
         )}
         {error && <div style={{ color: '#c00', fontWeight: 500, marginBottom: 12 }}>{error}</div>}
+        {credits !== null && !hasEnoughCredits && (
+          <div style={{ 
+            color: '#c00', 
+            fontWeight: 500, 
+            marginBottom: 12, 
+            padding: '10px 14px',
+            background: '#fef2f2',
+            borderRadius: 8,
+            border: '1px solid #fecaca'
+          }}>
+            ⚠️ Insufficient credits! You need {calculateCreditCost()} credits but only have {credits}.
+            <br />
+            <button 
+              onClick={() => router.push('/subscribe')}
+              style={{
+                marginTop: 8,
+                padding: '6px 12px',
+                background: '#0070f3',
+                color: 'white',
+                border: 'none',
+                borderRadius: 4,
+                cursor: 'pointer',
+                fontSize: '0.9rem'
+              }}
+            >
+              Get More Credits
+            </button>
+          </div>
+        )}
         {loading && (
           <div style={{ marginBottom: 12, color: '#444', fontWeight: 600, fontSize: '1.08rem' }}>
             {(type === 'text2video' || type === 'genvideo' || type === 'image2video') ? (() => {
@@ -805,8 +1218,9 @@ export default function GenerateToolClient() {
         )}
         {(tool.inputType !== 'none') && (
           <Button
-            onClick={handleGenerate}
+            onClick={hasEnoughCredits ? handleGenerate : undefined}
             className="creative-btn"
+            disabled={!hasEnoughCredits || loading}
             style={{
               marginTop: 20,
               fontWeight: 'bold',
@@ -814,15 +1228,16 @@ export default function GenerateToolClient() {
               padding: '16px 28px',
               borderRadius: '18px',
               letterSpacing: '0.04em',
-              boxShadow: '0 0 18px 2px #222, 0 0 8px 2px #444',
+              boxShadow: hasEnoughCredits && !loading ? '0 0 18px 2px #222, 0 0 8px 2px #444' : 'none',
               border: 'none',
-              cursor: 'pointer',
-              background: 'linear-gradient(90deg, #222 0%, #444 100%)',
-              color: '#fff',
+              cursor: hasEnoughCredits && !loading ? 'pointer' : 'not-allowed',
+              background: hasEnoughCredits && !loading ? 'linear-gradient(90deg, #222 0%, #444 100%)' : '#ccc',
+              color: hasEnoughCredits && !loading ? '#fff' : '#666',
               position: 'relative',
               overflow: 'hidden',
               textTransform: 'uppercase',
               transition: 'box-shadow 0.3s, transform 0.2s, background 0.3s',
+              opacity: hasEnoughCredits && !loading ? 1 : 0.6
             }}
           >
             <span style={{
@@ -921,6 +1336,7 @@ export default function GenerateToolClient() {
         }
       `}</style>
     </main>
+    </>
   );
 // End of main return block
 }

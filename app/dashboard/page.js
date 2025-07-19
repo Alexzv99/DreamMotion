@@ -43,10 +43,61 @@ export default function Dashboard() {
         }
       } else if (data) {
         setCredits(data.credits);
+        console.log('Credits updated:', data.credits); // Debug log
       }
     };
 
     fetchUserCredits();
+
+    // Listen for page focus to refresh credits when user comes back from generation tools
+    const handleFocus = () => {
+      console.log('Page focused, refreshing credits...'); // Debug log
+      fetchUserCredits();
+    };
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        console.log('Page visible, refreshing credits...'); // Debug log
+        fetchUserCredits();
+      }
+    };
+
+    // Add popstate listener for browser back button
+    const handlePopState = () => {
+      console.log('Navigation detected, refreshing credits...'); // Debug log
+      setTimeout(fetchUserCredits, 100); // Small delay to ensure navigation is complete
+    };
+
+    // Add storage listener for cross-tab communication
+    const handleStorageChange = (e) => {
+      if (e.key === 'credits_updated') {
+        console.log('Storage change detected, refreshing credits...'); // Debug log
+        fetchUserCredits();
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('popstate', handlePopState);
+    window.addEventListener('storage', handleStorageChange);
+
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session?.user) {
+        fetchUserCredits();
+      } else {
+        setUserId(null);
+        setCredits(null);
+      }
+    });
+
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('popstate', handlePopState);
+      window.removeEventListener('storage', handleStorageChange);
+      subscription.unsubscribe();
+    };
   }, []);
 
   useEffect(() => {
@@ -70,7 +121,7 @@ export default function Dashboard() {
   };
 
   if (isMobile) {
-    return <MobileDashboard />;
+    return <MobileDashboard credits={credits} userId={userId} handleLogout={handleLogout} />;
   }
 
   return (

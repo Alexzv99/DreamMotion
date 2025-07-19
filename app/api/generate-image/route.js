@@ -1,9 +1,15 @@
 import Replicate from 'replicate';
 import { NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 
 const replicate = new Replicate({
   auth: process.env.REPLICATE_API_TOKEN,
 });
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://sragjoqgnpikknnclppv.supabase.co',
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNyYWdqb3FnbnBpa2tubmNscHB2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE2OTAyMjksImV4cCI6MjA2NzI2NjIyOX0.zOWjpC0DqRYioyMLG0c2rGDo2TaLjQ3tGbj24kYwzJY'
+);
 
 async function generateImage({ prompt, aspect_ratio }) {
   try {
@@ -96,7 +102,85 @@ export async function POST(req) {
       return NextResponse.json({ error: 'Prompt is required' }, { status: 400 });
     }
 
-    console.log('📥 API call received:', { prompt, type, video_model, duration, aspect_ratio });
+    // Get authorization header
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
+    const token = authHeader.split(' ')[1];
+    
+    // Verify the token with Supabase
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Invalid authentication token' }, { status: 401 });
+    }
+
+    // Determine credit cost based on generation type
+    let creditCost = 2; // Default for genimage
+    if (type === 'genvideo' || type === 'text2video') {
+      const costMapping = {
+        'kling-v2.1': 4,
+        'hailuo-02': 5,
+        'wan-2.1-i2v-720p': 9,
+        'seedance-1-pro': 4,
+        'luma-ray': 15,
+        'veo-3-fast': 15,
+        'veo-3': 25
+      };
+      const costPerSecond = costMapping[video_model] || 2;
+      creditCost = costPerSecond * (duration || 6);
+    }
+
+    // Check user credits
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('credits')
+      .eq('id', user.id)
+      .single();
+
+    let currentCredits = 0;
+    
+    if (userError) {
+      // If user doesn't exist, create them with initial credits
+      if (userError.code === 'PGRST116' || userError.message?.includes('No rows found')) {
+        console.log('User not found, creating new user with 10 credits...');
+        const { error: insertError } = await supabase
+          .from('users')
+          .insert([{ id: user.id, email: user.email, credits: 10 }]);
+        
+        if (!insertError) {
+          console.log('New user created with 10 credits');
+          currentCredits = 10;
+        } else {
+          console.error('Error creating user:', insertError);
+          return NextResponse.json({ error: 'Failed to create user account' }, { status: 500 });
+        }
+      } else {
+        console.error('Database error fetching user:', userError);
+        return NextResponse.json({ error: 'Failed to fetch user credits' }, { status: 500 });
+      }
+    } else {
+      currentCredits = userData?.credits || 0;
+    }
+
+    if (currentCredits < creditCost) {
+      return NextResponse.json({ 
+        error: `Insufficient credits. You need ${creditCost} credits but only have ${currentCredits}` 
+      }, { status: 402 });
+    }
+
+    console.log('📥 API call received:', { prompt, type, video_model, duration, aspect_ratio, user: user.id, creditCost });
+
+    // Deduct credits before generation
+    const { error: deductError } = await supabase
+      .from('users')
+      .update({ credits: currentCredits - creditCost })
+      .eq('id', user.id);
+
+    if (deductError) {
+      return NextResponse.json({ error: 'Failed to deduct credits' }, { status: 500 });
+    }
 
     const result = await generateImage({ prompt, aspect_ratio, type, video_model, duration });
 
