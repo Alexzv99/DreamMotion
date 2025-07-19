@@ -84,56 +84,71 @@ export default function PrivacyPolicyPage() {
           overflowY: 'auto',
         }}
       >
-        <p style={{ fontWeight: 'bold', color: '#111', fontSize: '1.18em', marginBottom: '18px' }}>🔒 Privacy Policy</p>
-        <p style={{ marginBottom: '18px' }}><b>Effective Date:</b> July 15, 2025</p>
-        <p style={{ marginBottom: '18px' }}>At DreamMotion, your privacy is important to us. This Privacy Policy explains how we collect, use, and protect your personal information.</p>
-        <p style={{ fontWeight: 'bold', marginBottom: '8px' }}>1. Information We Collect</p>
-        <ul style={{ marginBottom: '18px', paddingLeft: '18px' }}>
-          <li>Account Details: Name, email address, and login data.</li>
-          <li>Usage Data: How you interact with our platform (e.g., tools used, number of generations, credits spent).</li>
-          <li>Device Info: Browser type, IP address, and device information.</li>
-        </ul>
-        <p style={{ fontWeight: 'bold', marginBottom: '8px' }}>2. How We Use Your Information</p>
-        <ul style={{ marginBottom: '18px', paddingLeft: '18px' }}>
-          <li>To provide and improve our services.</li>
-          <li>To manage your account and credits.</li>
-          <li>To send transactional and promotional emails (opt-out anytime).</li>
-          <li>For analytics and security purposes.</li>
-        </ul>
-        <p style={{ fontWeight: 'bold', marginBottom: '8px' }}>3. Sharing Your Information</p>
-        <ul style={{ marginBottom: '18px', paddingLeft: '18px' }}>
-          <li>We do not sell or share your personal information with third parties, except:</li>
-          <li>With service providers (e.g., payment processors like Stripe).</li>
-          <li>To comply with legal obligations.</li>
-        </ul>
-        <p style={{ fontWeight: 'bold', marginBottom: '8px' }}>4. Cookies</p>
-        <p style={{ marginBottom: '18px' }}>We use cookies to improve user experience. You can control cookie preferences in your browser settings.</p>
-        <p style={{ fontWeight: 'bold', marginBottom: '8px' }}>5. Data Security</p>
-        <p style={{ marginBottom: '18px' }}>We use industry-standard encryption and security protocols to protect your data.</p>
-        <p style={{ fontWeight: 'bold', marginBottom: '8px' }}>6. Your Rights</p>
-        <p style={{ marginBottom: '18px' }}>You can access, update, or delete your data at any time. Contact us at <a href="mailto:support@dreammotion.com" style={{ color: '#0070f3', textDecoration: 'underline', cursor: 'pointer' }}>support@dreammotion.com</a>.</p>
-      </div>
+        <div>
+          <h1 style={{ fontWeight: 'bold', color: '#111', fontSize: '1.18em', marginBottom: '18px' }}>Privacy Policy</h1>
+          <p style={{ marginBottom: '18px' }}><strong>Effective Date:</strong> July 15, 2025</p>
+          <p style={{ marginBottom: '18px' }}>At DreamMotion, your privacy is important to us. This Privacy Policy explains how we collect, use, and protect your personal information.</p>
+          <ol style={{ marginBottom: '18px', paddingLeft: '18px' }}>
+            <li>
+              <strong>Information We Collect</strong><br />
+              Account Details: Name, email address, and login data.<br />
+              Usage Data: How you interact with our platform (e.g., tools used, number of generations, credits spent).<br />
+              Device Info: Browser type, IP address, and device information.
+            </li>
+            <br />
+            <li>
+              <strong>How We Use Your Information</strong><br />
+              To provide and improve our services.<br />
+              To manage your account and credits.<br />
+              To send transactional and promotional emails (opt-out anytime).<br />
+              For analytics and security purposes.
+            </li>
+            <br />
+            <li>
+              <strong>Sharing Your Information</strong><br />
+              We do not sell or share your personal information with third parties, except:<br />
+              With service providers (e.g., payment processors like Stripe).<br />
+              To comply with legal obligations.
+            </li>
+            <br />
+            <li>
+              <strong>Cookies</strong><br />
+              We use cookies to improve user experience. You can control cookie preferences in your browser settings.
+            </li>
+            <br />
+            <li>
+              <strong>Data Security</strong><br />
+              We use industry-standard encryption and security protocols to protect your data.
+            </li>
+            <br />
+            <li>
+              <strong>Your Rights</strong><br />
+              You can access, update, or delete your data at any time. Contact us at <a href="mailto:support@dreammotion.com" style={{ color: '#0070f3', textDecoration: 'underline', cursor: 'pointer' }}>support@dreammotion.com</a>.
+            </li>
+          </ol>
+        </div>
 
-      <style>{`
-        @media (max-width: 480px) {
-          main {
-            padding: 20px !important;
+        <style>{`
+          @media (max-width: 480px) {
+            main {
+              padding: 20px !important;
+            }
+            div {
+              max-width: 90vw !important;
+              padding: 16px 1vw !important;
+              border-radius: 8px !important;
+            }
+            p {
+              font-size: 0.9rem !important;
+            }
+            button {
+              font-size: 0.9rem !important;
+              padding: 8px 12px !important;
+              border-radius: 6px !important;
+            }
           }
-          div {
-            max-width: 90vw !important;
-            padding: 16px 1vw !important;
-            border-radius: 8px !important;
-          }
-          p {
-            font-size: 0.9rem !important;
-          }
-          button {
-            font-size: 0.9rem !important;
-            padding: 8px 12px !important;
-            border-radius: 6px !important;
-          }
-        }
-      `}</style>
+        `}</style>
+      </div>
     </main>
   );
 }

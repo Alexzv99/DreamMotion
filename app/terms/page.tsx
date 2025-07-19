@@ -84,29 +84,40 @@ export default function TermsPage() {
           overflowY: 'auto',
         }}
       >
-        <p style={{ fontWeight: 'bold', color: '#111', fontSize: '1.18em', marginBottom: '18px' }}>📄 Terms of Service</p>
-        <p style={{ marginBottom: '18px' }}><b>Effective Date:</b> July 15, 2025</p>
-        <p style={{ marginBottom: '18px' }}>Welcome to DreamMotion. By using our website and services, you agree to the following terms:</p>
-        <p style={{ fontWeight: 'bold', marginBottom: '8px' }}>1. Use of Services</p>
-        <p style={{ marginBottom: '18px' }}>You may use DreamMotion to generate images and videos for personal or commercial purposes, unless explicitly prohibited. You are responsible for your own content and must not use the platform for illegal, abusive, or exploitative purposes.</p>
-        <p style={{ fontWeight: 'bold', marginBottom: '8px' }}>2. Credits & Payments</p>
-        <ul style={{ marginBottom: '18px', paddingLeft: '18px' }}>
-          <li>DreamMotion operates on a credit-based system.</li>
-          <li>You may purchase credits through Stripe.</li>
-          <li>Free credits are offered at signup. All sales are final unless otherwise stated.</li>
-        </ul>
-        <p style={{ fontWeight: 'bold', marginBottom: '8px' }}>3. Prohibited Use</p>
-        <ul style={{ marginBottom: '18px', paddingLeft: '18px' }}>
-          <li>Generate content involving real individuals without their consent.</li>
-          <li>Upload or request illegal, harmful, or offensive content.</li>
-          <li>Attempt to reverse engineer or misuse the platform’s AI services.</li>
-        </ul>
-        <p style={{ fontWeight: 'bold', marginBottom: '8px' }}>4. Account Suspension</p>
-        <p style={{ marginBottom: '18px' }}>We reserve the right to suspend or terminate accounts that violate these terms or abuse our system.</p>
-        <p style={{ fontWeight: 'bold', marginBottom: '8px' }}>5. Liability</p>
-        <p style={{ marginBottom: '18px' }}>We provide services "as is" and make no guarantees regarding specific outcomes or uninterrupted access. DreamMotion is not liable for losses resulting from misuse or interruptions.</p>
-        <p style={{ fontWeight: 'bold', marginBottom: '8px' }}>6. Changes</p>
-        <p style={{ marginBottom: '18px' }}>We may update these terms at any time. Continued use implies acceptance of the new terms.</p>
+        <h1 style={{ fontWeight: 'bold', color: '#111', fontSize: '1.18em', marginBottom: '18px' }}>Terms of Service</h1>
+        <p style={{ marginBottom: '18px' }}>Welcome to DreamMotion. By using our platform, you agree to the following terms and conditions:</p>
+        <ol style={{ marginBottom: '18px', paddingLeft: '18px' }}>
+          <li>
+            <strong>Account Responsibilities</strong><br />
+            You are responsible for maintaining the confidentiality of your account and password.
+          </li>
+          <br />
+          <li>
+            <strong>Prohibited Activities</strong><br />
+            You agree not to misuse our platform for illegal or unauthorized purposes.
+          </li>
+          <br />
+          <li>
+            <strong>Intellectual Property</strong><br />
+            All content on our platform is owned by DreamMotion and protected by copyright laws.
+          </li>
+          <br />
+          <li>
+            <strong>Termination</strong><br />
+            We reserve the right to suspend or terminate your account for violations of these terms.
+          </li>
+          <br />
+          <li>
+            <strong>Limitation of Liability</strong><br />
+            DreamMotion is not liable for any indirect, incidental, or consequential damages.
+          </li>
+          <br />
+          <li>
+            <strong>Changes to Terms</strong><br />
+            We may update these terms from time to time. Continued use of the platform constitutes acceptance of the updated terms.
+          </li>
+        </ol>
+        <p>If you have any questions, contact us at <a href="mailto:support@dreammotion.com">support@dreammotion.com</a>.</p>
       </div>
 
       <style>{`

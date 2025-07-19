@@ -51,7 +51,7 @@ export default function GenerateToolClient() {
     },
     genvideo: {
       title: 'Generate Video',
-      desc: 'Create videos from text prompts.',
+      desc: 'Animate your images into stunning videos.',
       note: '',
       inputType: 'text'
     },
@@ -69,7 +69,7 @@ export default function GenerateToolClient() {
 
   // ...existing state...
   const [videoModel, setVideoModel] = useState('veo-3-fast');
-  const [duration, setDuration] = useState(8);
+  const [duration, setDuration] = useState(6); // default 6s
   const [aspectRatio, setAspectRatio] = useState('1:1');
   const [prompt, setPrompt] = useState('');
   const [file, setFile] = useState(null);
@@ -290,6 +290,50 @@ export default function GenerateToolClient() {
     }
   }, [type, videoModel]);
 
+  // Dynamically calculate total cost for genvideo based on duration and model
+  useEffect(() => {
+    if (type === 'genvideo') {
+      const costMapping = {
+        'kling-v2.1': 4,
+        'hailuo-02': 5,
+        'wan-2.1-i2v-720p': 9,
+        'seedance-1-pro': 4,
+        'luma-ray': 15
+      };
+      const costPerSecond = costMapping[videoModel] || 2; // Default cost per second
+      setTotalGenVideoCost(costPerSecond * duration);
+    }
+  }, [type, videoModel, duration]);
+
+  // Set default duration based on video model for genvideo
+  useEffect(() => {
+    if (type === 'genvideo') {
+      const defaultDurations = {
+        'hailuo-02': 6,
+        'kling-v2.1': 5,
+        'wan-2.1-i2v-720p': 5,
+        'seedance-1-pro': 5,
+        'luma-ray': 5
+      };
+      const defaultDuration = defaultDurations[videoModel] || 5; // Default to 5 seconds if not specified
+      setDuration(defaultDuration);
+    }
+  }, [type, videoModel]);
+
+  useEffect(() => {
+    if (type === 'genvideo') {
+      const defaultModel = genvideoModels[0]?.value || 'kling-v2.1'; // Default to the first model or 'kling-v2.1'
+      setVideoModel(defaultModel);
+    }
+  }, [type]);
+
+  // Ensure 'type' state defaults to 'genimage' if not already set
+  useEffect(() => {
+    if (!type) {
+      setType('genimage');
+    }
+  }, []);
+
   if (!tool) {
     return (
       <main style={{
@@ -461,15 +505,56 @@ export default function GenerateToolClient() {
           </div>
         )}
         {type === 'genimage' && (
-          <div style={{ marginBottom: 18 }}>
-            <label style={{ fontWeight: 500 }}>Aspect Ratio:</label>
-            <div style={{ display: 'flex', gap: 12, marginTop: 6 }}>
-              {['1:1', '3:4', '4:3', '16:9', '9:16'].map(ratio => (
-                <label key={ratio} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <input type="radio" name="aspectRatio" value={ratio} checked={aspectRatio === ratio} onChange={() => setAspectRatio(ratio)} />
+          <div style={{
+            marginBottom: 18,
+            background: '#fff',
+            borderRadius: 14,
+            boxShadow: '0 2px 12px rgba(30,30,40,0.10)',
+            padding: '18px 28px',
+            fontSize: '1.08rem',
+            fontWeight: 600,
+            color: '#222',
+            border: '1.5px solid #e5e7eb'
+          }}>
+            <label style={{ fontWeight: 600, marginRight: 8 }}>Aspect Ratio:</label>
+            <div style={{ display: 'flex', gap: 12, marginTop: 0 }}>
+              {['1:1', '3:4', '4:3', '16:9', '9:16'].map((ratio) => (
+                <label key={ratio} style={{ display: 'flex', alignItems: 'center', gap: 4, fontWeight: 500 }}>
+                  <input
+                    type="radio"
+                    name="aspectRatio"
+                    value={ratio}
+                    checked={aspectRatio === ratio}
+                    onChange={() => setAspectRatio(ratio)}
+                    style={{ accentColor: '#6366f1', marginRight: 4 }}
+                  />
                   {ratio}
                 </label>
               ))}
+            </div>
+
+            <div style={{ marginTop: 24 }}>
+              <label htmlFor="prompt" style={{ fontWeight: 600, fontSize: '1rem', marginBottom: 6, display: 'block' }}>Prompt</label>
+              <textarea
+                id="prompt"
+                placeholder="Describe your scene or image..."
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                style={{
+                  width: '90%',
+                  height: '120px',
+                  padding: '12px 16px',
+                  borderRadius: 10,
+                  border: '1.5px solid #d1d5db',
+                  background: '#f3f4f6',
+                  color: '#222',
+                  fontWeight: 500,
+                  fontSize: '0.9rem',
+                  lineHeight: '1.4',
+                  boxShadow: '0 1px 6px rgba(60,60,60,0.08)',
+                  outline: 'none'
+                }}
+              />
             </div>
           </div>
         )}
@@ -526,9 +611,45 @@ export default function GenerateToolClient() {
             </div>
           </div>
         )}
-        {(tool.inputType === 'text') && (
+        {(type === 'genvideo') && (videoModel === 'hailuo-02' || videoModel === 'kling-v2.1' || videoModel === 'wan-2.1-i2v-720p' || videoModel === 'seedance-1-pro' || videoModel === 'luma-ray') && (
           <div style={{ marginBottom: 18 }}>
-            <label htmlFor="prompt" style={{ fontWeight: 500 }}>Prompt:</label>
+            <label htmlFor="duration" style={{ fontWeight: 600, fontSize: '1rem', marginBottom: 6, display: 'block' }}>Duration (seconds)</label>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {(videoModel === 'hailuo-02' ? [6, 10] :
+                videoModel === 'kling-v2.1' ? [5, 10] :
+                videoModel === 'wan-2.1-i2v-720p' ? [5, 10] :
+                videoModel === 'seedance-1-pro' ? [5, 10] :
+                videoModel === 'luma-ray' ? [5, 10] :
+                []
+              ).map(val => (
+                <button 
+                  key={val}
+                  type="button"
+                  onClick={() => setDuration(val)}
+                  style={{
+                    padding: '7px 18px',
+                    borderRadius: 18,
+                    border: duration === val ? '2px solid #ff3b3b' : '2px solid #eee',
+                    background: duration === val ? 'linear-gradient(90deg,#ffb347 0%,#ff3b3b 100%)' : '#f7f7f7',
+                    color: duration === val ? '#fff' : '#222',
+                    fontWeight: 600,
+                    fontSize: '0.98rem',
+                    cursor: 'pointer',
+                    boxShadow: duration === val ? '0 2px 8px rgba(255,59,59,0.10)' : 'none',
+                    transition: 'all 0.2s',
+                    outline: 'none',
+                    borderBottom: duration === val ? '3px solid #ff3b3b' : 'none',
+                  }}
+                >
+                  {val}s
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+        {(type === 'text2video') && (
+          <div style={{ marginBottom: 18 }}>
+            <label htmlFor="prompt" style={{ fontWeight: 700, fontSize: '1rem', marginBottom: 6, display: 'block' }}>Prompt:</label>
             <textarea
               id="prompt"
               value={prompt}
@@ -539,7 +660,30 @@ export default function GenerateToolClient() {
             />
           </div>
         )}
-        {/* image2video input removed */}
+        {type === 'genvideo' && (
+          <div style={{ marginBottom: 18 }}>
+            <label htmlFor="prompt" style={{ fontWeight: 700, fontSize: '1rem', marginBottom: 6, display: 'block' }}>Prompt:</label>
+            <textarea
+              id="prompt"
+              value={prompt}
+              onChange={e => setPrompt(e.target.value)}
+              rows={3}
+              style={{ width: '100%', marginTop: 6, padding: 10, borderRadius: 8, border: '1px solid #ccc', fontSize: '1rem' }}
+              placeholder="Describe your scene or image..."
+            />
+          </div>
+        )}
+        {type === 'genvideo' && (
+          <div style={{ marginBottom: 18 }}>
+            <label htmlFor="file" style={{ fontWeight: 500 }}>Upload Image:</label>
+            <input
+              type="file"
+              id="file"
+              onChange={e => setFile(e.target.files[0])}
+              style={{ marginTop: 6, padding: 10, borderRadius: 8, border: '1px solid #ccc', fontSize: '1rem', width: '100%' }}
+            />
+          </div>
+        )}
         {error && <div style={{ color: '#c00', fontWeight: 500, marginBottom: 12 }}>{error}</div>}
         {loading && (
           <div style={{ marginBottom: 12, color: '#444', fontWeight: 600, fontSize: '1.08rem' }}>
