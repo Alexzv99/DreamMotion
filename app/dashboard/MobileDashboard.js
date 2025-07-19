@@ -14,7 +14,7 @@ export default function MobileDashboard({ credits: initialCredits, userId, handl
       const { data, error } = await supabase
         .from('users')
         .select('credits')
-        .eq('id', userId)
+        .eq('user_id', userId)
         .single();
 
       if (data && !error) {

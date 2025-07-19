@@ -13,7 +13,7 @@ export default async function handler(req, res) {
     const { data, error } = await supabase
       .from('users')
       .select('credits')
-      .eq('id', user_id)
+      .eq('user_id', user_id)
       .single();
     if (error) return res.status(500).json({ error: error.message });
     return res.status(200).json({ credits: data.credits });
@@ -25,7 +25,7 @@ export default async function handler(req, res) {
     const { data, error } = await supabase
       .from('users')
       .update({ credits: supabase.raw('credits + ?', [amount]) })
-      .eq('id', user_id)
+      .eq('user_id', user_id)
       .select('credits')
       .single();
     if (error) return res.status(500).json({ error: error.message });
@@ -38,7 +38,7 @@ export default async function handler(req, res) {
     const { data, error } = await supabase
       .from('users')
       .update({ credits: supabase.raw('credits - ?', [amount]) })
-      .eq('id', user_id)
+      .eq('user_id', user_id)
       .select('credits')
       .single();
     if (error) return res.status(500).json({ error: error.message });

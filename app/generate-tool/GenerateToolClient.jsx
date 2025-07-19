@@ -96,7 +96,7 @@ export default function GenerateToolClient() {
             const { data: userData, error } = await supabase
               .from('users')
               .select('credits')
-              .eq('id', user.id)
+              .eq('user_id', user.id)
               .single();
             
             if (error) {
@@ -113,7 +113,7 @@ export default function GenerateToolClient() {
               console.log('Attempting to create user due to fetch error...');
               const { error: insertError } = await supabase
                 .from('users')
-                .insert([{ id: user.id, email: user.email, credits: 10 }]);
+                .insert([{ user_id: user.id, email: user.email, credits: 10 }]);
               
               if (!insertError) {
                 console.log('User created successfully with 10 credits');
@@ -127,7 +127,7 @@ export default function GenerateToolClient() {
                 const { data: retryUserData, error: retryError } = await supabase
                   .from('users')
                   .select('credits')
-                  .eq('id', user.id)
+                  .eq('user_id', user.id)
                   .single();
                 
                 if (!retryError && retryUserData) {

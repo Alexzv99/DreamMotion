@@ -136,7 +136,7 @@ export async function POST(req) {
     const { data: userData, error: userError } = await supabase
       .from('users')
       .select('credits')
-      .eq('id', user.id)
+      .eq('user_id', user.id)
       .single();
 
     let currentCredits = 0;
@@ -147,7 +147,7 @@ export async function POST(req) {
         console.log('User not found, creating new user with 10 credits...');
         const { error: insertError } = await supabase
           .from('users')
-          .insert([{ id: user.id, email: user.email, credits: 10 }]);
+          .insert([{ user_id: user.id, email: user.email, credits: 10 }]);
         
         if (!insertError) {
           console.log('New user created with 10 credits');
@@ -176,7 +176,7 @@ export async function POST(req) {
     const { error: deductError } = await supabase
       .from('users')
       .update({ credits: currentCredits - creditCost })
-      .eq('id', user.id);
+      .eq('user_id', user.id);
 
     if (deductError) {
       return NextResponse.json({ error: 'Failed to deduct credits' }, { status: 500 });

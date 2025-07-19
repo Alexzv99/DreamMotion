@@ -28,13 +28,13 @@ export default function Dashboard() {
       let { data, error } = await supabase
         .from('users')
         .select('credits')
-        .eq('id', user.id)
+        .eq('user_id', user.id)
         .single();
 
       if (error && error.code === 'PGRST116') {
         const { error: insertError } = await supabase
           .from('users')
-          .insert([{ id: user.id, email: user.email, credits: 10 }]);
+          .insert([{ user_id: user.id, email: user.email, credits: 10 }]);
 
         if (!insertError) {
           setCredits(10);
