@@ -8,8 +8,10 @@ export default function GenerateToolClient() {
   const handleGenerate = async () => {
     setError("");
     setLoading(true);
-    if (type === "image2video" && file) {
-      try {
+    setGenerationTime(Date.now());
+    
+    try {
+      if (type === "image2video" && file) {
         const formData = new FormData();
         formData.append("file", file);
         const response = await fetch("https://your-remote-backend-url/animate", {
@@ -20,15 +22,88 @@ export default function GenerateToolClient() {
         const blob = await response.blob();
         const videoUrl = URL.createObjectURL(blob);
         setPreviewUrl(videoUrl);
-      } catch (err) {
-        setError("Error generating video: " + err.message);
+      } else if (type === "genimage") {
+        // Generate image using Flux API
+        const response = await fetch('/api/generate-image', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            prompt: prompt,
+            aspect_ratio: aspectRatio,
+            type: 'genimage'
+          })
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          console.error('API Error Response:', errorData);
+          throw new Error(`API request failed with status ${response.status}: ${errorData.error || errorData.detail || 'Unknown error'}`);
+        }
+
+        const data = await response.json();
+        console.log('API Response:', data);
+
+        if (data.output && data.output.length > 0) {
+          // Replicate returns an array of URLs for images
+          const imageUrl = Array.isArray(data.output) ? data.output[0] : data.output;
+          setPreviewUrl(imageUrl);
+          
+          // Calculate generation time
+          const endTime = Date.now();
+          const timeDiff = endTime - generationTime;
+          const seconds = Math.round(timeDiff / 1000);
+          setGenerationTimeString(`Generated in ${seconds}s`);
+        } else {
+          throw new Error(data.error || 'No image generated');
+        }
+      } else if (type === "genvideo" || type === "text2video") {
+        // Generate video using existing API
+        const response = await fetch('/api/generate-image', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            prompt: prompt,
+            aspect_ratio: aspectRatio,
+            type: type,
+            video_model: videoModel,
+            duration: duration
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error(`API request failed with status ${response.status}`);
+        }
+
+        const data = await response.json();
+        console.log('API Response:', data);
+
+        if (data.output) {
+          const videoUrl = Array.isArray(data.output) ? data.output[0] : data.output;
+          setPreviewUrl(videoUrl);
+          
+          // Calculate generation time
+          const endTime = Date.now();
+          const timeDiff = endTime - generationTime;
+          const seconds = Math.round(timeDiff / 1000);
+          setGenerationTimeString(`Generated in ${seconds}s`);
+        } else {
+          throw new Error(data.error || 'No video generated');
+        }
+      } else {
+        // Fallback for other types
+        setTimeout(() => {
+          setPreviewUrl('https://via.placeholder.com/512x512.png?text=Preview');
+        }, 2000);
       }
+    } catch (err) {
+      console.error('Generation error:', err);
+      setError("Error generating content: " + err.message);
+    } finally {
       setLoading(false);
-    } else {
-      setTimeout(() => {
-        setLoading(false);
-        setPreviewUrl('https://via.placeholder.com/512x512.png?text=Preview');
-      }, 2000);
     }
   };
   // Add missing state and placeholder functions to prevent runtime errors
@@ -138,6 +213,39 @@ export default function GenerateToolClient() {
     }
     return null;
   });
+
+  // Download function for generated content
+  const handleDownload = async () => {
+    if (!previewUrl) return;
+    
+    try {
+      const response = await fetch(previewUrl);
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      
+      const a = document.createElement('a');
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      
+      // Determine file extension based on content type
+      let fileExtension = 'file';
+      if (type === 'genimage') {
+        fileExtension = 'webp';
+      } else if (type === 'genvideo' || type === 'text2video' || type === 'image2video') {
+        fileExtension = 'mp4';
+      }
+      
+      a.href = url;
+      a.download = `dreammotion-${type}-${timestamp}.${fileExtension}`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Download failed:', error);
+      setError('Download failed. Please try again.');
+    }
+  };
+
   // Credits logic
   useEffect(() => {
     if (type === 'genimage') {
@@ -769,25 +877,49 @@ export default function GenerateToolClient() {
       }}>
         {previewUrl ? (
           <div>
-            <div style={{ fontSize: '0.95rem', color: '#c00', marginBottom: 16, fontWeight: 'bold' }}>Credits: <b>{type === 'genvideo' ? '2 credits / second' : toolCredits}</b></div>
             {(type === 'text2video' || type === 'genvideo') ? (
               <video src={previewUrl} controls style={{ maxWidth: '90%', maxHeight: '60vh', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.15)', marginBottom: 18 }} />
             ) : (
               <img src={previewUrl} alt="Generated Preview" style={{ maxWidth: '90%', maxHeight: '60vh', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.15)', marginBottom: 18 }} />
             )}
-            {generationTime && (
-              <div style={{ marginTop: 8, color: '#ff3b3b', fontWeight: 800, fontSize: '1.3rem', background: 'rgba(255,255,255,0.85)', borderRadius: 10, padding: '8px 18px', boxShadow: '0 2px 8px rgba(255,59,59,0.10)', display: 'inline-block' }}>{generationTimeString}</div>
-            )}
             <button onClick={handleDownload} style={{ display: 'inline-block', fontSize: '1.08rem', padding: '12px 32px', borderRadius: '8px', backgroundColor: '#1a1a1a', color: '#fff', fontWeight: 'bold', marginTop: 18, boxShadow: '0 2px 8px rgba(0,0,0,0.15)', border: 'none', cursor: 'pointer', letterSpacing: '1px', transition: 'background 0.2s' }}>Download</button>
           </div>
         ) : (
           <div style={{ color: '#888', fontSize: '1.1rem', textAlign: 'center', marginTop: 80 }}>
-            {loading
-              ? (type === 'genimage' ? 'Generating image...' : 'Generating video...')
-              : (type === 'genimage' ? 'Your image will appear here.' : 'Your video will appear here.')}
+            {loading ? (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20 }}>
+                {/* Loading Spinner */}
+                <div style={{
+                  width: 60,
+                  height: 60,
+                  border: '4px solid #f3f3f3',
+                  borderTop: '4px solid #ff3b3b',
+                  borderRadius: '50%',
+                  animation: 'spin 1s linear infinite'
+                }}></div>
+                <div style={{ fontSize: '1.2rem', fontWeight: 600, color: '#444' }}>
+                  {type === 'genimage' ? 'Generating your image...' : 'Generating your video...'}
+                </div>
+                <div style={{ fontSize: '0.95rem', color: '#666' }}>
+                  {type === 'genimage' ? 'This usually takes 10-15 seconds' : 'This may take several minutes'}
+                </div>
+              </div>
+            ) : (
+              <div style={{ fontSize: '1.1rem', color: '#888' }}>
+                {type === 'genimage' ? 'Your image will appear here.' : 'Your video will appear here.'}
+              </div>
+            )}
           </div>
         )}
       </div>
+      
+      {/* CSS for spinner animation */}
+      <style jsx>{`
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `}</style>
     </main>
   );
 // End of main return block

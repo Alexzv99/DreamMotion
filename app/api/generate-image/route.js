@@ -58,7 +58,7 @@ async function generateImage({ prompt, aspect_ratio }) {
       ];
       const safeAspect = allowedRatios.includes(aspect_ratio) ? aspect_ratio : '1:1';
       prediction = await replicate.predictions.create({
-        version: '352185dbc99e9dd708b78b4e6870e3ca49d00dc6451a32fc6dd57968194fae5a', // Flux 1.1 Pro Ultra
+        version: 'c6e5086a542c99e7e523a83d3017654e8618fe64ef427c772a1def05bb599f0c', // Flux 1.1 Pro Ultra (Latest)
         input: {
           prompt,
           aspect_ratio: safeAspect,

@@ -2,59 +2,209 @@
 <html>
 <head>
   <title>Flux Image Generator</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #333;
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    .input-group {
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+      color: #555;
+    }
+    input[type="text"], select {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #ddd;
+      border-radius: 5px;
+      font-size: 16px;
+      box-sizing: border-box;
+    }
+    input[type="text"]:focus, select:focus {
+      border-color: #4CAF50;
+      outline: none;
+    }
+    button {
+      background-color: #4CAF50;
+      color: white;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+      width: 100%;
+      margin-top: 10px;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    button:disabled {
+      background-color: #cccccc;
+      cursor: not-allowed;
+    }
+    #result {
+      margin-top: 30px;
+      text-align: center;
+    }
+    #image {
+      max-width: 100%;
+      height: auto;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+    }
+    #downloadBtn {
+      background-color: #008CBA;
+      width: auto;
+      margin: 0;
+    }
+    #downloadBtn:hover {
+      background-color: #007B9A;
+    }
+    .loading {
+      display: none;
+      text-align: center;
+      margin-top: 20px;
+    }
+    .spinner {
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #3498db;
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
 </head>
 <body>
-  <h1>Flux Text-to-Image Generator</h1>
-  <input type="text" id="promptInput" placeholder="Type a prompt..." />
-  <select id="aspectRatio">
-    <option value="1:1">Square (1:1)</option>
-    <option value="4:3">Landscape (4:3)</option>
-    <option value="16:9">Widescreen (16:9)</option>
-    <option value="9:16">Portrait (9:16)</option>
-  </select>
-  <button onclick="generateImage()">Generate</button>
+  <div class="container">
+    <h1>Flux 1.1 Pro Ultra Image Generator</h1>
+    
+    <div class="input-group">
+      <label for="promptInput">Prompt:</label>
+      <input type="text" id="promptInput" placeholder="Describe the image you want to generate..." />
+    </div>
+    
+    <div class="input-group">
+      <label for="aspectRatio">Aspect Ratio:</label>
+      <select id="aspectRatio">
+        <option value="1:1">Square (1:1)</option>
+        <option value="3:4">Portrait (3:4)</option>
+        <option value="4:3">Landscape (4:3)</option>
+        <option value="16:9">Widescreen (16:9)</option>
+        <option value="9:16">Vertical (9:16)</option>
+      </select>
+    </div>
+    
+    <button id="generateBtn" onclick="generateImage()">Generate Image</button>
+    
+    <div class="loading" id="loading">
+      <div class="spinner"></div>
+      <p>Generating your image... This may take a moment.</p>
+    </div>
 
-  <div id="result" style="margin-top:20px;">
-    <img id="image" src="" width="256" style="display:none;" />
-    <button id="downloadBtn" style="display:none;" onclick="downloadImage()">Download</button>
+    <div id="result">
+      <img id="image" src="" style="display:none;" />
+      <div>
+        <button id="downloadBtn" style="display:none;" onclick="downloadImage()">Download Image</button>
+      </div>
+    </div>
   </div>
 
   <script>
     async function generateImage() {
-      const prompt = document.getElementById('promptInput').value;
+      const prompt = document.getElementById('promptInput').value.trim();
       const aspectRatio = document.getElementById('aspectRatio').value;
 
-      const response = await fetch('/api/generate-image', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt, aspect_ratio: aspectRatio })
-      });
+      if (!prompt) {
+        alert('Please enter a prompt');
+        return;
+      }
 
-      const data = await response.json();
+      // Show loading state
+      document.getElementById('loading').style.display = 'block';
+      document.getElementById('generateBtn').disabled = true;
+      document.getElementById('generateBtn').textContent = 'Generating...';
+      document.getElementById('result').style.display = 'none';
 
-      if (data.output) {
-        document.getElementById('image').src = data.output;
-        document.getElementById('image').style.display = 'block';
-        document.getElementById('downloadBtn').style.display = 'inline-block';
-      } else {
-        alert('Error: ' + data.error);
-        console.log(data);
+      try {
+        const response = await fetch('/api/generate-image', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt, aspect_ratio: aspectRatio })
+        });
+
+        const data = await response.json();
+
+        if (data.output) {
+          document.getElementById('image').src = data.output;
+          document.getElementById('image').style.display = 'block';
+          document.getElementById('downloadBtn').style.display = 'inline-block';
+          document.getElementById('result').style.display = 'block';
+        } else {
+          alert('Error: ' + (data.error || 'Unknown error occurred'));
+          console.error('Generation error:', data);
+        }
+      } catch (error) {
+        alert('Network error: ' + error.message);
+        console.error('Network error:', error);
+      } finally {
+        // Hide loading state
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('generateBtn').disabled = false;
+        document.getElementById('generateBtn').textContent = 'Generate Image';
       }
     }
 
     async function downloadImage() {
-      const imgSrc = document.getElementById('image').src;
-      const res = await fetch(imgSrc);
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'generated-image.webp';
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
+      try {
+        const imgSrc = document.getElementById('image').src;
+        const response = await fetch(imgSrc);
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        
+        const a = document.createElement('a');
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        a.href = url;
+        a.download = `flux-generated-${timestamp}.webp`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+      } catch (error) {
+        alert('Download failed: ' + error.message);
+      }
     }
+
+    // Allow Enter key to trigger generation
+    document.getElementById('promptInput').addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        generateImage();
+      }
+    });
   </script>
 </body>
 </html>

@@ -20,22 +20,33 @@ const replicate = new Replicate({
 });
 
 app.post('/api/generate-image', async (req, res) => {
-  const { prompt } = req.body;
+  const { prompt, aspect_ratio } = req.body;
 
   if (!prompt) {
     return res.status(400).json({ error: 'Missing prompt' });
   }
 
+  // Define aspect ratio dimensions
+  const aspectRatios = {
+    '1:1': { width: 1024, height: 1024 },
+    '3:4': { width: 768, height: 1024 },
+    '4:3': { width: 1024, height: 768 },
+    '16:9': { width: 1024, height: 576 },
+    '9:16': { width: 576, height: 1024 }
+  };
+
+  const dimensions = aspectRatios[aspect_ratio] || aspectRatios['1:1'];
+
   try {
     const output = await replicate.run(
-      'black-forest-labs/flux-1.1-pro-ultra:acf88923dc8e891b46a6a22006ddcb99826e5318de95ba3adf9968c7f6a40eaf',
+      'black-forest-labs/flux-1.1-pro-ultra:4f4ecf27427f34c3a3d9b8e3c648e3c5c7f7fd2f509f1173cdd24c38b02b8354',
       {
         input: {
           prompt,
-          width: 512,
-          height: 768,
-          guidance_scale: 7,
-          num_inference_steps: 30
+          width: dimensions.width,
+          height: dimensions.height,
+          guidance_scale: 3.5,
+          num_inference_steps: 28
         }
       }
     );
