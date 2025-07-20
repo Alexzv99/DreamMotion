@@ -351,29 +351,31 @@ export default function Dashboard() {
               />
             </div>
           </div>
+          
+          {/* Footer moved closer to tools */}
+          <footer style={{
+            width: '100%',
+            textAlign: 'center',
+            padding: '32px 0 18px 0',
+            color: '#eee',
+            fontSize: '1rem',
+            fontWeight: 500,
+            letterSpacing: '0.02em',
+            zIndex: 4,
+            position: 'relative',
+            marginTop: '90px',
+            background: 'rgba(0,0,0,0.15)',
+            borderRadius: '12px'
+          }}>
+            <Link href="/privacy-policy" style={{ color: '#eee', margin: '0 18px', textDecoration: 'underline' }}>Privacy Policy</Link>
+            <Link href="/faq" style={{ color: '#eee', margin: '0 18px', textDecoration: 'underline' }}>FAQ</Link>
+            <Link href="/terms" style={{ color: '#eee', margin: '0 18px', textDecoration: 'underline' }}>Terms of Service</Link>
+            <div style={{ marginTop: '12px', fontSize: '0.9rem', color: '#ccc' }}>
+              © 2025 DreamMotion. All rights reserved.
+            </div>
+          </footer>
         </div>
       </main>
-
-      <footer style={{
-        width: '100vw',
-        textAlign: 'center',
-        padding: '18px 0 12px 0',
-        color: '#eee',
-        fontSize: '1rem',
-        fontWeight: 500,
-        letterSpacing: '0.02em',
-        zIndex: 4,
-        position: 'relative',
-        marginTop: 'auto',
-        background: 'rgba(0,0,0,0.15)'
-      }}>
-        <Link href="/privacy-policy" style={{ color: '#eee', margin: '0 18px', textDecoration: 'underline' }}>Privacy Policy</Link>
-        <Link href="/faq" style={{ color: '#eee', margin: '0 18px', textDecoration: 'underline' }}>FAQ</Link>
-        <Link href="/terms" style={{ color: '#eee', margin: '0 18px', textDecoration: 'underline' }}>Terms of Service</Link>
-        <div style={{ marginTop: '12px', fontSize: '0.9rem', color: '#ccc' }}>
-          © 2025 DreamMotion. All rights reserved.
-        </div>
-      </footer>
     </div>
   );
 }

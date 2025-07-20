@@ -273,25 +273,49 @@ export default function GenerateToolClient() {
           throw new Error('Authentication session expired. Please log in again.');
         }
 
-        // Generate video using existing API
+        // For genvideo, check if image file is required
+        if (type === "genvideo" && !file) {
+          throw new Error('Please upload an image file for video generation');
+        }
+
+        // Generate video using FormData for file upload support
+        const formData = new FormData();
+        formData.append("prompt", prompt);
+        formData.append("aspect_ratio", aspectRatio);
+        formData.append("type", type);
+        formData.append("video_model", videoModel);
+        formData.append("duration", duration);
+        
+        // Add image file for genvideo
+        if (type === "genvideo" && file) {
+          formData.append("file", file);
+        }
+
+        console.log(`🎬 Sending ${type} request with:`, { 
+          prompt, 
+          aspect_ratio: aspectRatio, 
+          type, 
+          video_model: videoModel, 
+          duration,
+          hasFile: !!file 
+        });
+
         const response = await fetch('/api/generate-image', {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
             'Authorization': `Bearer ${session.access_token}`
+            // Note: Don't set Content-Type for FormData, let browser set it
           },
-          body: JSON.stringify({
-            prompt: prompt,
-            aspect_ratio: aspectRatio,
-            type: type,
-            video_model: videoModel,
-            duration: duration
-          })
+          body: formData
         });
 
-        console.log('Sending API request with:', { prompt, aspect_ratio: aspectRatio, type, video_model: videoModel, duration });
-
         if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          console.error(`❌ API request failed:`, { 
+            status: response.status, 
+            statusText: response.statusText,
+            error: errorData 
+          });
           throw new Error(`API request failed with status ${response.status}`);
         }
 
