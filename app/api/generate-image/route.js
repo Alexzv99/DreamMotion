@@ -7,8 +7,8 @@ const replicate = new Replicate({
 });
 
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://sragjoqgnpikknnclppv.supabase.co',
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY // Removed hardcoded fallback value
 );
 
 async function generateImage({ prompt, aspect_ratio }) {
@@ -96,6 +96,8 @@ export async function POST(req) {
 
   try {
     const body = await req.json();
+    console.log('Incoming request body:', body); // Log the incoming request body
+
     const { prompt, aspect_ratio, type, video_model, duration } = body;
 
     if (!prompt?.trim()) {
@@ -109,12 +111,15 @@ export async function POST(req) {
     }
 
     const token = authHeader.split(' ')[1];
-    
+
     // Verify the token with Supabase
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     if (authError || !user) {
+      console.error('Authentication error:', authError); // Log authentication errors
       return NextResponse.json({ error: 'Invalid authentication token' }, { status: 401 });
     }
+
+    console.log('📥 Incoming API request:', { prompt, aspect_ratio, type, video_model, duration, user: user.id });
 
     // Determine credit cost based on generation type
     let creditCost = 2; // Default for genimage
@@ -133,36 +138,40 @@ export async function POST(req) {
     }
 
     // Check user credits
+    // Log user ID and query details for debugging
+    console.log('Fetching user credits for user ID:', user.id);
+
+    // Update query to use 'id' instead of 'user_id'
     const { data: userData, error: userError } = await supabase
       .from('users')
       .select('credits')
-      .eq('user_id', user.id)
+      .eq('id', user.id) // Use 'id' column
       .single();
 
-    let currentCredits = 0;
-    
+    // Log query result and errors for debugging
+    console.log('Fetching user credits for user ID:', user.id);
     if (userError) {
-      // If user doesn't exist, create them with initial credits
-      if (userError.code === 'PGRST116' || userError.message?.includes('No rows found')) {
-        console.log('User not found, creating new user with 10 credits...');
-        const { error: insertError } = await supabase
-          .from('users')
-          .insert([{ user_id: user.id, email: user.email, credits: 10 }]);
-        
-        if (!insertError) {
-          console.log('New user created with 10 credits');
-          currentCredits = 10;
-        } else {
-          console.error('Error creating user:', insertError);
-          return NextResponse.json({ error: 'Failed to create user account' }, { status: 500 });
-        }
-      } else {
-        console.error('Database error fetching user:', userError);
-        return NextResponse.json({ error: 'Failed to fetch user credits' }, { status: 500 });
-      }
-    } else {
-      currentCredits = userData?.credits || 0;
+      console.error('Supabase query error:', {
+        message: userError.message,
+        details: userError.details,
+        hint: userError.hint,
+      });
+    } else if (!userData) {
+      console.error('No user data found for user ID:', user.id);
     }
+
+    let currentCredits = 0;
+
+    if (userError || !userData) {
+      console.error('Failed to fetch user credits:', userError);
+      return NextResponse.json({
+        error: 'Failed to fetch user credits',
+        detail: userError?.message || 'No user data found',
+        status: 500, // Include status for clarity
+      }, { status: 500 });
+    }
+
+    currentCredits = userData.credits || 0;
 
     if (currentCredits < creditCost) {
       return NextResponse.json({ 
@@ -170,15 +179,17 @@ export async function POST(req) {
       }, { status: 402 });
     }
 
-    console.log('📥 API call received:', { prompt, type, video_model, duration, aspect_ratio, user: user.id, creditCost });
+    // Log credit deduction details
+    console.log('Attempting to deduct credits:', { userId: user.id, creditCost });
 
-    // Deduct credits before generation
-    const { error: deductError } = await supabase
-      .from('users')
-      .update({ credits: currentCredits - creditCost })
-      .eq('user_id', user.id);
+    // Deduct credits before generation using Supabase RPC
+    const { error: deductError } = await supabase.rpc('decrease_user_credits', {
+      amount: creditCost, // Deduct the calculated credit cost
+      uid: user.id, // Use the user's UUID
+    });
 
     if (deductError) {
+      console.error('Failed to deduct credits via RPC:', deductError);
       return NextResponse.json({ error: 'Failed to deduct credits' }, { status: 500 });
     }
 
@@ -204,7 +215,7 @@ export async function POST(req) {
     return NextResponse.json({ output, duration: elapsed, logs: result.allLogs || [], status: result.status }, { status: 200 });
 
   } catch (err) {
-    console.error('❌ Unexpected server error:', err);
+    console.error('❌ Unexpected server error:', err); // Log unexpected errors
 
     return NextResponse.json(
       {

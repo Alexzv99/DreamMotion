@@ -4,16 +4,16 @@ const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.
 
 export default async function handler(req, res) {
   const { method } = req;
-  const { user_id, amount } = req.body;
+  const { Id, amount } = req.body;
 
-  if (!user_id) return res.status(400).json({ error: 'Missing user_id' });
+  if (!Id) return res.status(400).json({ error: 'Missing Id' });
 
   if (method === 'GET') {
     // Get user credits
     const { data, error } = await supabase
       .from('users')
       .select('credits')
-      .eq('user_id', user_id)
+      .eq('Id', Id)
       .single();
     if (error) return res.status(500).json({ error: error.message });
     return res.status(200).json({ credits: data.credits });
@@ -25,7 +25,7 @@ export default async function handler(req, res) {
     const { data, error } = await supabase
       .from('users')
       .update({ credits: supabase.raw('credits + ?', [amount]) })
-      .eq('user_id', user_id)
+      .eq('Id', Id)
       .select('credits')
       .single();
     if (error) return res.status(500).json({ error: error.message });
@@ -38,7 +38,7 @@ export default async function handler(req, res) {
     const { data, error } = await supabase
       .from('users')
       .update({ credits: supabase.raw('credits - ?', [amount]) })
-      .eq('user_id', user_id)
+      .eq('Id', Id)
       .select('credits')
       .single();
     if (error) return res.status(500).json({ error: error.message });

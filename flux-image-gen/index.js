@@ -38,6 +38,22 @@ app.post('/api/generate-image', async (req, res) => {
   const dimensions = aspectRatios[aspect_ratio] || aspectRatios['1:1'];
 
   try {
+    // Deduct credits before generating the image
+    const userId = req.body.Id; // Changed from user_id to Id
+    const deductCreditsResponse = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/api/credits`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ Id: userId, amount: 1 }), // Changed key from user_id to Id
+    });
+
+    if (!deductCreditsResponse.ok) {
+      const error = await deductCreditsResponse.json();
+      return res.status(400).json({ error: error.message || 'Failed to deduct credits' });
+    }
+
+    // Proceed with image generation
     const output = await replicate.run(
       'black-forest-labs/flux-1.1-pro-ultra:4f4ecf27427f34c3a3d9b8e3c648e3c5c7f7fd2f509f1173cdd24c38b02b8354',
       {

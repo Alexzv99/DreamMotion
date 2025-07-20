@@ -93,63 +93,24 @@ export default function GenerateToolClient() {
             
             // Now try to fetch the specific user
             console.log('🔍 Fetching specific user data...');
-            const { data: userData, error } = await supabase
+            let { data, error } = await supabase
               .from('users')
               .select('credits')
-              .eq('user_id', user.id)
+              .eq('id', user.id) // Ensure the correct field name is used
               .single();
             
             if (error) {
               console.error('Error fetching credits:', error);
               console.log('Error details:', {
-                code: error.code,
-                message: error.message,
-                details: error.details,
-                hint: error.hint,
-                stringified: JSON.stringify(error)
+                code: error.code || 'N/A',
+                message: error.message || 'No message provided',
               });
-              
-              // Try to create user immediately if any error occurs
-              console.log('Attempting to create user due to fetch error...');
-              const { error: insertError } = await supabase
-                .from('users')
-                .insert([{ user_id: user.id, email: user.email, credits: 10 }]);
-              
-              if (!insertError) {
-                console.log('User created successfully with 10 credits');
-                setCredits(10);
-                return;
-              } else {
-                console.error('Failed to create user:', insertError);
-                
-                // If user already exists, try to fetch again
-                console.log('Retrying fetch after creation attempt...');
-                const { data: retryUserData, error: retryError } = await supabase
-                  .from('users')
-                  .select('credits')
-                  .eq('user_id', user.id)
-                  .single();
-                
-                if (!retryError && retryUserData) {
-                  console.log('Retry successful, credits:', retryUserData.credits);
-                  setCredits(retryUserData.credits);
-                  return;
-                }
-              }
-              
-              if (retryCount < maxRetries) {
-                retryCount++;
-                console.log(`Retrying credit fetch (${retryCount}/${maxRetries})...`);
-                setTimeout(fetchCredits, 1000); // Retry after 1 second
-                return;
-              }
-              
-              // If all retries failed, set credits to 0
-              console.log('All retries failed, setting credits to 0');
-              setCredits(0);
-            } else {
-              console.log('Credits fetched:', userData?.credits || 0);
-              setCredits(userData?.credits || 0);
+              return;
+            }
+
+            if (data) {
+              console.log('Credits fetched successfully:', data.credits);
+              setCredits(data.credits);
             }
           } catch (err) {
             console.error('Unexpected error fetching credits:', err);
@@ -267,6 +228,8 @@ export default function GenerateToolClient() {
           })
         });
 
+        console.log('Sending API request with:', { prompt, aspect_ratio: aspectRatio, type: 'genimage' });
+
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
           console.error('API Error Response:', errorData);
@@ -325,6 +288,8 @@ export default function GenerateToolClient() {
             duration: duration
           })
         });
+
+        console.log('Sending API request with:', { prompt, aspect_ratio: aspectRatio, type, video_model: videoModel, duration });
 
         if (!response.ok) {
           throw new Error(`API request failed with status ${response.status}`);

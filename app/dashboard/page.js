@@ -16,10 +16,11 @@ export default function Dashboard() {
 
   useEffect(() => {
     const fetchUserCredits = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError || !user) {
+        console.error('Failed to fetch user:', authError?.message || 'No user found');
         setUserId(null);
-        setCredits(null);
+        setCredits(0); // Fallback to 0 credits
         return;
       }
 
@@ -28,18 +29,25 @@ export default function Dashboard() {
       let { data, error } = await supabase
         .from('users')
         .select('credits')
-        .eq('user_id', user.id)
+        .eq('id', user.id) // Use correct column name 'id'
         .single();
 
-      if (error && error.code === 'PGRST116') {
-        const { error: insertError } = await supabase
-          .from('users')
-          .insert([{ user_id: user.id, email: user.email, credits: 10 }]);
+      if (error) {
+        console.error('Supabase query error:', error.message);
+        if (error.code === 'PGRST116') {
+          const { error: insertError } = await supabase
+            .from('users')
+            .insert([{ id: user.id, email: user.email, credits: 10 }]); // Use correct column name 'id'
 
-        if (!insertError) {
-          setCredits(10);
+          if (!insertError) {
+            console.log('New user inserted with 10 credits');
+            setCredits(10);
+          } else {
+            console.error('Insert failed:', insertError.message);
+            setCredits(0); // Fallback to 0 credits
+          }
         } else {
-          console.error('Insert failed:', insertError.message);
+          setCredits(0); // Fallback to 0 credits
         }
       } else if (data) {
         setCredits(data.credits);
@@ -113,6 +121,24 @@ export default function Dashboard() {
     };
   }, []);
 
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      if (userId) {
+        const { data, error } = await supabase
+          .from('users')
+          .select('credits')
+          .eq('user_id', userId)
+          .single();
+
+        if (!error) {
+          setCredits(data.credits);
+        }
+      }
+    }, 5000); // Poll every 5 seconds
+
+    return () => clearInterval(interval);
+  }, [userId]);
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setUserId(null);
@@ -125,207 +151,209 @@ export default function Dashboard() {
   }
 
   return (
-    <main style={{
-      minHeight: '100vh',
-      width: '100vw',
-      overflow: 'hidden',
-      fontFamily: 'Inter, Helvetica, Arial, sans-serif',
-      color: '#222',
-      padding: '0',
-      margin: '0',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'flex-start',
-      backdropFilter: 'blur(2px)',
-      position: 'relative'
-    }}>
-      {/* Video Background for Mobile */}
-      <video
-        autoPlay
-        loop
-        muted
-        playsInline
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          width: '100%',
-          height: '100%',
-          objectFit: 'cover',
-          zIndex: 0
-        }}
-      >
-        <source src="/background-video1.mp4" type="video/mp4" />
-      </video>
-      <div style={{
-        position: 'absolute',
-        top: 0, left: 0, right: 0, bottom: 0,
-        background: 'rgba(0, 0, 0, 0.6)',
-        zIndex: 0
-      }}></div>
-      <style>{`
-        @media (max-width: 480px) {
-          video {
-            object-fit: cover !important;
-          }
-          div {
-            background: rgba(0, 0, 0, 0.6) !important;
-          }
-        }
-      `}</style>
-      <style>{`
-        @media (max-width: 900px) {
-          .dashboard-container {
-            max-width: 100vw !important;
-            margin: 0 !important;
-            padding: 0 !important;
-          }
-          .tools-grid {
-            flex-direction: column !important;
-            gap: 18px !important;
-            max-width: 100vw !important;
-            padding: 0 2vw !important;
-          }
-          .tools-row {
-            flex-direction: column !important;
-            gap: 18px !important;
-            align-items: stretch !important;
-            padding: 0 !important;
-          }
-          .tool-box, .help-box {
-            max-width: 98vw !important;
-            padding: 18px 2vw !important;
-            font-size: 1rem !important;
-            border-radius: 10px !important;
-          }
-          .dashboard-navbar {
-            flex-direction: column !important;
-            gap: 12px !important;
-            font-size: 1.1rem !important;
-          }
-        }
-        @media (max-width: 600px) {
-          .tool-box, .help-box {
-            padding: 12px 1vw !important;
-            font-size: 0.98rem !important;
-          }
-        }
-        @media (max-width: 480px) {
-          .dashboard-container {
-            padding: 16px 1vw !important;
-          }
-          .tools-grid {
-            flex-direction: column !important;
-            gap: 12px !important;
-          }
-          .tools-row {
-            flex-direction: column !important;
-            gap: 12px !important;
-          }
-          .tool-box, .help-box {
-            max-width: 90vw !important;
-            padding: 12px 1vw !important;
-            font-size: 0.9rem !important;
-            border-radius: 8px !important;
-          }
-          .tool-box img, .tool-box video {
-            display: block;
-            margin: 12px auto 0 auto;
-            max-width: 100%;
-            height: auto;
-          }
-          .dashboard-navbar {
-            flex-direction: column !important;
-            gap: 10px !important;
-            font-size: 1rem !important;
-          }
-          h1 {
-            font-size: 1.5rem !important;
-          }
-          button, a {
-            font-size: 0.9rem !important;
-            padding: 8px 12px !important;
-            border-radius: 6px !important;
-          }
-        }
-      `}</style>
-      {/* Dark overlay */}
-      <div style={{
-        position: 'absolute',
-        top: 0, left: 0, right: 0, bottom: 0,
-        background: 'rgba(0, 0, 0, 0.65)',
-        zIndex: 1
-      }} />
-      {/* All content below should have zIndex: 2 or higher if needed */}
-
-      <div className="dashboard-container" style={{ position: 'relative', zIndex: 1 }}>
-        {/* Navbar */}
-        <nav className="dashboard-navbar" style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '40px',
-          color: '#fff'
-        }}>
-          <h1 style={{ fontSize: '2rem', fontWeight: 'bold' }}>DreamMotion</h1>
-          <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
-            <Link href="/" style={navLink}>Home</Link>
-            <Link href="/dashboard" style={navLink}>Dashboard</Link>
-            <Link href="/subscribe" style={navLink}>Subscribe</Link>
-            <Link href="/contact" style={navLink}>Contact</Link>
-            {userId ? (
-              <button onClick={handleLogout} style={navButton}>Logout</button>
-            ) : (
-              <Link href="/login" style={navLink}>Login</Link>
-            )}
-          </div>
-        </nav>
-
-        {/* Welcome */}
+    <div>
+      <main style={{
+        minHeight: '100vh',
+        width: '100vw',
+        overflow: 'hidden',
+        fontFamily: 'Inter, Helvetica, Arial, sans-serif',
+        color: '#222',
+        padding: '0',
+        margin: '0',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'flex-start',
+        backdropFilter: 'blur(2px)',
+        position: 'relative'
+      }}>
+        {/* Video Background for Mobile */}
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            zIndex: 0
+          }}
+        >
+          <source src="/background-video1.mp4" type="video/mp4" />
+        </video>
         <div style={{
-          textAlign: 'center',
-          marginBottom: '18px',
-          marginTop: '10px',
-          color: '#fff'
-        }}>
-          <h2 style={{ fontSize: '2.5rem', marginBottom: '10px' }}>Welcome!</h2>
-          <p style={{ fontSize: '1.1rem' }}>
-            <span style={{ color: userId ? '#c00' : 'red', fontWeight: 'bold' }}>
-              {userId
-                ? `Credits remaining: ${credits !== null ? credits : '...'}`
-                : 'You are logged out'}
-            </span><br />
-            💡 Tip: Upgrade your plan for more credits and full video access.
-          </p>
-          {/* Removed the blue 'You are logged out' sign, keeping only the red one */}
-        </div>
+          position: 'absolute',
+          top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0, 0, 0, 0.6)',
+          zIndex: 0
+        }}></div>
+        <style>{`
+          @media (max-width: 480px) {
+            video {
+              object-fit: cover !important;
+            }
+            div {
+              background: rgba(0, 0, 0, 0.6) !important;
+            }
+          }
+        `}</style>
+        <style>{`
+          @media (max-width: 900px) {
+            .dashboard-container {
+              max-width: 100vw !important;
+              margin: 0 !important;
+              padding: 0 !important;
+            }
+            .tools-grid {
+              flex-direction: column !important;
+              gap: 18px !important;
+              max-width: 100vw !important;
+              padding: 0 2vw !important;
+            }
+            .tools-row {
+              flex-direction: column !important;
+              gap: 18px !important;
+              align-items: stretch !important;
+              padding: 0 !important;
+            }
+            .tool-box, .help-box {
+              max-width: 98vw !important;
+              padding: 18px 2vw !important;
+              font-size: 1rem !important;
+              border-radius: 10px !important;
+            }
+            .dashboard-navbar {
+              flex-direction: column !important;
+              gap: 12px !important;
+              font-size: 1.1rem !important;
+            }
+          }
+          @media (max-width: 600px) {
+            .tool-box, .help-box {
+              padding: 12px 1vw !important;
+              font-size: 0.98rem !important;
+            }
+          }
+          @media (max-width: 480px) {
+            .dashboard-container {
+              padding: 16px 1vw !important;
+            }
+            .tools-grid {
+              flex-direction: column !important;
+              gap: 12px !important;
+            }
+            .tools-row {
+              flex-direction: column !important;
+              gap: 12px !important;
+            }
+            .tool-box, .help-box {
+              max-width: 90vw !important;
+              padding: 12px 1vw !important;
+              font-size: 0.9rem !important;
+              border-radius: 8px !important;
+            }
+            .tool-box img, .tool-box video {
+              display: block;
+              margin: 12px auto 0 auto;
+              max-width: 100%;
+              height: auto;
+            }
+            .dashboard-navbar {
+              flex-direction: column !important;
+              gap: 10px !important;
+              font-size: 1rem !important;
+            }
+            h1 {
+              font-size: 1.5rem !important;
+            }
+            button, a {
+              font-size: 0.9rem !important;
+              padding: 8px 12px !important;
+              border-radius: 6px !important;
+            }
+          }
+        `}</style>
+        {/* Dark overlay */}
+        <div style={{
+          position: 'absolute',
+          top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0, 0, 0, 0.65)',
+          zIndex: 1
+        }} />
+        {/* All content below should have zIndex: 2 or higher if needed */}
 
-        {/* Tools Section */}
-        <div className="tools-grid" style={{ ...toolsGrid, zIndex: 3, position: 'relative' }}>
-          <div className="tools-row" style={{ display: 'flex', flexDirection: 'row', justifyContent: 'center', gap: '30px', zIndex: 3, position: 'relative', marginTop: '10px' }}>
-            <ToolBox 
-              title="🖼️ Generate Image"
-              desc="Create stunning images from your prompt using our text-to-image tool."
-              price="2 credits / image"
-              link="/generate-tool?type=genimage"
-            />
-            <ToolBox 
-              title="🎞️ Generate Video"
-              desc="Transform images into cinematic motion with DreamMotion’s engine."
-              price="From 4 credits / second"
-              link="/generate-tool?type=genvideo"
-            />
-            <ToolBox 
-              title="📽️ Text to Video"
-              desc="Describe a scene and let DreamMotion create an animated video for you."
-              price="From 5 credits / second"
-              link="/generate-tool?type=text2video"
-            />
+        <div className="dashboard-container" style={{ position: 'relative', zIndex: 1 }}>
+          {/* Navbar */}
+          <nav className="dashboard-navbar" style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '40px',
+            color: '#fff'
+          }}>
+            <h1 style={{ fontSize: '2rem', fontWeight: 'bold' }}>DreamMotion</h1>
+            <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
+              <Link href="/" style={navLink}>Home</Link>
+              <Link href="/dashboard" style={navLink}>Dashboard</Link>
+              <Link href="/subscribe" style={navLink}>Subscribe</Link>
+              <Link href="/contact" style={navLink}>Contact</Link>
+              {userId ? (
+                <button onClick={handleLogout} style={navButton}>Logout</button>
+              ) : (
+                <Link href="/login" style={navLink}>Login</Link>
+              )}
+            </div>
+          </nav>
+
+          {/* Welcome */}
+          <div style={{
+            textAlign: 'center',
+            marginBottom: '18px',
+            marginTop: '10px',
+            color: '#fff'
+          }}>
+            <h2 style={{ fontSize: '2.5rem', marginBottom: '10px' }}>Welcome!</h2>
+            <p style={{ fontSize: '1.1rem' }}>
+              <span style={{ color: userId ? '#c00' : 'red', fontWeight: 'bold' }}>
+                {userId
+                  ? `Credits remaining: ${credits !== null ? credits : '...'}`
+                  : 'You are logged out'}
+              </span><br />
+              💡 Tip: Upgrade your plan for more credits and full video access.
+            </p>
+            {/* Removed the blue 'You are logged out' sign, keeping only the red one */}
+          </div>
+
+          {/* Tools Section */}
+          <div className="tools-grid" style={{ ...toolsGrid, zIndex: 3, position: 'relative' }}>
+            <div className="tools-row" style={{ display: 'flex', flexDirection: 'row', justifyContent: 'center', gap: '30px', zIndex: 3, position: 'relative', marginTop: '10px' }}>
+              <ToolBox 
+                title="🖼️ Generate Image"
+                desc="Create stunning images from your prompt using our text-to-image tool."
+                price="2 credits / image"
+                link="/generate-tool?type=genimage"
+              />
+              <ToolBox 
+                title="🎞️ Generate Video"
+                desc="Transform images into cinematic motion with DreamMotion’s engine."
+                price="From 4 credits / second"
+                link="/generate-tool?type=genvideo"
+              />
+              <ToolBox 
+                title="📽️ Text to Video"
+                desc="Describe a scene and let DreamMotion create an animated video for you."
+                price="From 5 credits / second"
+                link="/generate-tool?type=text2video"
+              />
+            </div>
           </div>
         </div>
-      </div>
-      {/* Footer */}
+      </main>
+
       <footer style={{
         width: '100vw',
         textAlign: 'center',
@@ -346,7 +374,7 @@ export default function Dashboard() {
           © 2025 DreamMotion. All rights reserved.
         </div>
       </footer>
-    </main>
+    </div>
   );
 }
 
@@ -373,20 +401,28 @@ function ToolBox({ title, desc, price, link }) {
       )}
       <p style={boxText}>{desc}</p>
       <p style={{ marginTop: '10px', fontWeight: 'bold', color: '#c00' }}>{price}</p>
-      <Link href={link}>
-        <button style={{
-          backgroundColor: '#1a1a1a', // dark grey
-          color: '#fff',
-          border: 'none',
-          borderRadius: '8px',
-          fontWeight: 'bold',
-          padding: '12px 20px',
-          marginBottom: '12px',
-          cursor: 'pointer',
-          transition: 'background 0.2s',
-          width: '100%'
-        }}>Open Tool</button>
-      </Link>
+      <div style={{
+        marginBottom: '12px',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        flexDirection: 'column'
+      }}>
+        <Link href={link}>
+          <button style={{
+            backgroundColor: '#1a1a1a', // dark grey
+            color: '#fff',
+            border: 'none',
+            borderRadius: '8px',
+            fontWeight: 'bold',
+            padding: '12px 20px',
+            marginBottom: '12px',
+            cursor: 'pointer',
+            transition: 'background 0.2s',
+            width: '100%'
+          }}>Open Tool</button>
+        </Link>
+      </div>
     </div>
   );
 }
@@ -422,18 +458,19 @@ const rowStyle = {
 };
 
 const boxStyle = {
-  backgroundColor: '#f1f1f1',
-  padding: '14px 18px',
   borderRadius: '12px',
-  boxShadow: '0 0 12px rgba(0,0,0,0.05)',
   maxWidth: '320px',
   width: '100%',
-  textAlign: 'center'
+  textAlign: 'center',
+  position: 'relative',
+  zIndex: 4
 };
 
-const boxTitle = {
+const textStyle = {
+  color: '#111',
+  marginTop: '15px',
   marginBottom: '10px',
-  color: '#111'
+  fontWeight: 'bold'
 };
 
 const boxText = {
@@ -449,4 +486,11 @@ const buttonStyle = {
   border: 'none',
   borderRadius: '8px',
   cursor: 'pointer'
+};
+
+const boxTitle = {
+  fontSize: '1.5rem',
+  fontWeight: 'bold',
+  color: '#333',
+  marginBottom: '10px',
 };
