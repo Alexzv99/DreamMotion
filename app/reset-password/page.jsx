@@ -1,9 +1,10 @@
 "use client";
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '../supabaseClient';
 
-export default function ResetPasswordPage() {
+// Component that uses searchParams - needs to be wrapped in Suspense
+function ResetPasswordForm() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -236,5 +237,32 @@ export default function ResetPasswordPage() {
         </form>
       </div>
     </main>
+  );
+}
+
+// Loading component for Suspense fallback
+function LoadingResetPassword() {
+  return (
+    <main style={{
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      color: '#fff'
+    }}>
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ fontSize: '1.2rem' }}>Loading password reset...</div>
+      </div>
+    </main>
+  );
+}
+
+// Main component that wraps ResetPasswordForm in Suspense
+export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={<LoadingResetPassword />}>
+      <ResetPasswordForm />
+    </Suspense>
   );
 }
