@@ -13,15 +13,49 @@ function ResetPasswordForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
+  // Helper function to check if error is related to expired/used link
+  const isExpiredLinkError = () => {
+    return error && (error.includes('expired') || error.includes('used already') || error.includes('invalid'));
+  };
+
+  // Function to redirect to login page for new reset request
+  const handleRequestNewLink = () => {
+    router.push('/login');
+  };
+
   useEffect(() => {
-    // Check if user is authenticated (they should be after clicking the email link)
-    const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        setError('Invalid or expired reset link. Please request a new password reset.');
+    // Handle auth state changes and check for reset session
+    const handleAuthStateChange = async () => {
+      // First check URL parameters for auth tokens
+      const urlParams = new URLSearchParams(window.location.search);
+      const accessToken = urlParams.get('access_token');
+      const refreshToken = urlParams.get('refresh_token');
+      const type = urlParams.get('type');
+      
+      if (accessToken && refreshToken && type === 'recovery') {
+        // Set the session from URL parameters
+        const { data, error } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken
+        });
+        
+        if (error) {
+          setError('This password reset link has expired or been used already. Please request a new password reset from the login page.');
+          return;
+        }
+        
+        // Clear URL parameters after successful session setup
+        window.history.replaceState({}, document.title, window.location.pathname);
+      } else {
+        // Check if user is authenticated
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          setError('This password reset link is invalid, expired, or has already been used. Please request a new password reset from the login page.');
+        }
       }
     };
-    checkAuth();
+    
+    handleAuthStateChange();
   }, []);
 
   const handleResetPassword = async (e) => {
@@ -135,9 +169,32 @@ function ResetPasswordForm() {
           maxWidth: '90vw',
           minWidth: '260px',
           fontSize: '1rem',
-          fontWeight: '500'
+          fontWeight: '500',
+          textAlign: 'center'
         }}>
-          {message || error}
+          <div style={{ marginBottom: isExpiredLinkError() ? '12px' : '0' }}>
+            {message || error}
+          </div>
+          {isExpiredLinkError() && (
+            <button
+              onClick={handleRequestNewLink}
+              style={{
+                background: '#dc3545',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                padding: '8px 16px',
+                fontSize: '0.9rem',
+                fontWeight: '500',
+                cursor: 'pointer',
+                transition: 'background 0.2s'
+              }}
+              onMouseOver={(e) => e.target.style.background = '#c82333'}
+              onMouseOut={(e) => e.target.style.background = '#dc3545'}
+            >
+              Request New Reset Link
+            </button>
+          )}
         </div>
       )}
 

@@ -29,7 +29,9 @@ export default function LoginPage() {
     setLoading(true);
     
     try {
-      const { data, error } = await supabase.auth.resetPasswordForEmail(email);
+      const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: 'https://dreammotion.online/reset-password',
+      });
       
       setLoading(false);
       
@@ -38,7 +40,7 @@ export default function LoginPage() {
         setErrorBanner('Password reset failed: ' + error.message);
       } else {
         console.log('Password reset success:', data);
-        setErrorBanner('Password reset email sent! Check your inbox and spam folder. The reset link will redirect you back to this site.');
+        setErrorBanner('Password reset email sent! Check your inbox and spam folder. Look for an email from Supabase with a "Reset Password" link. If the link is hidden, check the full email content or try opening it in a different email client.');
       }
     } catch (err) {
       console.error('Unexpected error:', err);
