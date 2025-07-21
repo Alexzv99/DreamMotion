@@ -330,7 +330,7 @@ export default function Dashboard() {
 
           {/* Tools Section */}
           <div className="tools-grid" style={{ ...toolsGrid, zIndex: 3, position: 'relative' }}>
-            <div className="tools-row" style={{ display: 'flex', flexDirection: 'row', justifyContent: 'center', gap: '30px', zIndex: 3, position: 'relative', marginTop: '10px' }}>
+            <div className="tools-row" style={{ display: 'flex', flexDirection: 'row', justifyContent: 'center', gap: '20px', zIndex: 3, position: 'relative', marginTop: '10px' }}>
               <ToolBox 
                 title="🖼️ Generate Image"
                 desc="Create stunning images from your prompt using our text-to-image tool."
@@ -349,6 +349,13 @@ export default function Dashboard() {
                 price="From 5 credits / second"
                 link="/generate-tool?type=text2video"
               />
+              <ToolBox 
+                title="🔞 NSFW Video Generation"
+                desc="Generate realistic adult animations with fewer content restrictions."
+                price=""
+                link=""
+                disabled={true}
+              />
             </div>
           </div>
           
@@ -363,7 +370,7 @@ export default function Dashboard() {
             letterSpacing: '0.02em',
             zIndex: 4,
             position: 'relative',
-            marginTop: '90px',
+            marginTop: '60px',
             background: 'rgba(0,0,0,0.15)',
             borderRadius: '12px'
           }}>
@@ -380,50 +387,81 @@ export default function Dashboard() {
   );
 }
 
-function ToolBox({ title, desc, price, link }) {
+function ToolBox({ title, desc, price, link, disabled = false }) {
+  const isDisabled = disabled || !link;
+  
   return (
     <div className="tool-box" style={{
-      backgroundColor: '#fff', // white
-      color: '#222', // dark text
+      backgroundColor: isDisabled ? '#f5f5f5' : '#fff',
+      color: isDisabled ? '#999' : '#222',
       borderRadius: '12px',
       boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-      padding: '16px',
+      padding: '14px',
       marginBottom: '18px',
-      cursor: 'pointer',
+      cursor: isDisabled ? 'not-allowed' : 'pointer',
       transition: 'background 0.2s',
-      maxWidth: '320px',
+      maxWidth: '280px', // Made smaller to fit 4 boxes
       flex: '1 1 0',
       textAlign: 'center',
       zIndex: 4,
-      position: 'relative'
+      position: 'relative',
+      opacity: isDisabled ? 0.7 : 1,
+      minHeight: '280px', // Fixed height for consistent alignment
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'space-between'
     }}>
-      <h3 style={boxTitle}>{title}</h3>
-      {title.includes('Image to Video') && (
-        <p style={{ color: '#c00', fontWeight: 'bold', marginBottom: '8px' }}>NSFW generation is allowed</p>
-      )}
-      <p style={boxText}>{desc}</p>
-      <p style={{ marginTop: '10px', fontWeight: 'bold', color: '#c00' }}>{price}</p>
+      <div style={{ flex: '1', display: 'flex', flexDirection: 'column' }}>
+        <h3 style={{...boxTitle, color: isDisabled ? '#999' : '#333'}}>{title}</h3>
+        {title.includes('Image to Video') && (
+          <p style={{ color: '#c00', fontWeight: 'bold', marginBottom: '8px' }}>NSFW generation is allowed</p>
+        )}
+        <p style={{...boxText, color: isDisabled ? '#999' : '#444', flex: '1'}}>{desc}</p>
+        <p style={{ marginTop: '10px', fontWeight: 'bold', color: isDisabled ? '#999' : '#c00' }}>{price}</p>
+      </div>
       <div style={{
         marginBottom: '12px',
         display: 'flex',
         justifyContent: 'center',
         alignItems: 'center',
-        flexDirection: 'column'
+        flexDirection: 'column',
+        width: '100%',
+        marginTop: 'auto'
       }}>
-        <Link href={link}>
+        {isDisabled ? (
           <button style={{
-            backgroundColor: '#1a1a1a', // dark grey
-            color: '#fff',
+            backgroundColor: '#ccc',
+            color: '#888',
             border: 'none',
             borderRadius: '8px',
             fontWeight: 'bold',
-            padding: '12px 20px',
+            padding: '14px 24px',
             marginBottom: '12px',
-            cursor: 'pointer',
-            transition: 'background 0.2s',
-            width: '100%'
-          }}>Open Tool</button>
-        </Link>
+            cursor: 'not-allowed',
+            width: '100%',
+            fontSize: '1rem',
+            boxSizing: 'border-box'
+          }} disabled>
+            Coming Soon
+          </button>
+        ) : (
+          <Link href={link} style={{ width: '100%' }}>
+            <button style={{
+              backgroundColor: '#1a1a1a',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '8px',
+              fontWeight: 'bold',
+              padding: '14px 24px',
+              marginBottom: '12px',
+              cursor: 'pointer',
+              transition: 'background 0.2s',
+              width: '100%',
+              fontSize: '1rem',
+              boxSizing: 'border-box'
+            }}>Open Tool</button>
+          </Link>
+        )}
       </div>
     </div>
   );
