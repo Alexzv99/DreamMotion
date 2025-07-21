@@ -93,24 +93,52 @@ export default function GenerateToolClient() {
             
             // Now try to fetch the specific user
             console.log('🔍 Fetching specific user data...');
-            let { data, error } = await supabase
+            
+            // First, check if user exists and handle duplicates
+            let { data: allUserData, error: queryError } = await supabase
               .from('users')
               .select('credits')
-              .eq('id', user.id) // Ensure the correct field name is used
-              .single();
-            
-            if (error) {
-              console.error('Error fetching credits:', error);
-              console.log('Error details:', {
-                code: error.code || 'N/A',
-                message: error.message || 'No message provided',
-              });
+              .eq('id', user.id);
+
+            if (queryError) {
+              console.error('Supabase query error:', queryError.message);
+              setCredits(0); // Fallback to 0 credits
               return;
             }
 
-            if (data) {
-              console.log('Credits fetched successfully:', data.credits);
-              setCredits(data.credits);
+            if (!allUserData || allUserData.length === 0) {
+              // No user found, create new user
+              console.log('No user found, creating new user with 10 credits');
+              const { error: insertError } = await supabase
+                .from('users')
+                .insert([{ id: user.id, email: user.email, credits: 10 }]);
+
+              if (!insertError) {
+                console.log('New user inserted with 10 credits');
+                setCredits(10);
+              } else {
+                console.error('Insert failed:', insertError.message);
+                setCredits(0); // Fallback to 0 credits
+              }
+            } else if (allUserData.length > 1) {
+              // Multiple users found - this shouldn't happen, but let's handle it
+              console.warn(`Found ${allUserData.length} duplicate entries for user ${user.id}. Using the first one.`);
+              setCredits(allUserData[0].credits);
+              
+              // Optionally, you could clean up duplicates here
+              // Remove duplicate entries (keep the first one)
+              for (let i = 1; i < allUserData.length; i++) {
+                await supabase
+                  .from('users')
+                  .delete()
+                  .eq('id', user.id)
+                  .limit(1);
+              }
+              console.log('Cleaned up duplicate entries');
+            } else {
+              // Exactly one user found - normal case
+              console.log('Credits fetched successfully:', allUserData[0].credits);
+              setCredits(allUserData[0].credits);
             }
           } catch (err) {
             console.error('Unexpected error fetching credits:', err);

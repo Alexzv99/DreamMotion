@@ -180,6 +180,7 @@ export default function Register() {
           }}>
             Register
           </button>
+          
           <button
             type="button"
             onClick={handleGoogleLogin}

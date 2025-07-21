@@ -18,6 +18,34 @@ export default function LoginPage() {
       setErrorBanner('Google login failed: ' + error.message);
     }
   };
+
+  // Forgot password handler
+  const handleForgotPassword = async () => {
+    if (!email) {
+      setErrorBanner('Please enter your email address first');
+      return;
+    }
+    
+    setLoading(true);
+    
+    try {
+      const { data, error } = await supabase.auth.resetPasswordForEmail(email);
+      
+      setLoading(false);
+      
+      if (error) {
+        console.error('Password reset error:', error);
+        setErrorBanner('Password reset failed: ' + error.message);
+      } else {
+        console.log('Password reset success:', data);
+        setErrorBanner('Password reset email sent! Check your inbox and spam folder. The reset link will redirect you back to this site.');
+      }
+    } catch (err) {
+      console.error('Unexpected error:', err);
+      setLoading(false);
+      setErrorBanner('An unexpected error occurred. Please try again.');
+    }
+  };
   // Auto-hide error banner after 3 seconds
   useEffect(() => {
     if (errorBanner) {
@@ -146,21 +174,59 @@ export default function LoginPage() {
       {errorBanner && (
         <div style={{
           position: 'fixed',
-          top: '50%',
+          top: '20px',
           left: '50%',
-          transform: 'translate(-50%, -50%)',
-          background: '#ff3b3b',
-          color: 'white',
-          padding: '24px 32px',
-          fontWeight: 'bold',
-          textAlign: 'center',
-          zIndex: 10001,
+          transform: 'translateX(-50%)',
+          background: errorBanner.includes('Password reset email sent') ? '#f0f9ff' : '#fef2f2',
+          color: errorBanner.includes('Password reset email sent') ? '#1e40af' : '#dc2626',
+          border: errorBanner.includes('Password reset email sent') ? '1px solid #bfdbfe' : '1px solid #fecaca',
           borderRadius: '12px',
-          boxShadow: '0 2px 16px rgba(0,0,0,0.25)',
-          minWidth: '260px',
-          fontSize: '1.2rem'
+          padding: '16px 20px',
+          zIndex: 10001,
+          maxWidth: '90vw',
+          minWidth: '320px',
+          fontSize: '0.95rem',
+          fontWeight: '500',
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          backdropFilter: 'blur(8px)'
         }}>
-          {errorBanner}
+          <div style={{
+            width: '20px',
+            height: '20px',
+            borderRadius: '50%',
+            background: errorBanner.includes('Password reset email sent') ? '#1e40af' : '#dc2626',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'white',
+            fontSize: '12px',
+            fontWeight: 'bold',
+            flexShrink: 0
+          }}>
+            {errorBanner.includes('Password reset email sent') ? '✓' : '!'}
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ 
+              fontWeight: '600', 
+              marginBottom: '2px',
+              fontSize: '0.9rem'
+            }}>
+              {errorBanner.includes('Password reset email sent') ? 'Email Sent Successfully' : 'Authentication Error'}
+            </div>
+            <div style={{ 
+              opacity: 0.9,
+              fontSize: '0.85rem',
+              lineHeight: 1.4
+            }}>
+              {errorBanner.includes('Password reset email sent') 
+                ? 'Check your inbox and follow the instructions to reset your password.'
+                : errorBanner.replace('Login failed: ', '').replace('Password reset failed: ', '').replace('Google login failed: ', '')
+              }
+            </div>
+          </div>
         </div>
       )}
       <div style={styles.overlay} />
@@ -186,6 +252,31 @@ export default function LoginPage() {
           <button type="submit" style={styles.button} disabled={loading}>
             {loading ? 'Logging in...' : 'Log In'}
           </button>
+          
+          {/* Forgot Password Button */}
+          <button
+            type="button"
+            onClick={handleForgotPassword}
+            style={{
+              marginTop: '12px',
+              background: 'transparent',
+              color: '#666',
+              border: 'none',
+              borderRadius: '8px',
+              padding: '8px 16px',
+              fontWeight: '500',
+              fontSize: '0.95rem',
+              cursor: 'pointer',
+              transition: 'color 0.2s',
+              textDecoration: 'underline'
+            }}
+            disabled={loading}
+            onMouseOver={(e) => e.target.style.color = '#c00'}
+            onMouseOut={(e) => e.target.style.color = '#666'}
+          >
+            Forgot Password?
+          </button>
+
           {/* Google Login Button below Log In */}
           <button
             onClick={handleGoogleLogin}
