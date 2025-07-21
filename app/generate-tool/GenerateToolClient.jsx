@@ -147,11 +147,8 @@ export default function GenerateToolClient() {
   const searchParams = useSearchParams();
   const typeParam = searchParams.get('type');
   const [type, setType] = useState(typeParam || 'genimage');
-  useEffect(() => {
-    if (typeParam && typeParam !== type) setType(typeParam);
-  }, [typeParam]);
-
-  // ...existing state...
+  
+  // State declarations - moved before useEffect that uses them
   const [videoModel, setVideoModel] = useState('veo-3-fast');
   const [duration, setDuration] = useState(6); // default 6s
   const [aspectRatio, setAspectRatio] = useState('1:1');
@@ -162,6 +159,23 @@ export default function GenerateToolClient() {
   const [loadingMinutes, setLoadingMinutes] = useState(0);
   const [generationTime, setGenerationTime] = useState(null);
   const [generationTimeString, setGenerationTimeString] = useState('');
+  
+  useEffect(() => {
+    if (typeParam && typeParam !== type) setType(typeParam);
+  }, [typeParam]);
+
+  // Initialize duration when type changes to text2video
+  useEffect(() => {
+    if (type === 'text2video') {
+      if (videoModel === 'veo-3-fast' || videoModel === 'veo-3') {
+        setDuration(8); // Set to 8 seconds for Veo models
+      } else if (videoModel === 'hailuo-02') {
+        setDuration(5); // Set to 5 seconds for Hailuo-02
+      }
+    } else if (type === 'genvideo') {
+      setDuration(5); // Default for genvideo, will be updated by model-specific useEffect
+    }
+  }, [type, videoModel]);
 
   // Calculate credit cost for current generation
   const calculateCreditCost = () => {
@@ -278,36 +292,64 @@ export default function GenerateToolClient() {
           throw new Error('Please upload an image file for video generation');
         }
 
-        // Generate video using FormData for file upload support
-        const formData = new FormData();
-        formData.append("prompt", prompt);
-        formData.append("aspect_ratio", aspectRatio);
-        formData.append("type", type);
-        formData.append("video_model", videoModel);
-        formData.append("duration", duration);
+        let response;
         
-        // Add image file for genvideo
-        if (type === "genvideo" && file) {
-          formData.append("file", file);
+        if (type === "text2video") {
+          // Use JSON for text2video (no file upload needed)
+          console.log(`🎬 Sending ${type} request with:`, { 
+            prompt, 
+            aspect_ratio: aspectRatio, 
+            type, 
+            video_model: videoModel, 
+            duration
+          });
+
+          response = await fetch('/api/generate-image', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${session.access_token}`
+            },
+            body: JSON.stringify({
+              prompt,
+              aspect_ratio: aspectRatio,
+              type,
+              video_model: videoModel,
+              duration
+            })
+          });
+        } else {
+          // Use FormData for genvideo (file upload needed)
+          const formData = new FormData();
+          formData.append("prompt", prompt);
+          formData.append("aspect_ratio", aspectRatio);
+          formData.append("type", type);
+          formData.append("video_model", videoModel);
+          formData.append("duration", duration);
+          
+          // Add image file for genvideo
+          if (file) {
+            formData.append("file", file);
+          }
+
+          console.log(`🎬 Sending ${type} request with:`, { 
+            prompt, 
+            aspect_ratio: aspectRatio, 
+            type, 
+            video_model: videoModel, 
+            duration,
+            hasFile: !!file 
+          });
+
+          response = await fetch('/api/generate-image', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${session.access_token}`
+              // Note: Don't set Content-Type for FormData, let browser set it
+            },
+            body: formData
+          });
         }
-
-        console.log(`🎬 Sending ${type} request with:`, { 
-          prompt, 
-          aspect_ratio: aspectRatio, 
-          type, 
-          video_model: videoModel, 
-          duration,
-          hasFile: !!file 
-        });
-
-        const response = await fetch('/api/generate-image', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`
-            // Note: Don't set Content-Type for FormData, let browser set it
-          },
-          body: formData
-        });
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
@@ -495,9 +537,27 @@ export default function GenerateToolClient() {
     }
   }, [type, videoModel]);
 
+  // Reset aspect ratio when switching to text2video models (all only support 16:9)
+  useEffect(() => {
+    if (type === 'text2video') {
+      // All text2video models only support 16:9
+      setAspectRatio('16:9');
+    }
+  }, [type, videoModel]);
+
   // Set initial toolCredits based on default videoModel and type
   // Remove incorrect initial credits effect for kling-v2.1
   // ...existing code...
+
+  // Function to get correct aspect options based on type and model
+  const getAspectOptions = (currentType, currentVideoModel) => {
+    if (currentType === 'text2video' && currentVideoModel === 'hailuo-02') {
+      // For text2video with Hailuo-02, only 16:9 is supported
+      return [{ value: '16:9', label: '16:9' }];
+    }
+    // For genvideo or other cases, use the regular options
+    return aspectOptions[currentVideoModel] || [{ value: '16:9', label: '16:9' }];
+  };
 
   const aspectOptions = {
     'hailuo-02': [
@@ -539,6 +599,9 @@ export default function GenerateToolClient() {
     ],
     'veo-3': [
       { value: '16:9', label: '16:9' }
+    ],
+    'hailuo-02': [
+      { value: '16:9', label: '16:9' }
     ]
   };
 
@@ -574,11 +637,13 @@ export default function GenerateToolClient() {
   useEffect(() => {
     if (type === 'text2video') {
       if (videoModel === 'hailuo-02') {
-        setDuration(6); // Automatically set duration to 6 seconds
+        setDuration(5); // Automatically set duration to 5 seconds
         setToolCredits('5 credits / second');
       } else if (videoModel === 'veo-3-fast') {
+        setDuration(8); // Automatically set duration to 8 seconds
         setToolCredits('15 credits / second');
       } else if (videoModel === 'veo-3') {
+        setDuration(8); // Automatically set duration to 8 seconds
         setToolCredits('25 credits / second');
       } else {
         setToolCredits('2 credits / second');
@@ -647,7 +712,7 @@ export default function GenerateToolClient() {
   useEffect(() => {
     if (type === 'genvideo') {
       const defaultDurations = {
-        'hailuo-02': 6,
+        'hailuo-02': 5,
         'kling-v2.1': 5,
         'wan-2.1-i2v-720p': 5,
         'seedance-1-pro': 5,
@@ -1053,7 +1118,30 @@ export default function GenerateToolClient() {
           }}>
             <label style={{ fontWeight: 600, marginRight: 8 }}>Aspect Ratio:</label>
             <div style={{ display: 'flex', gap: 12, marginTop: 0 }}>
-              {aspectOptions['hailuo-02'].map(opt => (
+              {getAspectOptions(type, videoModel).map(opt => (
+                <label key={opt.value} style={{ display: 'flex', alignItems: 'center', gap: 4, fontWeight: 500 }}>
+                  <input type="radio" name="aspectRatio" value={opt.value} checked={aspectRatio === opt.value} onChange={() => setAspectRatio(opt.value)} style={{ accentColor: '#6366f1', marginRight: 4 }} />
+                  {opt.label}
+                </label>
+              ))}
+            </div>
+          </div>
+        )}
+        {(type === 'text2video') && (videoModel === 'veo-3-fast' || videoModel === 'veo-3') && (
+          <div style={{
+            marginBottom: 18,
+            background: '#fff',
+            borderRadius: 14,
+            boxShadow: '0 2px 12px rgba(30,30,40,0.10)',
+            padding: '18px 28px',
+            fontSize: '1.08rem',
+            fontWeight: 600,
+            color: '#222',
+            border: '1.5px solid #e5e7eb'
+          }}>
+            <label style={{ fontWeight: 600, marginRight: 8 }}>Aspect Ratio:</label>
+            <div style={{ display: 'flex', gap: 12, marginTop: 0 }}>
+              {getAspectOptions(type, videoModel).map(opt => (
                 <label key={opt.value} style={{ display: 'flex', alignItems: 'center', gap: 4, fontWeight: 500 }}>
                   <input type="radio" name="aspectRatio" value={opt.value} checked={aspectRatio === opt.value} onChange={() => setAspectRatio(opt.value)} style={{ accentColor: '#6366f1', marginRight: 4 }} />
                   {opt.label}
@@ -1066,7 +1154,7 @@ export default function GenerateToolClient() {
           <div style={{ marginBottom: 18 }}>
             <label htmlFor="duration" style={{ fontWeight: 600, fontSize: '1rem', marginBottom: 6, display: 'block' }}>Duration (seconds)</label>
             <div style={{ display: 'flex', gap: 8 }}>
-              {[6, 10].map(val => (
+              {[5, 10].map(val => (
                 <button
                   key={val}
                   type="button"
@@ -1092,11 +1180,44 @@ export default function GenerateToolClient() {
             </div>
           </div>
         )}
+        {(type === 'text2video') && (videoModel === 'veo-3-fast' || videoModel === 'veo-3') && (
+          <div style={{ marginBottom: 18 }}>
+            <label htmlFor="duration" style={{ fontWeight: 600, fontSize: '1rem', marginBottom: 6, display: 'block' }}>Duration (seconds)</label>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {[8].map(val => (
+                <button
+                  key={val}
+                  type="button"
+                  onClick={() => setDuration(val)}
+                  style={{
+                    padding: '7px 18px',
+                    borderRadius: 18,
+                    border: duration === val ? '2px solid #ff3b3b' : '2px solid #eee',
+                    background: duration === val ? 'linear-gradient(90deg,#ffb347 0%,#ff3b3b 100%)' : '#f7f7f7',
+                    color: duration === val ? '#fff' : '#222',
+                    fontWeight: 600,
+                    fontSize: '0.98rem',
+                    cursor: 'pointer',
+                    boxShadow: duration === val ? '0 2px 8px rgba(255,59,59,0.10)' : 'none',
+                    transition: 'all 0.2s',
+                    outline: 'none',
+                    borderBottom: duration === val ? '3px solid #ff3b3b' : 'none',
+                  }}
+                >
+                  {val}s
+                </button>
+              ))}
+            </div>
+            <p style={{ fontSize: '0.85rem', color: '#666', marginTop: '8px', fontStyle: 'italic' }}>
+              Veo models generate high-quality 8-second videos
+            </p>
+          </div>
+        )}
         {(type === 'genvideo') && (videoModel === 'hailuo-02' || videoModel === 'kling-v2.1' || videoModel === 'wan-2.1-i2v-720p' || videoModel === 'seedance-1-pro' || videoModel === 'luma-ray') && (
           <div style={{ marginBottom: 18 }}>
             <label htmlFor="duration" style={{ fontWeight: 600, fontSize: '1rem', marginBottom: 6, display: 'block' }}>Duration (seconds)</label>
             <div style={{ display: 'flex', gap: 8 }}>
-              {(videoModel === 'hailuo-02' ? [6, 10] :
+              {(videoModel === 'hailuo-02' ? [5, 10] :
                 videoModel === 'kling-v2.1' ? [5, 10] :
                 videoModel === 'wan-2.1-i2v-720p' ? [5, 10] :
                 videoModel === 'seedance-1-pro' ? [5, 10] :
