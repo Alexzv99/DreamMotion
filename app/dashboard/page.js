@@ -207,7 +207,7 @@ export default function Dashboard() {
         <div style={{
           position: 'absolute',
           top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(0, 0, 0, 0.6)',
+          background: 'rgba(0, 0, 0, 0.7)',
           zIndex: 0
         }}></div>
         <style>{`
@@ -216,7 +216,7 @@ export default function Dashboard() {
               object-fit: cover !important;
             }
             div {
-              background: rgba(0, 0, 0, 0.6) !important;
+              background: rgba(0, 0, 0, 0.7) !important;
             }
           }
         `}</style>
@@ -296,13 +296,6 @@ export default function Dashboard() {
             }
           }
         `}</style>
-        {/* Dark overlay */}
-        <div style={{
-          position: 'absolute',
-          top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(0, 0, 0, 0.65)',
-          zIndex: 1
-        }} />
         {/* All content below should have zIndex: 2 or higher if needed */}
 
         <div className="dashboard-container" style={{ position: 'relative', zIndex: 1 }}>

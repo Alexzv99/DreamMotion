@@ -12,10 +12,16 @@ export default function LoginPage() {
   // Google login handler
   const handleGoogleLogin = async () => {
     setLoading(true);
-    const { error } = await supabase.auth.signInWithOAuth({ provider: 'google' });
+    const { error } = await supabase.auth.signInWithOAuth({ 
+      provider: 'google',
+      options: {
+        redirectTo: 'https://dreammotion.online/dashboard'
+      }
+    });
     setLoading(false);
     if (error) {
       setErrorBanner('Google login failed: ' + error.message);
+      console.error('Google login error:', error);
     }
   };
 

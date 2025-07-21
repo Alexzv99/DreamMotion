@@ -1,13 +1,34 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 
 export default function Home() {
   const [cookiesAccepted, setCookiesAccepted] = useState(false);
   const [showCookieBar, setShowCookieBar] = useState(false);
   const [errorBanner, setErrorBanner] = useState('');
+  const [isInitialized, setIsInitialized] = useState(false);
+  
+  // Check sessionStorage for cookie preference on component mount (session-based, not permanent)
+  useEffect(() => {
+    const savedCookiePreference = sessionStorage.getItem('cookiesAccepted');
+    console.log('Saved cookie preference:', savedCookiePreference); // Debug log
+    
+    if (savedCookiePreference === 'true') {
+      setCookiesAccepted(true);
+      setShowCookieBar(false);
+    } else if (savedCookiePreference === 'false') {
+      setCookiesAccepted(false);
+      setShowCookieBar(false);
+    } else {
+      // No preference saved for this session - this is a new user/session
+      setCookiesAccepted(false);
+      setShowCookieBar(false); // Will show when they click Enter/Register
+    }
+    setIsInitialized(true);
+  }, []);
+  
   // Auto-hide error banner after 3 seconds
-  React.useEffect(() => {
+  useEffect(() => {
     if (errorBanner) {
       const timer = setTimeout(() => setErrorBanner(''), 3000);
       return () => clearTimeout(timer);
@@ -71,76 +92,124 @@ export default function Home() {
           {errorBanner}
         </div>
       )}
-      {/* Cookie modal blocks all content until accepted */}
-      {showCookieBar && !cookiesAccepted ? (
+      {/* Professional Cookie Banner - Centered White Design */}
+      {showCookieBar ? (
         <div style={{
           position: 'fixed',
-          left: 0, right: 0, top: 0, bottom: 0,
-          backgroundColor: 'rgba(0,0,0,0.7)',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          background: '#ffffff',
+          color: '#000000',
+          border: '1px solid #e0e0e0',
+          borderRadius: '12px',
+          padding: '24px 28px',
+          zIndex: 10001,
+          width: '520px',
+          maxWidth: '90vw',
+          fontSize: '0.95rem',
+          fontWeight: '500',
+          boxShadow: '0 8px 24px rgba(0, 0, 0, 0.15)',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 10000,
-          pointerEvents: 'auto'
+          gap: '16px',
+          backdropFilter: 'blur(8px)'
         }}>
           <div style={{
-            background: '#222',
-            padding: 32,
-            borderRadius: 12,
+            width: '20px',
+            height: '20px',
+            borderRadius: '50%',
+            background: '#000000',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
             color: 'white',
-            textAlign: 'center',
-            minWidth: 320,
-            boxShadow: '0 2px 16px rgba(0,0,0,0.3)',
-            pointerEvents: 'auto'
+            fontSize: '12px',
+            fontWeight: 'bold',
+            flexShrink: 0
           }}>
-            <p style={{ marginBottom: 16, fontSize: 18 }}>
-              This website uses cookies to <strong>enhance the user experience</strong>.<br />
-              You must accept cookies to continue.
-            </p>
-            <button
-              onClick={() => {
-                setCookiesAccepted(true);
-                setShowCookieBar(false);
-                if (showCookieBar === 'register') {
-                  window.location.href = '/register';
-                } else {
-                  window.location.href = '/dashboard';
-                }
-              }}
-              style={{
-                margin: '0 8px',
-                padding: '10px 22px',
-                fontSize: 15,
-                border: 'none',
-                backgroundColor: '#fff',
-                color: '#222',
-                borderRadius: 6,
-                cursor: 'pointer',
-                fontWeight: 600
-              }}
-            >
-              Accept Cookies
-            </button>
-            <button
-              onClick={() => {
-                setCookiesAccepted(false);
-                setShowCookieBar(true);
-                window.location.href = '/';
-              }}
-              style={{
-                margin: '0 8px',
-                padding: '10px 22px',
-                fontSize: 15,
-                border: 'none',
-                backgroundColor: '#ff3b3b',
-                color: '#fff',
-                borderRadius: 6,
-                cursor: 'pointer',
-                fontWeight: 600
-              }}
-            >
-              Decline
-            </button>
+            ℹ
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ 
+              fontWeight: '600', 
+              marginBottom: '6px',
+              fontSize: '1rem',
+              color: '#000000'
+            }}>
+              Cookie Preferences
+            </div>
+            <div style={{ 
+              opacity: 0.8,
+              fontSize: '0.87rem',
+              lineHeight: 1.4,
+              marginBottom: '16px',
+              color: '#333333'
+            }}>
+              We use cookies to enhance your experience on DreamMotion and provide personalized content.
+            </div>
+            <div style={{
+              display: 'flex',
+              gap: '10px',
+              flexWrap: 'wrap'
+            }}>
+              <button
+                onClick={() => {
+                  setCookiesAccepted(true);
+                  setShowCookieBar(false);
+                  sessionStorage.setItem('cookiesAccepted', 'true');
+                  if (showCookieBar === 'register') {
+                    window.location.href = '/register';
+                  } else {
+                    window.location.href = '/dashboard';
+                  }
+                }}
+                style={{
+                  padding: '10px 20px',
+                  fontSize: '0.9rem',
+                  border: 'none',
+                  background: '#000000',
+                  color: '#ffffff',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontWeight: '600',
+                  transition: 'background 0.2s'
+                }}
+                onMouseOver={(e) => e.target.style.background = '#333333'}
+                onMouseOut={(e) => e.target.style.background = '#000000'}
+              >
+                Accept All
+              </button>
+              <button
+                onClick={() => {
+                  setCookiesAccepted(false);
+                  setShowCookieBar(false);
+                  sessionStorage.setItem('cookiesAccepted', 'false');
+                  window.location.href = '/';
+                }}
+                style={{
+                  padding: '10px 20px',
+                  fontSize: '0.9rem',
+                  border: '2px solid #cccccc',
+                  backgroundColor: '#ffffff',
+                  color: '#333333',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontWeight: '600',
+                  transition: 'all 0.2s'
+                }}
+                onMouseOver={(e) => {
+                  e.target.style.borderColor = '#999999';
+                  e.target.style.backgroundColor = '#f8f8f8';
+                }}
+                onMouseOut={(e) => {
+                  e.target.style.borderColor = '#cccccc';
+                  e.target.style.backgroundColor = '#ffffff';
+                }}
+              >
+                Decline
+              </button>
+            </div>
           </div>
         </div>
       ) : (
@@ -194,7 +263,16 @@ export default function Home() {
                 cursor: 'pointer'
               }}
               onClick={() => {
-                setShowCookieBar(true);
+                const savedCookiePreference = sessionStorage.getItem('cookiesAccepted');
+                console.log('Enter clicked, sessionStorage value:', savedCookiePreference);
+                
+                if (savedCookiePreference === 'true') {
+                  console.log('Going directly to dashboard');
+                  window.location.href = '/dashboard';
+                } else {
+                  console.log('Showing cookie banner');
+                  setShowCookieBar(true);
+                }
               }}
             >
               Enter
@@ -204,7 +282,19 @@ export default function Home() {
                 style={{ fontSize: 17, fontWeight: 500, cursor: 'pointer' }}
                 onClick={e => {
                   e.preventDefault();
-                  setShowCookieBar('register');
+                  // Only check sessionStorage if component is initialized
+                  if (!isInitialized) return;
+                  
+                  const savedCookiePreference = sessionStorage.getItem('cookiesAccepted');
+                  console.log('Register clicked, cookie preference:', savedCookiePreference);
+                  
+                  if (savedCookiePreference === 'true') {
+                    // Cookies already accepted this session, go directly to register
+                    window.location.href = '/register';
+                  } else {
+                    // No choice made this session - show cookie banner
+                    setShowCookieBar('register');
+                  }
                 }}
               >
                 <span style={{ color: '#fff' }}>Not a member yet? </span>

@@ -90,7 +90,7 @@ export default function SubscribePage() {
           }
         }
       `}</style>
-      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.75)', zIndex: 0 }} />
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', zIndex: 0 }} />
       {/* Back Button */}
       <button
         onClick={() => router.back()}
@@ -119,7 +119,8 @@ export default function SubscribePage() {
         gap: '30px',
         flexWrap: 'wrap',
         justifyContent: 'center',
-        zIndex: 2 // Increased zIndex to ensure boxes are above the overlay
+        zIndex: 2, // Increased zIndex to ensure boxes are above the overlay
+        alignItems: 'stretch' // This ensures all cards have equal height
       }}>
         {[
           {
@@ -176,27 +177,34 @@ export default function SubscribePage() {
             borderRadius: '10px',
             width: '220px',
             textAlign: 'center',
-            boxShadow: '0 0 20px rgba(255,255,255,0.05)'
+            boxShadow: '0 0 20px rgba(255,255,255,0.05)',
+            display: 'flex',
+            flexDirection: 'column',
+            height: '100%',
+            minHeight: '400px'
           }}>
-            <h2 style={{ fontSize: '20px', marginBottom: '10px' }}>{plan.title}</h2>
-            <p style={{ fontSize: '24px', fontWeight: 'bold', margin: '10px 0' }}>{plan.price}</p>
-            <p style={{ margin: '5px 0' }}>{plan.credits}</p>
-            <p style={{ fontSize: '14px', color: '#aaa', marginBottom: plan.features ? '8px' : '0' }}>{plan.usage}</p>
-            {plan.features && (
-              <div style={{ fontSize: '14px', color: '#222', marginBottom: '8px', textAlign: 'left' }}>
-                {plan.features.map((feature, idx) => (
-                  <div key={idx} style={{ marginBottom: '2px' }}>{feature}</div>
-                ))}
-              </div>
-            )}
+            <div style={{ flex: '1', display: 'flex', flexDirection: 'column' }}>
+              <h2 style={{ fontSize: '20px', marginBottom: '10px' }}>{plan.title}</h2>
+              <p style={{ fontSize: '24px', fontWeight: 'bold', margin: '10px 0' }}>{plan.price}</p>
+              <p style={{ margin: '5px 0' }}>{plan.credits}</p>
+              <p style={{ fontSize: '14px', color: '#aaa', marginBottom: plan.features ? '8px' : '0' }}>{plan.usage}</p>
+              {plan.features && (
+                <div style={{ fontSize: '14px', color: '#222', marginBottom: '8px', textAlign: 'left', flex: '1' }}>
+                  {plan.features.map((feature, idx) => (
+                    <div key={idx} style={{ marginBottom: '2px' }}>{feature}</div>
+                  ))}
+                </div>
+              )}
+            </div>
             <button style={{
-              marginTop: '15px',
+              marginTop: 'auto',
               background: 'black',
               color: 'white',
               padding: '10px 20px',
               border: 'none',
               borderRadius: '5px',
-              cursor: 'pointer'
+              cursor: 'pointer',
+              alignSelf: 'stretch'
             }}>Buy Now</button>
           </div>
         ))}
@@ -223,7 +231,7 @@ export default function SubscribePage() {
       <div style={{
         position: 'absolute',
         top: 0, left: 0, right: 0, bottom: 0,
-        background: 'rgba(0, 0, 0, 0.65)', // Matched opacity with the dashboard
+        background: 'rgba(0, 0, 0, 0.7)', // Matched opacity with the dashboard
         zIndex: 1
       }} />
     </div>

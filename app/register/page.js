@@ -16,10 +16,16 @@ export default function Register() {
   // Google login handler (moved inside component)
   const handleGoogleLogin = async () => {
     setLoading(true);
-    const { error } = await supabase.auth.signInWithOAuth({ provider: 'google' });
+    const { error } = await supabase.auth.signInWithOAuth({ 
+      provider: 'google',
+      options: {
+        redirectTo: 'https://dreammotion.online/dashboard'
+      }
+    });
     setLoading(false);
     if (error) {
       setErrorMsg('Google registration failed: ' + error.message);
+      console.error('Google registration error:', error);
     }
   };
 
