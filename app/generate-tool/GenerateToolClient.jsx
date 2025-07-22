@@ -185,6 +185,7 @@ export default function GenerateToolClient() {
   const [previewUrl, setPreviewUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [loadingMinutes, setLoadingMinutes] = useState(0);
+  const [timerInterval, setTimerInterval] = useState(null);
   const [generationTime, setGenerationTime] = useState(null);
   const [generationTimeString, setGenerationTimeString] = useState('');
   
@@ -202,22 +203,49 @@ export default function GenerateToolClient() {
       }
     } else if (type === 'genvideo') {
       setDuration(5); // Default for genvideo, will be updated by model-specific useEffect
+    } else if (type === 'image2video') {
+      setDuration(5); // Default for image2video
     }
   }, [type, videoModel]);
+
+  // Set appropriate models for image2video
+  useEffect(() => {
+    if (type === 'image2video') {
+      // For image2video, use models that support image input
+      // Default to kling-v2.1 as it has good image preservation
+      if (!['kling-v2.1', 'luma-ray', 'wan-2.1-i2v-720p', 'seedance-1-pro', 'hailuo-02'].includes(videoModel)) {
+        setVideoModel('kling-v2.1');
+      }
+    } else if (type === 'text2video') {
+      // For text2video, use models that support text-only input
+      if (!['veo-3-fast', 'veo-3', 'hailuo-02'].includes(videoModel)) {
+        setVideoModel('veo-3-fast');
+      }
+    }
+  }, [type]);
+
+  // Cleanup timer on component unmount
+  useEffect(() => {
+    return () => {
+      if (timerInterval) {
+        clearInterval(timerInterval);
+      }
+    };
+  }, [timerInterval]);
 
   // Calculate credit cost for current generation
   const calculateCreditCost = () => {
     if (type === 'genimage') {
       return 2;
-    } else if (type === 'genvideo' || type === 'text2video') {
+    } else if (type === 'genvideo' || type === 'text2video' || type === 'image2video') {
       const costMapping = {
         'kling-v2.1': 4,
         'hailuo-02': 5,
-        'wan-2.1-i2v-720p': 9,
+        'wan-2.1-i2v-720p': 13,
         'seedance-1-pro': 4,
-        'luma-ray': 15,
-        'veo-3-fast': 15,
-        'veo-3': 25
+        'luma-ray': 22,
+        'veo-3-fast': 20,
+        'veo-3': 35
       };
       const costPerSecond = costMapping[videoModel] || 2;
       return costPerSecond * (duration || 6);
@@ -225,25 +253,101 @@ export default function GenerateToolClient() {
     return 2;
   };
 
+  // Get model-specific time estimates (in minutes)
+  const getTimeEstimate = () => {
+    if (type === "text2video") {
+      const timeMapping = {
+        'wan-2.1': 3,      // Simple model - 3 minutes
+        'luma-ray': 4,     // Medium model - 4 minutes
+        'veo-3-fast': 6,   // Fast but complex - 6 minutes
+        'veo-3': 10        // Most complex - 10 minutes
+      };
+      return timeMapping[videoModel] || 5;
+    } else if (type === "image2video") {
+      const timeMapping = {
+        'kling-v2.1': 3,             // Fast model - 3 minutes
+        'luma-ray': 4,               // Medium model - 4 minutes  
+        'wan-2.1-i2v-720p': 5,       // Complex model - 5 minutes
+        'seedance-1-pro': 4,         // Medium model - 4 minutes
+        'hailuo-02': 4               // Medium complexity - 4 minutes
+      };
+      return timeMapping[videoModel] || 4;
+    } else if (type === "genimage") {
+      return 2; // Image generation is typically faster
+    } else {
+      return 4; // Other types
+    }
+  };
+
   const hasEnoughCredits = credits !== null && credits >= calculateCreditCost();
+
+  // Timer management functions
+  const startTimer = () => {
+    setLoadingMinutes(0);
+    const interval = setInterval(() => {
+      setLoadingMinutes(prev => prev + 1);
+    }, 60000); // Increment every minute
+    setTimerInterval(interval);
+  };
+
+  const stopTimer = () => {
+    if (timerInterval) {
+      clearInterval(timerInterval);
+      setTimerInterval(null);
+    }
+    setLoadingMinutes(0);
+  };
 
   const handleGenerate = async () => {
     setError("");
     setLoading(true);
     setGenerationTime(Date.now());
+    startTimer(); // Start the countdown timer
     
     try {
       if (type === "image2video" && file) {
+        // Check if user is authenticated
+        if (!user) {
+          throw new Error('Please log in to generate videos');
+        }
+
+        // Get session token
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          throw new Error('Authentication session expired. Please log in again.');
+        }
+
+        // Create FormData for image upload
         const formData = new FormData();
         formData.append("file", file);
-        const response = await fetch("https://your-remote-backend-url/animate", {
-          method: "POST",
+        // For image2video, use minimal prompt to focus on the image
+        formData.append("prompt", prompt || "animate this image smoothly, keeping the original content and style");
+        formData.append("type", "genvideo"); // Use genvideo type for image-to-video
+        formData.append("video_model", videoModel || "hailuo-02");
+        formData.append("duration", duration || 5);
+        formData.append("aspect_ratio", aspectRatio);
+        // Add image_strength parameter to prioritize image over prompt
+        formData.append("image_strength", "0.95"); // High image strength for image focus
+
+        const response = await fetch('/api/generate-image', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`
+          },
           body: formData
         });
-        if (!response.ok) throw new Error("Failed to generate video");
-        const blob = await response.blob();
-        const videoUrl = URL.createObjectURL(blob);
-        setPreviewUrl(videoUrl);
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to generate video from image');
+        }
+
+        const data = await response.json();
+        if (data.url) {
+          setPreviewUrl(data.url);
+        } else {
+          throw new Error('No video URL received from server');
+        }
       } else if (type === "genimage") {
         // Check if user is authenticated
         if (!user) {
@@ -424,6 +528,7 @@ export default function GenerateToolClient() {
       setError("Error generating content: " + err.message);
     } finally {
       setLoading(false);
+      stopTimer(); // Stop the countdown timer
     }
   };
 
@@ -447,11 +552,15 @@ export default function GenerateToolClient() {
       note: '',
       inputType: 'text'
     },
-    // image2video tool removed
+    image2video: {
+      title: 'Image to Video',
+      desc: 'Transform your images into dynamic videos.',
+      note: '',
+      inputType: 'file'
+    }
   };
-  // Remove image2video from tool selection
-  const filteredType = type === 'image2video' ? 'genimage' : type;
-  const tool = toolMap[filteredType] || toolMap['genimage'];
+  
+  const tool = toolMap[type] || toolMap['genimage'];
 
   const [genvideoModels] = useState([
     { value: 'kling-v2.1', name: 'Kling v2.1' },
@@ -465,15 +574,22 @@ export default function GenerateToolClient() {
     { value: 'veo-3', name: 'Veo 3' },
     { value: 'hailuo-02', name: 'Hailuo 02' }
   ]);
+  const [image2videoModels] = useState([
+    { value: 'kling-v2.1', name: 'Kling v2.1' },
+    { value: 'luma-ray', name: 'Luma / Ray' },
+    { value: 'wan-2.1-i2v-720p', name: 'WAN‑2.1‑i2v‑720p' },
+    { value: 'seedance-1-pro', name: 'Seedance‑1‑Pro' },
+    { value: 'hailuo-02', name: 'Hailuo‑02' }
+  ]);
   const [loadingMessage, setLoadingMessage] = useState('');
   // Helper to get initial credits and cost for genvideo
   function getInitialGenVideoCredits(model) {
     switch (model) {
       case 'kling-v2.1': return '4 credits / second';
       case 'hailuo-02': return '5 credits / second';
-      case 'wan-2.1-i2v-720p': return '9 credits / second';
+      case 'wan-2.1-i2v-720p': return '13 credits / second';
       case 'seedance-1-pro': return '4 credits / second';
-      case 'luma-ray': return '15 credits / second';
+      case 'luma-ray': return '22 credits / second';
       default: return '2 credits / second';
     }
   }
@@ -481,9 +597,9 @@ export default function GenerateToolClient() {
     const costMapping = {
       'kling-v2.1': { cost: 4, defaultDuration: 8 },
       'hailuo-02': { cost: 5, defaultDuration: 6 },
-      'wan-2.1-i2v-720p': { cost: 9, defaultDuration: 10 },
+      'wan-2.1-i2v-720p': { cost: 13, defaultDuration: 10 },
       'seedance-1-pro': { cost: 4, defaultDuration: 8 },
-      'luma-ray': { cost: 15, defaultDuration: 12 }
+      'luma-ray': { cost: 22, defaultDuration: 12 }
     };
     const modelData = costMapping[model] || { cost: 2, defaultDuration: durationVal };
     const costPerSecond = modelData.cost;
@@ -498,8 +614,8 @@ export default function GenerateToolClient() {
       return '2 credits / image';
     } else if (typeParam === 'text2video') {
       switch (videoModel) {
-        case 'veo-3-fast': return '15 credits / second';
-        case 'veo-3': return '25 credits / second';
+        case 'veo-3-fast': return '20 credits / second';
+        case 'veo-3': return '35 credits / second';
         case 'hailuo-02': return '5 credits / second';
         default: return '2 credits / second';
       }
@@ -553,13 +669,20 @@ export default function GenerateToolClient() {
     } else if (type === 'genvideo') {
       if (videoModel === 'hailuo-02') setToolCredits('5 credits / second');
       else if (videoModel === 'kling-v2.1') setToolCredits('4 credits / second');
-      else if (videoModel === 'wan-2.1-i2v-720p') setToolCredits('9 credits / second');
+      else if (videoModel === 'wan-2.1-i2v-720p') setToolCredits('13 credits / second');
       else if (videoModel === 'seedance-1-pro') setToolCredits('4 credits / second');
-      else if (videoModel === 'luma-ray') setToolCredits('15 credits / second');
+      else if (videoModel === 'luma-ray') setToolCredits('22 credits / second');
       else setToolCredits('2 credits / second');
+    } else if (type === 'image2video') {
+      if (videoModel === 'kling-v2.1') setToolCredits('4 credits / second');
+      else if (videoModel === 'luma-ray') setToolCredits('22 credits / second');
+      else if (videoModel === 'wan-2.1-i2v-720p') setToolCredits('13 credits / second');
+      else if (videoModel === 'seedance-1-pro') setToolCredits('4 credits / second');
+      else if (videoModel === 'hailuo-02') setToolCredits('5 credits / second');
+      else setToolCredits('4 credits / second');
     } else if (type === 'text2video') {
-      if (videoModel === 'veo-3-fast') setToolCredits('15 credits / second');
-      else if (videoModel === 'veo-3') setToolCredits('25 credits / second');
+      if (videoModel === 'veo-3-fast') setToolCredits('20 credits / second');
+      else if (videoModel === 'veo-3') setToolCredits('35 credits / second');
       else if (videoModel === 'hailuo-02') setToolCredits('5 credits / second');
       else setToolCredits('2 credits / second');
     }
@@ -637,8 +760,8 @@ export default function GenerateToolClient() {
   let totalCost = null;
   if (type === 'text2video') {
     const costMapping = {
-      'veo-3-fast': { cost: 15, defaultDuration: 8 },
-      'veo-3': { cost: 25, defaultDuration: 8 },
+      'veo-3-fast': { cost: 20, defaultDuration: 8 },
+      'veo-3': { cost: 35, defaultDuration: 8 },
       'hailuo-02': { cost: 5, defaultDuration: 6 }
     };
 
@@ -669,10 +792,10 @@ export default function GenerateToolClient() {
         setToolCredits('5 credits / second');
       } else if (videoModel === 'veo-3-fast') {
         setDuration(8); // Automatically set duration to 8 seconds
-        setToolCredits('15 credits / second');
+        setToolCredits('20 credits / second');
       } else if (videoModel === 'veo-3') {
         setDuration(8); // Automatically set duration to 8 seconds
-        setToolCredits('25 credits / second');
+        setToolCredits('35 credits / second');
       } else {
         setToolCredits('2 credits / second');
       }
@@ -689,11 +812,11 @@ export default function GenerateToolClient() {
           case 'hailuo-02':
             return '5 credits / second';
           case 'wan-2.1-i2v-720p':
-            return '9 credits / second';
+            return '13 credits / second';
           case 'seedance-1-pro':
             return '4 credits / second';
           case 'luma-ray':
-            return '15 credits / second';
+            return '22 credits / second';
           default:
             return '4 credits / second';
         }
@@ -710,9 +833,9 @@ export default function GenerateToolClient() {
       const costMapping = {
         'kling-v2.1': { cost: 4, defaultDuration: 8 },
         'hailuo-02': { cost: 5, defaultDuration: 6 },
-        'wan-2.1-i2v-720p': { cost: 9, defaultDuration: 10 },
+        'wan-2.1-i2v-720p': { cost: 13, defaultDuration: 10 },
         'seedance-1-pro': { cost: 4, defaultDuration: 8 },
-        'luma-ray': { cost: 15, defaultDuration: 12 }
+        'luma-ray': { cost: 22, defaultDuration: 12 }
       };
       const modelData = costMapping[videoModel] || { cost: 4, defaultDuration: duration };
       const costPerSecond = modelData.cost;
@@ -727,9 +850,9 @@ export default function GenerateToolClient() {
       const costMapping = {
         'kling-v2.1': 4,
         'hailuo-02': 5,
-        'wan-2.1-i2v-720p': 9,
+        'wan-2.1-i2v-720p': 13,
         'seedance-1-pro': 4,
-        'luma-ray': 15
+        'luma-ray': 22
       };
       const costPerSecond = costMapping[videoModel] || 2; // Default cost per second
       setTotalGenVideoCost(costPerSecond * duration);
@@ -795,64 +918,165 @@ export default function GenerateToolClient() {
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundImage: 'url("/background-2.png")',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
         position: 'relative'
       }}>
+        {/* Background Video */}
+        <video
+          autoPlay
+          muted
+          loop
+          playsInline
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            zIndex: 0
+          }}
+        >
+          <source src="/background-video3.mp4" type="video/mp4" />
+        </video>
+        
         <div style={{
           position: 'absolute',
           top: 0, left: 0, right: 0, bottom: 0,
           background: 'rgba(0, 0, 0, 0.65)',
           zIndex: 1
         }} />
+        
+        {/* Professional Login Required Banner - Centered Grey Design */}
         <div style={{
-          background: '#fff',
-          borderRadius: 18,
-          boxShadow: '0 2px 18px rgba(30,30,40,0.10)',
-          padding: '48px 48px 42px 48px',
-          maxWidth: 480,
-          textAlign: 'center',
-          zIndex: 2,
-          position: 'relative'
+          position: 'fixed',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          background: '#ffffff',
+          color: '#000000',
+          border: '1px solid #e0e0e0',
+          borderRadius: '12px',
+          padding: '24px 28px',
+          zIndex: 10001,
+          width: '520px',
+          maxWidth: '90vw',
+          fontSize: '0.95rem',
+          fontWeight: '500',
+          boxShadow: '0 8px 24px rgba(0, 0, 0, 0.15)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '16px',
+          backdropFilter: 'blur(8px)'
         }}>
-          <h1 style={{ fontSize: '2.2rem', fontWeight: 800, marginBottom: 16, color: '#111' }}>
-            Login Required
-          </h1>
-          <p style={{ fontSize: '1.2rem', color: '#666', marginBottom: 32, lineHeight: 1.5 }}>
-            You need to be logged in to use the AI generation tools. Please log in to continue.
-          </p>
-          <div style={{ display: 'flex', gap: 16, justifyContent: 'center' }}>
-            <Button 
-              onClick={() => router.push('/login')}
-              style={{
-                fontSize: '1.1rem',
-                padding: '12px 24px',
-                borderRadius: 12,
-                background: '#0070f3',
-                color: '#fff',
-                fontWeight: 600,
-                border: 'none',
-                cursor: 'pointer'
-              }}
-            >
-              Login
-            </Button>
-            <Button 
-              onClick={() => router.push('/register')}
-              style={{
-                fontSize: '1.1rem',
-                padding: '12px 24px',
-                borderRadius: 12,
-                background: '#f3f4f6',
-                color: '#374151',
-                fontWeight: 600,
-                border: '1px solid #d1d5db',
-                cursor: 'pointer'
-              }}
-            >
-              Sign Up
-            </Button>
+          <div style={{
+            width: '20px',
+            height: '20px',
+            borderRadius: '50%',
+            background: '#000000',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'white',
+            fontSize: '12px',
+            fontWeight: 'bold',
+            flexShrink: 0
+          }}>
+            ℹ
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ 
+              fontWeight: '600', 
+              marginBottom: '6px',
+              fontSize: '1rem',
+              color: '#000000'
+            }}>
+              Login Required
+            </div>
+            <div style={{ 
+              opacity: 0.8,
+              fontSize: '0.87rem',
+              lineHeight: 1.4,
+              marginBottom: '16px',
+              color: '#333333'
+            }}>
+              Please log in to access the AI generation tools and start creating amazing content.
+            </div>
+            <div style={{
+              display: 'flex',
+              gap: '10px',
+              flexWrap: 'wrap'
+            }}>
+              <button
+                onClick={() => router.push('/login')}
+                style={{
+                  padding: '10px 20px',
+                  fontSize: '0.9rem',
+                  border: 'none',
+                  background: '#000000',
+                  color: '#ffffff',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontWeight: '600',
+                  transition: 'background 0.2s'
+                }}
+                onMouseOver={(e) => e.target.style.background = '#333333'}
+                onMouseOut={(e) => e.target.style.background = '#000000'}
+              >
+                Login
+              </button>
+              <button
+                onClick={() => router.push('/register')}
+                style={{
+                  padding: '10px 20px',
+                  fontSize: '0.9rem',
+                  border: '2px solid #cccccc',
+                  backgroundColor: '#ffffff',
+                  color: '#333333',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontWeight: '600',
+                  transition: 'all 0.2s'
+                }}
+                onMouseOver={(e) => {
+                  e.target.style.borderColor = '#999999';
+                  e.target.style.backgroundColor = '#f5f5f5';
+                }}
+                onMouseOut={(e) => {
+                  e.target.style.borderColor = '#cccccc';
+                  e.target.style.backgroundColor = '#ffffff';
+                }}
+              >
+                Sign Up
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        {/* Main content area dimmed when not logged in */}
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          minHeight: '60vh',
+          zIndex: 2,
+          position: 'relative',
+          opacity: 0.3,
+          pointerEvents: 'none'
+        }}>
+          <div style={{
+            background: 'rgba(255,255,255,0.1)',
+            borderRadius: '18px',
+            padding: '48px',
+            textAlign: 'center',
+            maxWidth: '480px'
+          }}>
+            <h2 style={{ color: 'white', fontSize: '1.5rem', marginBottom: '16px' }}>
+              AI Generation Tools
+            </h2>
+            <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: '1rem' }}>
+              Create amazing images and videos with our AI tools
+            </p>
           </div>
         </div>
       </main>
@@ -918,7 +1142,7 @@ export default function GenerateToolClient() {
           zIndex: 0,
           pointerEvents: 'none',
         }}
-        src="/background-video1.mp4"
+        src="/background-video3.mp4"
       />
       {/* Dark overlay */}
       <div style={{
@@ -1073,6 +1297,29 @@ export default function GenerateToolClient() {
             <label htmlFor="videoModel" style={{ fontWeight: 600, marginRight: 8 }}>Model:</label>
             <select id="videoModel" value={videoModel} onChange={e => setVideoModel(e.target.value)} style={{ padding: '7px 18px', borderRadius: 10, border: '1.5px solid #d1d5db', background: '#f3f4f6', color: '#222', fontWeight: 600, fontSize: '1.05rem', boxShadow: '0 1px 6px rgba(60,60,60,0.08)' }}>
               {text2videoModels.map(m => (
+                <option key={m.value} value={m.value}>{m.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
+        {(type === 'image2video') && (
+          <div style={{
+            marginBottom: 18,
+            background: '#fff',
+            borderRadius: 14,
+            boxShadow: '0 2px 12px rgba(30,30,40,0.10)',
+            padding: '18px 28px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 18,
+            fontSize: '1.08rem',
+            fontWeight: 600,
+            color: '#222',
+            border: '1.5px solid #e5e7eb'
+          }}>
+            <label htmlFor="videoModel" style={{ fontWeight: 600, marginRight: 8 }}>Model:</label>
+            <select id="videoModel" value={videoModel} onChange={e => setVideoModel(e.target.value)} style={{ padding: '7px 18px', borderRadius: 10, border: '1.5px solid #d1d5db', background: '#f3f4f6', color: '#222', fontWeight: 600, fontSize: '1.05rem', boxShadow: '0 1px 6px rgba(60,60,60,0.08)' }}>
+              {image2videoModels.map(m => (
                 <option key={m.value} value={m.value}>{m.name}</option>
               ))}
             </select>
@@ -1347,8 +1594,7 @@ export default function GenerateToolClient() {
         {loading && (
           <div style={{ marginBottom: 12, color: '#444', fontWeight: 600, fontSize: '1.08rem' }}>
             {(type === 'text2video' || type === 'genvideo' || type === 'image2video') ? (() => {
-              let totalEstimate = 5; // default 5 min for Hailuo 02
-              if (videoModel === 'veo-3-fast' || videoModel === 'veo-3') totalEstimate = 8;
+              const totalEstimate = getTimeEstimate();
               const left = Math.max(totalEstimate - loadingMinutes, 0);
               return `Generating video... (~${left} minute${left !== 1 ? 's' : ''} left)`;
             })() : 'Generating image...'}
@@ -1428,7 +1674,35 @@ export default function GenerateToolClient() {
         zIndex: 3,
         position: 'relative'
       }}>
-        {previewUrl ? (
+        {loading ? (
+          // Always show loading state when generating, regardless of previous results
+          <div style={{ color: '#888', fontSize: '1.1rem', textAlign: 'center', marginTop: 80 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20 }}>
+              {/* Loading Spinner */}
+              <div style={{
+                width: 60,
+                height: 60,
+                border: '4px solid #f3f3f3',
+                borderTop: '4px solid #ff3b3b',
+                borderRadius: '50%',
+                animation: 'spin 1s linear infinite'
+              }}></div>
+              <div style={{ fontSize: '1.2rem', fontWeight: 600, color: '#444' }}>
+                {type === 'genimage' ? 'Generating your image...' : 'Generating your video...'}
+              </div>
+              {type !== 'genimage' && (
+                <div style={{ fontSize: '0.9rem', color: '#666', textAlign: 'center', maxWidth: '300px' }}>
+                  {(() => {
+                    const totalEstimate = getTimeEstimate();
+                    const left = Math.max(totalEstimate - loadingMinutes, 0);
+                    return `Estimated time: ~${left} minute${left !== 1 ? 's' : ''} remaining`;
+                  })()}
+                </div>
+              )}
+            </div>
+          </div>
+        ) : previewUrl ? (
+          // Show result only when not loading and result exists
           <div>
             {(type === 'text2video' || type === 'genvideo') ? (
               <video src={previewUrl} controls style={{ maxWidth: '90%', maxHeight: '60vh', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.15)', marginBottom: 18 }} />
@@ -1438,30 +1712,9 @@ export default function GenerateToolClient() {
             <button onClick={handleDownload} style={{ display: 'inline-block', fontSize: '1.08rem', padding: '12px 32px', borderRadius: '8px', backgroundColor: '#1a1a1a', color: '#fff', fontWeight: 'bold', marginTop: 18, boxShadow: '0 2px 8px rgba(0,0,0,0.15)', border: 'none', cursor: 'pointer', letterSpacing: '1px', transition: 'background 0.2s' }}>Download</button>
           </div>
         ) : (
+          // Show placeholder when no result and not loading
           <div style={{ color: '#888', fontSize: '1.1rem', textAlign: 'center', marginTop: 80 }}>
-            {loading ? (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20 }}>
-                {/* Loading Spinner */}
-                <div style={{
-                  width: 60,
-                  height: 60,
-                  border: '4px solid #f3f3f3',
-                  borderTop: '4px solid #ff3b3b',
-                  borderRadius: '50%',
-                  animation: 'spin 1s linear infinite'
-                }}></div>
-                <div style={{ fontSize: '1.2rem', fontWeight: 600, color: '#444' }}>
-                  {type === 'genimage' ? 'Generating your image...' : 'Generating your video...'}
-                </div>
-                <div style={{ fontSize: '0.95rem', color: '#666' }}>
-                  {type === 'genimage' ? 'This usually takes 10-15 seconds' : 'This may take several minutes'}
-                </div>
-              </div>
-            ) : (
-              <div style={{ fontSize: '1.1rem', color: '#888' }}>
-                {type === 'genimage' ? 'Your image will appear here.' : 'Your video will appear here.'}
-              </div>
-            )}
+            Your generated content will appear here
           </div>
         )}
       </div>

@@ -3,6 +3,24 @@ import { useRouter } from "next/navigation";
 
 export default function SubscribePage() {
   const router = useRouter();
+
+  // Lemon Squeezy payment URLs for each plan
+  const paymentLinks = {
+    starter: "https://dreammotion.lemonsqueezy.com/buy/5b101f59-13a9-47aa-9362-82ce00812b74", // $4.99 plan
+    basic: "https://dreammotion.lemonsqueezy.com/buy/4cca6e4c-1fe0-4fdf-b336-f64b078acd10", // $9.99 plan
+    pro: "https://dreammotion.lemonsqueezy.com/buy/9ab4174d-9bb2-4a89-a363-909703d2ef1a", // $19.99 plan  
+    elite: "https://dreammotion.lemonsqueezy.com/buy/b9196e7d-2007-4a91-90bc-0551fd180e5c" // $49.99 plan
+  };
+
+  const handlePurchase = (planType) => {
+    const url = paymentLinks[planType];
+    if (url) {
+      window.open(url, '_blank');
+    } else {
+      alert('Payment link not configured for this plan yet.');
+    }
+  };
+
   return (
     <div style={{
       minHeight: '100vh',
@@ -128,6 +146,7 @@ export default function SubscribePage() {
             price: "$4.99",
             credits: "100 Credits",
             usage: "Estimated 2–8 generations",
+            type: "starter",
             features: [
               "✔ Access to basic tools",
               "✔ Standard resolution export",
@@ -139,6 +158,7 @@ export default function SubscribePage() {
             price: "$9.99",
             credits: "250 Credits",
             usage: "Estimated 6–20 generations",
+            type: "basic",
             features: [
               "✔ Unlock all image & video models",
               "✔ HD video generation",
@@ -150,6 +170,7 @@ export default function SubscribePage() {
             price: "$19.99",
             credits: "600 Credits",
             usage: "Estimated 15–50 generations",
+            type: "pro",
             features: [
               "✔ Includes all Basic features",
               "✔ High-resolution cinematic quality",
@@ -162,6 +183,7 @@ export default function SubscribePage() {
             price: "$49.99",
             credits: "2,000 Credits",
             usage: "Estimated 50–160 generations",
+            type: "elite",
             features: [
               "✔ Includes all Pro features",
               "✔ Maximum rendering speed",
@@ -196,16 +218,21 @@ export default function SubscribePage() {
                 </div>
               )}
             </div>
-            <button style={{
-              marginTop: 'auto',
-              background: 'black',
-              color: 'white',
-              padding: '10px 20px',
-              border: 'none',
-              borderRadius: '5px',
-              cursor: 'pointer',
-              alignSelf: 'stretch'
-            }}>Buy Now</button>
+            <button 
+              onClick={() => handlePurchase(plan.type)}
+              style={{
+                marginTop: 'auto',
+                background: 'black',
+                color: 'white',
+                padding: '10px 20px',
+                border: 'none',
+                borderRadius: '5px',
+                cursor: 'pointer',
+                alignSelf: 'stretch'
+              }}
+            >
+              Buy Now
+            </button>
           </div>
         ))}
       </div>
@@ -225,7 +252,7 @@ export default function SubscribePage() {
           zIndex: 0,
           pointerEvents: 'none',
         }}
-        src="/background-video1.mp4"
+        src="/background-video3.mp4"
       />
       {/* Dark overlay */}
       <div style={{

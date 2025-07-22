@@ -53,7 +53,7 @@ export default function FAQ() {
           zIndex: 0,
           pointerEvents: 'none',
         }}
-        src="/background-video2.mp4"
+        src="/background-video3.mp4"
       />
       <div style={{
         zIndex: 3,

@@ -38,7 +38,7 @@ export default function PrivacyPolicyPage() {
           zIndex: 0,
           pointerEvents: 'none',
         }}
-        src="/background-video2.mp4"
+        src="/background-video3.mp4"
       />
 
       {/* Back Button */}

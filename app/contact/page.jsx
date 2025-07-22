@@ -34,7 +34,7 @@ export default function ContactSupportPage() {
           pointerEvents: 'none',
           opacity: 0.7 // Added opacity to the background video
         }}
-        src="/background-video1.mp4"
+        src="/background-video3.mp4"
       />
 
       {/* Dark overlay */}

@@ -394,11 +394,11 @@ export async function POST(req) {
       const costMapping = {
         'kling-v2.1': 4,
         'hailuo-02': 5,
-        'wan-2.1-i2v-720p': 9,
+        'wan-2.1-i2v-720p': 13,
         'seedance-1-pro': 4,
-        'luma-ray': 15,
-        'veo-3-fast': 15,
-        'veo-3': 25
+        'luma-ray': 22,
+        'veo-3-fast': 20,
+        'veo-3': 35
       };
       const costPerSecond = costMapping[video_model] || 2;
       
