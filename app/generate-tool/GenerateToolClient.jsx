@@ -183,15 +183,23 @@ export default function GenerateToolClient() {
   const [prompt, setPrompt] = useState('');
   const [file, setFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState('');
+  const [imagePreviewUrl, setImagePreviewUrl] = useState(''); // For input image preview
   const [loading, setLoading] = useState(false);
   const [loadingMinutes, setLoadingMinutes] = useState(0);
   const [timerInterval, setTimerInterval] = useState(null);
   const [generationTime, setGenerationTime] = useState(null);
   const [generationTimeString, setGenerationTimeString] = useState('');
-  
+  const [contentWarning, setContentWarning] = useState('');
+  const [blockedWords, setBlockedWords] = useState([]);
+  const [isContentBlocked, setIsContentBlocked] = useState(false);
   useEffect(() => {
     if (typeParam && typeParam !== type) setType(typeParam);
   }, [typeParam]);
+
+  // Clear preview when type changes
+  useEffect(() => {
+    setPreviewUrl('');
+  }, [type]);
 
   // Initialize duration when type changes to text2video
   useEffect(() => {
@@ -199,7 +207,9 @@ export default function GenerateToolClient() {
       if (videoModel === 'veo-3-fast' || videoModel === 'veo-3') {
         setDuration(8); // Set to 8 seconds for Veo models
       } else if (videoModel === 'hailuo-02') {
-        setDuration(5); // Set to 5 seconds for Hailuo-02
+        setDuration(6); // Set to 6 seconds for Hailuo-02 (API only accepts 6,10)
+      } else if (videoModel === 'luma-ray') {
+        setDuration(6); // Set to 6 seconds for Luma Ray (API accepts 6,10)
       }
     } else if (type === 'genvideo') {
       setDuration(5); // Default for genvideo, will be updated by model-specific useEffect
@@ -213,12 +223,12 @@ export default function GenerateToolClient() {
     if (type === 'image2video') {
       // For image2video, use models that support image input
       // Default to kling-v2.1 as it has good image preservation
-      if (!['kling-v2.1', 'luma-ray', 'wan-2.1-i2v-720p', 'seedance-1-pro', 'hailuo-02'].includes(videoModel)) {
+      if (!['kling-v2.1', 'wan-2.1-i2v-720p', 'seedance-1-pro', 'hailuo-02'].includes(videoModel)) {
         setVideoModel('kling-v2.1');
       }
     } else if (type === 'text2video') {
       // For text2video, use models that support text-only input
-      if (!['veo-3-fast', 'veo-3', 'hailuo-02'].includes(videoModel)) {
+      if (!['veo-3-fast', 'veo-3', 'hailuo-02', 'luma-ray'].includes(videoModel)) {
         setVideoModel('veo-3-fast');
       }
     }
@@ -232,6 +242,121 @@ export default function GenerateToolClient() {
       }
     };
   }, [timerInterval]);
+
+  // Cleanup preview URL on component unmount
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+      if (imagePreviewUrl) {
+        URL.revokeObjectURL(imagePreviewUrl);
+      }
+    };
+  }, [previewUrl, imagePreviewUrl]);
+
+  // Content filtering system - automatic word replacement
+  const wordReplacements = {
+    // Explicit content replacements
+    'nude': 'artistic figure',
+    'naked': 'unclothed artistic form',
+    'bikini': 'swimwear',
+    'lingerie': 'undergarments',
+    'underwear': 'undergarments',
+    'topless': 'bare-chested',
+    'explicit': 'mature',
+    'sexual': 'romantic',
+    'erotic': 'sensual',
+    'porn': 'adult content',
+    'adult': 'mature',
+    
+    // Violence replacements
+    'violence': 'conflict',
+    'blood': 'red liquid',
+    'gore': 'graphic content',
+    'kill': 'defeat',
+    'murder': 'eliminate',
+    'death': 'ending',
+    'weapon': 'tool',
+    'gun': 'device',
+    'knife': 'blade',
+    'bomb': 'explosive device',
+    'terrorist': 'antagonist',
+    
+    // Gambling replacements
+    'casino': 'gaming establishment',
+    'gambling': 'gaming',
+    'poker': 'card game',
+    'blackjack': 'card game',
+    'slot machine': 'gaming machine',
+    'betting': 'wagering',
+    'lottery': 'draw game',
+    
+    // Drugs replacements
+    'drugs': 'substances',
+    'cocaine': 'powder',
+    'heroin': 'substance',
+    'marijuana': 'plant',
+    'weed': 'plant',
+    'cannabis': 'herb',
+    'smoking': 'using',
+    'cigarette': 'stick',
+    
+    // Hate speech replacements
+    'hate': 'dislike',
+    'racist': 'prejudiced',
+    'nazi': 'extremist',
+    'discrimination': 'bias',
+    
+    // Other inappropriate replacements
+    'prostitute': 'worker',
+    'escort': 'companion',
+    'brothel': 'establishment'
+  };
+
+  const replaceBlockedWords = (text) => {
+    if (!text) return text;
+    
+    let replacedText = text;
+    let replacedWords = [];
+    
+    // Case-insensitive replacement
+    Object.entries(wordReplacements).forEach(([blocked, replacement]) => {
+      const regex = new RegExp(`\\b${blocked}\\b`, 'gi');
+      if (regex.test(replacedText)) {
+        replacedWords.push(blocked);
+        replacedText = replacedText.replace(regex, replacement);
+      }
+    });
+    
+    return { text: replacedText, replacedWords };
+  };
+
+  const checkAndReplaceContent = (text) => {
+    if (!text) {
+      setContentWarning('');
+      setBlockedWords([]);
+      setIsContentBlocked(false);
+      return;
+    }
+
+    const result = replaceBlockedWords(text);
+    
+    if (result.replacedWords.length > 0) {
+      setBlockedWords(result.replacedWords);
+      setIsContentBlocked(false); // Don't block, just inform
+      setContentWarning(`Auto-replaced words: ${result.replacedWords.join(', ')} → will be sent as safer alternatives`);
+    } else {
+      setBlockedWords([]);
+      setIsContentBlocked(false);
+      setContentWarning('');
+    }
+  };
+
+  // Check content when prompt changes
+  useEffect(() => {
+    checkAndReplaceContent(prompt);
+  }, [prompt]);
 
   // Calculate credit cost for current generation
   const calculateCreditCost = () => {
@@ -266,7 +391,6 @@ export default function GenerateToolClient() {
     } else if (type === "image2video") {
       const timeMapping = {
         'kling-v2.1': 3,             // Fast model - 3 minutes
-        'luma-ray': 4,               // Medium model - 4 minutes  
         'wan-2.1-i2v-720p': 5,       // Complex model - 5 minutes
         'seedance-1-pro': 4,         // Medium model - 4 minutes
         'hailuo-02': 4               // Medium complexity - 4 minutes
@@ -280,6 +404,83 @@ export default function GenerateToolClient() {
   };
 
   const hasEnoughCredits = credits !== null && credits >= calculateCreditCost();
+
+  // Function to detect image aspect ratio and find the closest supported ratio
+  const detectImageAspectRatio = (file, supportedRatios) => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      
+      img.onload = () => {
+        const width = img.naturalWidth;
+        const height = img.naturalHeight;
+        const detectedRatio = width / height;
+        
+        console.log(`🔍 Image dimensions: ${width}x${height}, ratio: ${detectedRatio.toFixed(3)}`);
+        
+        // Common aspect ratios and their decimal values
+        const aspectRatioMap = {
+          '1:1': 1.0,
+          '4:3': 1.333,
+          '3:4': 0.75,
+          '16:9': 1.778,
+          '9:16': 0.563,
+          '21:9': 2.333,
+          '9:21': 0.429,
+          '4:5': 0.8,
+          '5:4': 1.25,
+          '2:3': 0.667,
+          '3:2': 1.5,
+          '2:5': 0.4,
+          '5:2': 2.5,
+          '9:2': 4.5
+        };
+        
+        // Find the closest supported aspect ratio
+        let closestRatio = supportedRatios[0]; // Default to first supported
+        let smallestDifference = Infinity;
+        
+        supportedRatios.forEach(ratio => {
+          const targetValue = aspectRatioMap[ratio];
+          if (targetValue) {
+            const difference = Math.abs(detectedRatio - targetValue);
+            if (difference < smallestDifference) {
+              smallestDifference = difference;
+              closestRatio = ratio;
+            }
+          }
+        });
+        
+        console.log(`✅ Auto-detected aspect ratio: ${closestRatio} (closest to ${detectedRatio.toFixed(3)})`);
+        URL.revokeObjectURL(url);
+        resolve(closestRatio);
+      };
+      
+      img.onerror = () => {
+        console.error('❌ Failed to load image for aspect ratio detection');
+        URL.revokeObjectURL(url);
+        resolve(supportedRatios[0]); // Fallback to first supported ratio
+      };
+      
+      img.src = url;
+    });
+  };
+
+  // Get supported aspect ratios for current model
+  const getSupportedAspectRatios = (modelName) => {
+    const modelAspectRatios = {
+      'luma-ray': ['1:1', '3:4', '4:3', '9:16', '16:9', '9:21', '21:9'], // Based on exact API schema
+      'kling-v2.1': ['16:9', '9:16', '1:1'], // Exactly as you specified
+      'wan-2.1-i2v-720p': ['16:9', '9:16', '1:1'], // Exactly as you specified
+      'seedance-1-pro': ['16:9'], // Seedance Pro ignores aspect_ratio for images (uses image natural ratio)
+      'hailuo-02': ['16:9'], // Hailuo-02 uses image natural ratio for image2video
+      // Text2video models (for completeness)
+      'veo-3-fast': ['16:9'],
+      'veo-3': ['16:9'],
+    };
+    
+    return modelAspectRatios[modelName] || ['16:9', '1:1']; // Default fallback
+  };
 
   // Timer management functions
   const startTimer = () => {
@@ -300,6 +501,7 @@ export default function GenerateToolClient() {
 
   const handleGenerate = async () => {
     setError("");
+    
     setLoading(true);
     setGenerationTime(Date.now());
     startTimer(); // Start the countdown timer
@@ -320,13 +522,37 @@ export default function GenerateToolClient() {
         // Create FormData for image upload
         const formData = new FormData();
         formData.append("file", file);
-        // For image2video, use minimal prompt to focus on the image
-        formData.append("prompt", prompt || "animate this image smoothly, keeping the original content and style");
-        formData.append("type", "genvideo"); // Use genvideo type for image-to-video
-        formData.append("video_model", videoModel || "hailuo-02");
+        
+        // For image2video, use minimal prompt to focus on the image with word replacement
+        let basePrompt = prompt || "animate this image smoothly, keeping the original content and style";
+        
+        // Model-specific prompt optimization for better image preservation
+        if (videoModel === 'seedance-1-pro') {
+          // Seedance Pro needs very minimal prompts to preserve image content
+          // Also ensure duration is 5 or 10 (schema constraint)
+          basePrompt = prompt || "animate smoothly";
+          console.log('🔧 Using ultra-minimal prompt for Seedance Pro image preservation');
+        } else if (videoModel === 'wan-2.1-i2v-720p') {
+          // WAN-2.1 works well with standard prompt
+          basePrompt = prompt || "animate this image smoothly, keeping the original content and style";
+          console.log('🔧 Using standard prompt for WAN-2.1 (proven to work well)');
+        } else if (videoModel === 'hailuo-02') {
+          // Hailuo-02 for image2video should focus on preserving the image
+          basePrompt = prompt || "smooth animation, preserve original image";
+          console.log('🔧 Using image-focused prompt for Hailuo-02 image2video');
+        }
+        
+        const safePrompt = replaceBlockedWords(basePrompt).text;
+        formData.append("prompt", safePrompt);
+        formData.append("type", "genvideo"); // Use genvideo type for image-to-video processing
+        formData.append("video_model", videoModel || "kling-v2.1");
         formData.append("duration", duration || 5);
+        
+        // Use the auto-detected aspect ratio
         formData.append("aspect_ratio", aspectRatio);
-        // Add image_strength parameter to prioritize image over prompt
+        console.log(`🔧 Image2Video: Using auto-detected aspect ratio ${aspectRatio} for ${videoModel}`);
+        
+        // Add image_strength parameter to prioritize image over prompt (will be handled per-model in backend)
         formData.append("image_strength", "0.95"); // High image strength for image focus
 
         const response = await fetch('/api/generate-image', {
@@ -368,7 +594,7 @@ export default function GenerateToolClient() {
             'Authorization': `Bearer ${session.access_token}`
           },
           body: JSON.stringify({
-            prompt: prompt,
+            prompt: replaceBlockedWords(prompt).text,
             aspect_ratio: aspectRatio,
             type: 'genimage'
           })
@@ -453,7 +679,7 @@ export default function GenerateToolClient() {
         } else {
           // Use FormData for genvideo (file upload needed)
           const formData = new FormData();
-          formData.append("prompt", prompt);
+          formData.append("prompt", replaceBlockedWords(prompt).text);
           formData.append("aspect_ratio", aspectRatio);
           formData.append("type", type);
           formData.append("video_model", videoModel);
@@ -566,17 +792,16 @@ export default function GenerateToolClient() {
     { value: 'kling-v2.1', name: 'Kling v2.1' },
     { value: 'hailuo-02', name: 'Hailuo‑02' },
     { value: 'wan-2.1-i2v-720p', name: 'WAN‑2.1‑i2v‑720p' },
-    { value: 'seedance-1-pro', name: 'Seedance‑1‑Pro' },
-    { value: 'luma-ray', name: 'Luma / Ray' }
+    { value: 'seedance-1-pro', name: 'Seedance‑1‑Pro' }
   ]);
   const [text2videoModels] = useState([
     { value: 'veo-3-fast', name: 'Veo 3 Fast' },
     { value: 'veo-3', name: 'Veo 3' },
-    { value: 'hailuo-02', name: 'Hailuo 02' }
+    { value: 'hailuo-02', name: 'Hailuo 02' },
+    { value: 'luma-ray', name: 'Luma / Ray' }
   ]);
   const [image2videoModels] = useState([
     { value: 'kling-v2.1', name: 'Kling v2.1' },
-    { value: 'luma-ray', name: 'Luma / Ray' },
     { value: 'wan-2.1-i2v-720p', name: 'WAN‑2.1‑i2v‑720p' },
     { value: 'seedance-1-pro', name: 'Seedance‑1‑Pro' },
     { value: 'hailuo-02', name: 'Hailuo‑02' }
@@ -589,7 +814,6 @@ export default function GenerateToolClient() {
       case 'hailuo-02': return '5 credits / second';
       case 'wan-2.1-i2v-720p': return '13 credits / second';
       case 'seedance-1-pro': return '4 credits / second';
-      case 'luma-ray': return '22 credits / second';
       default: return '2 credits / second';
     }
   }
@@ -598,8 +822,7 @@ export default function GenerateToolClient() {
       'kling-v2.1': { cost: 4, defaultDuration: 8 },
       'hailuo-02': { cost: 5, defaultDuration: 6 },
       'wan-2.1-i2v-720p': { cost: 13, defaultDuration: 10 },
-      'seedance-1-pro': { cost: 4, defaultDuration: 8 },
-      'luma-ray': { cost: 22, defaultDuration: 12 }
+      'seedance-1-pro': { cost: 4, defaultDuration: 8 }
     };
     const modelData = costMapping[model] || { cost: 2, defaultDuration: durationVal };
     const costPerSecond = modelData.cost;
@@ -675,7 +898,6 @@ export default function GenerateToolClient() {
       else setToolCredits('2 credits / second');
     } else if (type === 'image2video') {
       if (videoModel === 'kling-v2.1') setToolCredits('4 credits / second');
-      else if (videoModel === 'luma-ray') setToolCredits('22 credits / second');
       else if (videoModel === 'wan-2.1-i2v-720p') setToolCredits('13 credits / second');
       else if (videoModel === 'seedance-1-pro') setToolCredits('4 credits / second');
       else if (videoModel === 'hailuo-02') setToolCredits('5 credits / second');
@@ -684,17 +906,47 @@ export default function GenerateToolClient() {
       if (videoModel === 'veo-3-fast') setToolCredits('20 credits / second');
       else if (videoModel === 'veo-3') setToolCredits('35 credits / second');
       else if (videoModel === 'hailuo-02') setToolCredits('5 credits / second');
+      else if (videoModel === 'luma-ray') setToolCredits('22 credits / second');
       else setToolCredits('2 credits / second');
     }
   }, [type, videoModel]);
 
-  // Reset aspect ratio when switching to text2video models (all only support 16:9)
+  // Reset aspect ratio when switching to text2video models (most only support 16:9)
   useEffect(() => {
     if (type === 'text2video') {
-      // All text2video models only support 16:9
-      setAspectRatio('16:9');
+      // Most text2video models only support 16:9, except Luma Ray which uses 1:1
+      if (videoModel === 'luma-ray') {
+        setAspectRatio('1:1');
+      } else {
+        // All other text2video models (veo-3, veo-3-fast, hailuo-02) use 16:9
+        setAspectRatio('16:9');
+      }
     }
   }, [type, videoModel]);
+
+  // Initialize aspect ratio based on type after component is ready
+  useEffect(() => {
+    // Only run this initialization if we haven't already set a specific aspect ratio
+    const timer = setTimeout(() => {
+      if (type === 'image2video' && videoModel === 'kling-v2.1' && aspectRatio === '1:1') {
+        setAspectRatio('16:9');
+      }
+    }, 100); // Small delay to ensure state is initialized
+    
+    return () => clearTimeout(timer);
+  }, []); // Run once on mount
+
+  // Auto-detect aspect ratio when image is uploaded for image2video
+  useEffect(() => {
+    if ((type === 'image2video' || type === 'genvideo') && file && file instanceof File) {
+      const supportedRatios = getSupportedAspectRatios(videoModel);
+      
+      detectImageAspectRatio(file, supportedRatios).then((detectedRatio) => {
+        console.log(`🎯 Auto-setting aspect ratio to ${detectedRatio} for ${videoModel}`);
+        setAspectRatio(detectedRatio);
+      });
+    }
+  }, [file, videoModel, type]); // Re-run when file, model, or type changes
 
   // Set initial toolCredits based on default videoModel and type
   // Remove incorrect initial credits effect for kling-v2.1
@@ -702,9 +954,14 @@ export default function GenerateToolClient() {
 
   // Function to get correct aspect options based on type and model
   const getAspectOptions = (currentType, currentVideoModel) => {
-    if (currentType === 'text2video' && currentVideoModel === 'hailuo-02') {
-      // For text2video with Hailuo-02, only 16:9 is supported
-      return [{ value: '16:9', label: '16:9' }];
+    if (currentType === 'text2video') {
+      if (currentVideoModel === 'luma-ray') {
+        // Luma Ray shows only 1:1 option (fixed aspect ratio)
+        return [{ value: '1:1', label: '1:1' }];
+      } else {
+        // All other text2video models (veo-3, veo-3-fast, hailuo-02) show only 16:9
+        return [{ value: '16:9', label: '16:9' }];
+      }
     }
     // For genvideo or other cases, use the regular options
     return aspectOptions[currentVideoModel] || [{ value: '16:9', label: '16:9' }];
@@ -712,11 +969,7 @@ export default function GenerateToolClient() {
 
   const aspectOptions = {
     'hailuo-02': [
-      { value: '1:1', label: '1:1' },
-      { value: '3:4', label: '3:4' },
-      { value: '4:3', label: '4:3' },
-      { value: '16:9', label: '16:9' },
-      { value: '9:16', label: '9:16' }
+      { value: '16:9', label: '16:9 (auto from image)' }
     ],
     'kling-v2.1': [
       { value: '16:9', label: '16:9' },
@@ -729,29 +982,22 @@ export default function GenerateToolClient() {
       { value: '1:1', label: '1:1' }
     ],
     'seedance-1-pro': [
-      { value: '21:9', label: '21:9' },
-      { value: '16:9', label: '16:9' },
-      { value: '4:3', label: '4:3' },
-      { value: '1:1', label: '1:1' },
-      { value: '3:4', label: '3:4' },
-      { value: '9:16', label: '9:16' }
+      { value: '16:9', label: '16:9 (auto from image)' }
     ],
     'luma-ray': [
-      { value: '16:9', label: '16:9' },
-      { value: '9:16', label: '9:16' },
-      { value: '4:3', label: '4:3' },
+      { value: '1:1', label: '1:1' },
       { value: '3:4', label: '3:4' },
-      { value: '21:9', label: '21:9' },
-      { value: '9:21', label: '9:21' }
+      { value: '4:3', label: '4:3' },
+      { value: '9:16', label: '9:16' },
+      { value: '16:9', label: '16:9' },
+      { value: '9:21', label: '9:21' },
+      { value: '21:9', label: '21:9' }
     ],
     // text2video models
     'veo-3-fast': [
       { value: '16:9', label: '16:9' }
     ],
     'veo-3': [
-      { value: '16:9', label: '16:9' }
-    ],
-    'hailuo-02': [
       { value: '16:9', label: '16:9' }
     ]
   };
@@ -762,7 +1008,8 @@ export default function GenerateToolClient() {
     const costMapping = {
       'veo-3-fast': { cost: 20, defaultDuration: 8 },
       'veo-3': { cost: 35, defaultDuration: 8 },
-      'hailuo-02': { cost: 5, defaultDuration: 6 }
+      'hailuo-02': { cost: 5, defaultDuration: 6 },
+      'luma-ray': { cost: 22, defaultDuration: 6 }
     };
 
     const modelData = costMapping[videoModel] || { cost: 2, defaultDuration: duration };
@@ -788,7 +1035,6 @@ export default function GenerateToolClient() {
   useEffect(() => {
     if (type === 'text2video') {
       if (videoModel === 'hailuo-02') {
-        setDuration(5); // Automatically set duration to 5 seconds
         setToolCredits('5 credits / second');
       } else if (videoModel === 'veo-3-fast') {
         setDuration(8); // Automatically set duration to 8 seconds
@@ -796,6 +1042,8 @@ export default function GenerateToolClient() {
       } else if (videoModel === 'veo-3') {
         setDuration(8); // Automatically set duration to 8 seconds
         setToolCredits('35 credits / second');
+      } else if (videoModel === 'luma-ray') {
+        setToolCredits('22 credits / second');
       } else {
         setToolCredits('2 credits / second');
       }
@@ -835,7 +1083,7 @@ export default function GenerateToolClient() {
         'hailuo-02': { cost: 5, defaultDuration: 6 },
         'wan-2.1-i2v-720p': { cost: 13, defaultDuration: 10 },
         'seedance-1-pro': { cost: 4, defaultDuration: 8 },
-        'luma-ray': { cost: 22, defaultDuration: 12 }
+        'luma-ray': { cost: 22, defaultDuration: 6 }
       };
       const modelData = costMapping[videoModel] || { cost: 4, defaultDuration: duration };
       const costPerSecond = modelData.cost;
@@ -863,11 +1111,11 @@ export default function GenerateToolClient() {
   useEffect(() => {
     if (type === 'genvideo') {
       const defaultDurations = {
-        'hailuo-02': 5,
+        'hailuo-02': 6,
         'kling-v2.1': 5,
         'wan-2.1-i2v-720p': 5,
         'seedance-1-pro': 5,
-        'luma-ray': 5
+        'luma-ray': 6
       };
       const defaultDuration = defaultDurations[videoModel] || 5; // Default to 5 seconds if not specified
       setDuration(defaultDuration);
@@ -1279,6 +1527,36 @@ export default function GenerateToolClient() {
             </select>
           </div>
         )}
+        {(type === 'genvideo' && videoModel === 'luma-ray') && (
+          <div style={{ marginBottom: 18 }}>
+            <label htmlFor="duration" style={{ fontWeight: 600, fontSize: '1rem', marginBottom: 6, display: 'block' }}>Duration (seconds)</label>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {[6, 10].map(val => (
+                <button
+                  key={val}
+                  type="button"
+                  onClick={() => setDuration(val)}
+                  style={{
+                    padding: '7px 18px',
+                    borderRadius: 18,
+                    border: duration === val ? '2px solid #ff3b3b' : '2px solid #eee',
+                    background: duration === val ? 'linear-gradient(90deg,#ffb347 0%,#ff3b3b 100%)' : '#f7f7f7',
+                    color: duration === val ? '#fff' : '#222',
+                    fontWeight: 600,
+                    fontSize: '0.98rem',
+                    cursor: 'pointer',
+                    boxShadow: duration === val ? '0 2px 8px rgba(255,59,59,0.10)' : 'none',
+                    transition: 'all 0.2s',
+                    outline: 'none',
+                    borderBottom: duration === val ? '3px solid #ff3b3b' : 'none',
+                  }}
+                >
+                  {val}s
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
         {(type === 'text2video') && (
           <div style={{
             marginBottom: 18,
@@ -1366,8 +1644,8 @@ export default function GenerateToolClient() {
                   height: '120px',
                   padding: '12px 16px',
                   borderRadius: 10,
-                  border: '1.5px solid #d1d5db',
-                  background: '#f3f4f6',
+                  border: blockedWords.length > 0 ? '2px solid #22c55e' : '1.5px solid #d1d5db',
+                  background: blockedWords.length > 0 ? '#f0fdf4' : '#f3f4f6',
                   color: '#222',
                   fontWeight: 500,
                   fontSize: '0.9rem',
@@ -1376,6 +1654,27 @@ export default function GenerateToolClient() {
                   outline: 'none'
                 }}
               />
+              {/* Content Warning */}
+              {contentWarning && (
+                <div style={{
+                  marginTop: 12,
+                  padding: '10px 14px',
+                  backgroundColor: '#f0fdf4',
+                  border: '1px solid #22c55e',
+                  borderRadius: 8,
+                  fontSize: '0.9rem',
+                  color: '#16a34a',
+                  fontWeight: 500,
+                  width: '90%'
+                }}>
+                  ✅ {contentWarning}
+                  {blockedWords.length > 0 && (
+                    <div style={{ marginTop: 6, fontSize: '0.85rem', fontWeight: 'normal' }}>
+                      These words will be automatically replaced with safer alternatives.
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -1425,11 +1724,64 @@ export default function GenerateToolClient() {
             </div>
           </div>
         )}
+        {(type === 'text2video') && videoModel === 'luma-ray' && (
+          <div style={{
+            marginBottom: 18,
+            background: '#fff',
+            borderRadius: 14,
+            boxShadow: '0 2px 12px rgba(30,30,40,0.10)',
+            padding: '18px 28px',
+            fontSize: '1.08rem',
+            fontWeight: 600,
+            color: '#222',
+            border: '1.5px solid #e5e7eb'
+          }}>
+            <label style={{ fontWeight: 600, marginRight: 8 }}>Aspect Ratio:</label>
+            <div style={{ display: 'flex', gap: 12, marginTop: 0 }}>
+              {getAspectOptions(type, videoModel).map(opt => (
+                <label key={opt.value} style={{ display: 'flex', alignItems: 'center', gap: 4, fontWeight: 500 }}>
+                  <input type="radio" name="aspectRatio" value={opt.value} checked={aspectRatio === opt.value} onChange={() => setAspectRatio(opt.value)} style={{ accentColor: '#6366f1', marginRight: 4 }} />
+                  {opt.label}
+                </label>
+              ))}
+            </div>
+          </div>
+        )}
         {(type === 'text2video') && videoModel === 'hailuo-02' && (
           <div style={{ marginBottom: 18 }}>
             <label htmlFor="duration" style={{ fontWeight: 600, fontSize: '1rem', marginBottom: 6, display: 'block' }}>Duration (seconds)</label>
             <div style={{ display: 'flex', gap: 8 }}>
-              {[5, 10].map(val => (
+              {[6, 10].map(val => (
+                <button
+                  key={val}
+                  type="button"
+                  onClick={() => setDuration(val)}
+                  style={{
+                    padding: '7px 18px',
+                    borderRadius: 18,
+                    border: duration === val ? '2px solid #ff3b3b' : '2px solid #eee',
+                    background: duration === val ? 'linear-gradient(90deg,#ffb347 0%,#ff3b3b 100%)' : '#f7f7f7',
+                    color: duration === val ? '#fff' : '#222',
+                    fontWeight: 600,
+                    fontSize: '0.98rem',
+                    cursor: 'pointer',
+                    boxShadow: duration === val ? '0 2px 8px rgba(255,59,59,0.10)' : 'none',
+                    transition: 'all 0.2s',
+                    outline: 'none',
+                    borderBottom: duration === val ? '3px solid #ff3b3b' : 'none',
+                  }}
+                >
+                  {val}s
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+        {(type === 'text2video') && videoModel === 'luma-ray' && (
+          <div style={{ marginBottom: 18 }}>
+            <label htmlFor="duration" style={{ fontWeight: 600, fontSize: '1rem', marginBottom: 6, display: 'block' }}>Duration (seconds)</label>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {[6, 10].map(val => (
                 <button
                   key={val}
                   type="button"
@@ -1488,15 +1840,14 @@ export default function GenerateToolClient() {
             </p>
           </div>
         )}
-        {(type === 'genvideo') && (videoModel === 'hailuo-02' || videoModel === 'kling-v2.1' || videoModel === 'wan-2.1-i2v-720p' || videoModel === 'seedance-1-pro' || videoModel === 'luma-ray') && (
+        {(type === 'genvideo') && (videoModel === 'hailuo-02' || videoModel === 'kling-v2.1' || videoModel === 'wan-2.1-i2v-720p' || videoModel === 'seedance-1-pro') && (
           <div style={{ marginBottom: 18 }}>
             <label htmlFor="duration" style={{ fontWeight: 600, fontSize: '1rem', marginBottom: 6, display: 'block' }}>Duration (seconds)</label>
             <div style={{ display: 'flex', gap: 8 }}>
-              {(videoModel === 'hailuo-02' ? [5, 10] :
+              {(videoModel === 'hailuo-02' ? [6, 10] :
                 videoModel === 'kling-v2.1' ? [5, 10] :
                 videoModel === 'wan-2.1-i2v-720p' ? [5, 10] :
                 videoModel === 'seedance-1-pro' ? [5, 10] :
-                videoModel === 'luma-ray' ? [5, 10] :
                 []
               ).map(val => (
                 <button 
@@ -1532,9 +1883,37 @@ export default function GenerateToolClient() {
               value={prompt}
               onChange={e => setPrompt(e.target.value)}
               rows={3}
-              style={{ width: '100%', marginTop: 6, padding: 10, borderRadius: 8, border: '1px solid #ccc', fontSize: '1rem' }}
+              style={{ 
+                width: '100%', 
+                marginTop: 6, 
+                padding: 10, 
+                borderRadius: 8, 
+                border: blockedWords.length > 0 ? '2px solid #22c55e' : '1px solid #ccc', 
+                fontSize: '1rem',
+                backgroundColor: blockedWords.length > 0 ? '#f0fdf4' : 'white'
+              }}
               placeholder="Describe your scene or image..."
             />
+            {/* Content Warning */}
+            {contentWarning && (
+              <div style={{
+                marginTop: 8,
+                padding: '10px 14px',
+                backgroundColor: '#f0fdf4',
+                border: '1px solid #22c55e',
+                borderRadius: 8,
+                fontSize: '0.9rem',
+                color: '#16a34a',
+                fontWeight: 500
+              }}>
+                ✅ {contentWarning}
+                {blockedWords.length > 0 && (
+                  <div style={{ marginTop: 6, fontSize: '0.85rem', fontWeight: 'normal' }}>
+                    These words will be automatically replaced with safer alternatives.
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
         {type === 'genvideo' && (
@@ -1545,9 +1924,37 @@ export default function GenerateToolClient() {
               value={prompt}
               onChange={e => setPrompt(e.target.value)}
               rows={3}
-              style={{ width: '100%', marginTop: 6, padding: 10, borderRadius: 8, border: '1px solid #ccc', fontSize: '1rem' }}
+              style={{ 
+                width: '100%', 
+                marginTop: 6, 
+                padding: 10, 
+                borderRadius: 8, 
+                border: blockedWords.length > 0 ? '2px solid #22c55e' : '1px solid #ccc', 
+                fontSize: '1rem',
+                backgroundColor: blockedWords.length > 0 ? '#f0fdf4' : 'white'
+              }}
               placeholder="Describe your scene or image..."
             />
+            {/* Content Warning */}
+            {contentWarning && (
+              <div style={{
+                marginTop: 8,
+                padding: '10px 14px',
+                backgroundColor: '#f0fdf4',
+                border: '1px solid #22c55e',
+                borderRadius: 8,
+                fontSize: '0.9rem',
+                color: '#16a34a',
+                fontWeight: 500
+              }}>
+                ✅ {contentWarning}
+                {blockedWords.length > 0 && (
+                  <div style={{ marginTop: 6, fontSize: '0.85rem', fontWeight: 'normal' }}>
+                    These words will be automatically replaced with safer alternatives.
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
         {type === 'genvideo' && (
@@ -1556,9 +1963,69 @@ export default function GenerateToolClient() {
             <input
               type="file"
               id="file"
-              onChange={e => setFile(e.target.files[0])}
+              accept="image/*"
+              onChange={e => {
+                const selectedFile = e.target.files[0];
+                setFile(selectedFile);
+                // Clear any previous generation result when uploading new file
+                setPreviewUrl('');
+                if (selectedFile) {
+                  // Clean up previous preview URL
+                  if (imagePreviewUrl) {
+                    URL.revokeObjectURL(imagePreviewUrl);
+                  }
+                  // Create new preview URL
+                  const newPreviewUrl = URL.createObjectURL(selectedFile);
+                  setImagePreviewUrl(newPreviewUrl);
+                } else {
+                  // Clean up preview URL if no file selected
+                  if (imagePreviewUrl) {
+                    URL.revokeObjectURL(imagePreviewUrl);
+                  }
+                  setImagePreviewUrl('');
+                }
+              }}
               style={{ marginTop: 6, padding: 10, borderRadius: 8, border: '1px solid #ccc', fontSize: '1rem', width: '100%' }}
             />
+            {/* Image Preview */}
+            {imagePreviewUrl && (
+              <div style={{ marginTop: 12 }}>
+                <div style={{ fontWeight: 500, marginBottom: 8, fontSize: '0.9rem', color: '#555' }}>
+                  Preview:
+                </div>
+                <div style={{
+                  border: '2px solid #ddd',
+                  borderRadius: 8,
+                  padding: 8,
+                  background: '#f9f9f9',
+                  display: 'flex',
+                  justifyContent: 'center'
+                }}>
+                  <img
+                    src={imagePreviewUrl}
+                    alt="Upload preview"
+                    style={{
+                      maxWidth: '300px',
+                      maxHeight: '200px',
+                      width: 'auto',
+                      height: 'auto',
+                      borderRadius: 6,
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                    }}
+                  />
+                </div>
+                {file && (
+                  <div style={{ 
+                    marginTop: 8, 
+                    fontSize: '0.85rem', 
+                    color: '#666',
+                    textAlign: 'center'
+                  }}>
+                    {file.name} ({(file.size / 1024 / 1024).toFixed(2)} MB)
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
         {error && <div style={{ color: '#c00', fontWeight: 500, marginBottom: 12 }}>{error}</div>}
@@ -1616,12 +2083,12 @@ export default function GenerateToolClient() {
               border: 'none',
               cursor: hasEnoughCredits && !loading ? 'pointer' : 'not-allowed',
               background: hasEnoughCredits && !loading ? 'linear-gradient(90deg, #222 0%, #444 100%)' : '#ccc',
-              color: hasEnoughCredits && !loading ? '#fff' : '#666',
+              color: hasEnoughCredits && !loading ? '#fff' : '#fff',
               position: 'relative',
               overflow: 'hidden',
               textTransform: 'uppercase',
               transition: 'box-shadow 0.3s, transform 0.2s, background 0.3s',
-              opacity: hasEnoughCredits && !loading ? 1 : 0.6
+              opacity: hasEnoughCredits && !loading ? 1 : 0.8
             }}
           >
             <span style={{
@@ -1630,7 +2097,9 @@ export default function GenerateToolClient() {
               fontWeight: 800,
               fontSize: '1.2em',
               letterSpacing: '2px'
-            }}>Generate</span>
+            }}>
+              {!hasEnoughCredits ? 'Insufficient Credits' : 'Generate'}
+            </span>
             <style>{`
               .creative-btn {
                 background: linear-gradient(90deg, #222 0%, #444 100%);

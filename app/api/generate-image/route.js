@@ -6,13 +6,21 @@ const replicate = new Replicate({
   auth: process.env.REPLICATE_API_TOKEN,
 });
 
-console.log('🔑 Replicate API Token Status:', process.env.REPLICATE_API_TOKEN ? 'Present' : 'Missing');
+console.log('🔑 Replicate API Token Status:', process.env.REPLICATE_API_TOKEN ? 
+       'Present' : 'Missing');
 console.log('🔑 Token length:', process.env.REPLICATE_API_TOKEN?.length || 0);
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY // Removed hardcoded fallback value
 );
+
+// Helper function to convert File object to base64 string
+async function fileToBase64(file) {
+  const arrayBuffer = await file.arrayBuffer();
+  const buffer = Buffer.from(arrayBuffer);
+  return buffer.toString('base64');
+}
 
 // 🧩 Enhanced Prompt Sanitization Function - Bypass/Filter Prompt Phrasing Dynamically
 function sanitizePrompt(prompt) {
@@ -169,8 +177,6 @@ async function generateContent(params) {
         version = '1a3f2d7321a5f38d932d85e3ee8e286ba278990f66293f1fac2d26c2b3798b8d'; // Kling v2.1
       } else if (video_model === 'seedance-1-pro') {
         version = '567d056ac32cf4966a0a6ce60b043408e2a81493e7b0c6579af80aca19d1c070'; // Seedance Pro
-      } else if (video_model === 'luma-ray') {
-        version = '8af469846e8ba045167fb3f1570af72f6545901b2d815b851aa36e5c33b5e1e5'; // Luma/Ray
       } else {
         version = '0d9f5f2f92cfd480087dfe7aa91eadbc1d48fbb1a0260379e2b30ca739fb20bd'; // Default to Hailuo 02
       }
@@ -193,19 +199,25 @@ async function generateContent(params) {
         duration: modelDuration, // Use model-specific duration
       };
 
-      // Add image file if it exists - use 'start_image' for most models
+      // Add image file if it exists - convert to base64 and use model-specific parameters
       if (image) {
+        // Convert File object to base64 string for Replicate API
+        const imageBase64 = await fileToBase64(image);
+        console.log('🔄 Converted image file to base64 format');
+        
         if (video_model === 'wan-2.1-i2v-720p') {
-          inputData.image = image; // WAN-2.1 uses 'image' instead of 'start_image'
+          inputData.image = imageBase64; // WAN-2.1 uses 'image' instead of 'start_image'
           console.log('✅ Image file added to WAN-2.1 input data as image');
-        } else if (video_model === 'luma-ray') {
-          inputData.start_image = image; // Luma/Ray uses 'start_image'
-          console.log('✅ Image file added to Luma/Ray input data as start_image');
         } else if (video_model === 'hailuo-02') {
-          inputData.start_image = image; // Hailuo-02 uses 'start_image'
-          console.log('✅ Image file added to Hailuo-02 input data as start_image');
+          // Hailuo-02 requires File object (URI format), not base64 - same as Seedance Pro
+          inputData.first_frame_image = image; // Use File object directly
+          console.log('✅ Image file added to Hailuo-02 input data as File object (URI format)');
+        } else if (video_model === 'seedance-1-pro') {
+          // Seedance Pro requires File object (URI format), not base64
+          inputData.image = image; // Use File object directly
+          console.log('✅ Image file added to Seedance Pro input data as File object (URI format)');
         } else {
-          inputData.start_image = image; // Other models use 'start_image'
+          inputData.start_image = imageBase64; // Other models use 'start_image'
           console.log('✅ Image file added to input data as start_image');
         }
       } else {
@@ -223,47 +235,65 @@ async function generateContent(params) {
 
       // Add model-specific optimizations
       if (video_model === 'hailuo-02') {
-        console.log('🚀 Configuring Hailuo-02 model for GENVIDEO (Image-to-Video)');
-        console.log('🔧 Hailuo-02 using image parameter:', !!image);
+        console.log('🌟 Configuring Hailuo-02 model (HYBRID: WAN-2.1 + Schema)');
+        console.log('🔧 Hailuo-02 using first_frame_image parameter:', !!image);
         console.log('🔧 Hailuo-02 duration:', duration);
         console.log('🔧 Hailuo-02 prompt:', prompt);
-        // Image-focused settings for genvideo - prioritize image over prompt
-        inputData.image_strength = 0.95; // Very high image preservation - focus on image
-        inputData.cfg_scale = 6.0; // Lower guidance - let image drive the generation
-        console.log('🖼️ Hailuo-02 GENVIDEO settings: image_strength=0.95, cfg_scale=6.0 (IMAGE-FOCUSED)');
+        
+        // FIRST: Use WAN-2.1's proven image preservation approach
+        inputData.image_strength = 0.85; // COPY WAN-2.1's proven value
+        inputData.guidance_scale = 7.0; // COPY WAN-2.1's proven value
+        
+        // SECOND: Add Hailuo-02 specific schema parameters
+        inputData.prompt_optimizer = false; // Disable prompt optimization to preserve image fidelity
+        
+        console.log('🖼️ Hailuo-02 HYBRID: WAN-2.1 approach (strength=0.85, guidance=7.0) + Schema (prompt_optimizer=false)');
       }
 
       if (video_model === 'seedance-1-pro') {
-        console.log('🎭 Configuring Seedance Pro model');
-        // Add image preservation settings for Seedance Pro
-        inputData.image_strength = 0.85; // High image preservation
-        inputData.guidance_scale = 7.0; // Balanced guidance
-        console.log('🖼️ Seedance Pro image preservation: strength=0.85, guidance_scale=7.0');
+        console.log('� Configuring Seedance-1-Pro model (HYBRID: WAN-2.1 + Schema)');
+        console.log('🔧 Seedance Pro using image parameter:', !!image);
+        console.log('🔧 Seedance Pro duration:', duration);
+        console.log('🔧 Seedance Pro prompt:', prompt);
+        
+        // FIRST: Use WAN-2.1's proven image preservation approach
+        inputData.image_strength = 0.85; // COPY WAN-2.1's proven value
+        inputData.guidance_scale = 7.0; // COPY WAN-2.1's proven value
+        
+        // SECOND: Add schema-correct parameters for extra preservation
+        inputData.resolution = "1080p"; // High quality output
+        inputData.camera_fixed = true; // CRITICAL: Fix camera to prevent image distortion
+        inputData.fps = 24; // Standard frame rate
+        
+        // CRITICAL FIX: Seedance Pro expects URI format, not base64
+        if (image) {
+          // Replace base64 with the File object - let Replicate handle the upload
+          inputData.image = image; // Use File object instead of base64
+          console.log('� Using File object for Seedance Pro (Replicate will handle upload)');
+          
+          delete inputData.aspect_ratio;
+          console.log('🔧 Removed aspect_ratio - Seedance Pro uses image natural ratio');
+        }
+        
+        console.log('🖼️ Seedance Pro HYBRID: WAN-2.1 approach (strength=0.85, guidance=7.0) + Schema (1080p, camera_fixed=true)');
       }
 
       // Add model-specific optimizations for WAN-2.1
       if (video_model === 'wan-2.1-i2v-720p') {
-        console.log('🌊 Configuring WAN-2.1-i2v-720p model');
+        console.log('🌊 Configuring WAN-2.1-i2v-720p model (REFERENCE MODEL - works perfectly)');
         console.log('🔧 WAN-2.1 using image parameter:', !!image);
         console.log('🔧 WAN-2.1 duration:', duration);
         console.log('🔧 WAN-2.1 prompt:', prompt);
-        // Add image preservation settings for WAN-2.1
-        inputData.image_strength = 0.85; // High image preservation
-        inputData.guidance_scale = 7.0; // Balanced guidance
-        console.log('🖼️ WAN-2.1 image preservation: strength=0.85, guidance_scale=7.0');
+        // Perfect settings for WAN-2.1 - keep as reference
+        inputData.image_strength = 0.85; // High image preservation - proven optimal
+        inputData.guidance_scale = 7.0; // Balanced guidance - proven optimal
+        console.log('🖼️ WAN-2.1 REFERENCE settings: strength=0.85, guidance_scale=7.0 (PROVEN OPTIMAL)');
       }
 
-      // Add model-specific optimizations for Luma/Ray
-      if (video_model === 'luma-ray') {
-        console.log('🌟 Configuring Luma/Ray model');
-        console.log('🔧 Luma/Ray using image parameter:', !!image);
-        console.log('🔧 Luma/Ray duration:', duration);
-        console.log('🔧 Luma/Ray prompt:', prompt);
-        // Add image preservation settings for Luma/Ray
-        inputData.image_strength = 0.9; // High image preservation
-        inputData.guidance_scale = 7.0; // Balanced guidance
-        console.log('🖼️ Luma/Ray image preservation: strength=0.9, guidance_scale=7.0');
-      }
+      console.log('🚀 Calling Replicate API for genvideo...');
+          console.log('� Luma/Ray loop set to false for image preservation');
+
+
 
       console.log('🚀 Calling Replicate API for genvideo...');
       console.log('🔧 Replicate version:', version);
@@ -279,7 +309,10 @@ async function generateContent(params) {
         console.error('❌ Replicate API call failed:', replicateError);
         throw replicateError;
       }
-    } else {
+    }
+    
+    // Check if it's a text-to-image request (Flux image model)
+    if (prompt && !image) {
       // Default: Flux image model
       const allowedRatios = ['1:1', '3:4', '4:3', '16:9', '9:16'];
       const safeAspect = allowedRatios.includes(aspect_ratio) ? aspect_ratio : '1:1';
