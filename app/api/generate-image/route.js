@@ -9,6 +9,10 @@ const replicate = new Replicate({
 console.log('🔑 Replicate API Token Status:', process.env.REPLICATE_API_TOKEN ? 
        'Present' : 'Missing');
 console.log('🔑 Token length:', process.env.REPLICATE_API_TOKEN?.length || 0);
+console.log('🏠 Environment:', process.env.NODE_ENV);
+console.log('🌐 Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL ? 'Present' : 'Missing');
+console.log('🔐 Supabase Anon Key:', process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? 'Present' : 'Missing');
+console.log('🔑 Service Role Key:', process.env.SUPABASE_SERVICE_ROLE_KEY ? 'Present' : 'Missing');
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
