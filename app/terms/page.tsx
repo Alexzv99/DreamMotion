@@ -41,6 +41,18 @@ export default function TermsPage() {
         src="/background-video3.mp4"
       />
 
+      {/* Dark overlay to match dashboard */}
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100vw',
+        height: '100vh',
+        background: 'rgba(0, 0, 0, 0.7)',
+        zIndex: 1,
+        pointerEvents: 'none'
+      }} />
+
       {/* Back Button */}
       <button
         onClick={() => router.back()}
@@ -67,11 +79,11 @@ export default function TermsPage() {
       {/* Content */}
       <div
         style={{
-          zIndex: 3,
+          zIndex: 10,
           fontSize: '1rem', // Reduced font size for a smaller appearance
           fontWeight: 500,
           color: '#222',
-          background: 'rgba(255,255,255,0.85)', // Adjusted opacity to match other pages
+          background: 'rgba(255,255,255,0.95)', // Adjusted opacity to work with dark overlay
           boxShadow: '0 2px 16px rgba(0,0,0,0.13)',
           borderRadius: '12px', // Reduced border radius for a smaller box
           padding: '24px 20px', // Reduced padding

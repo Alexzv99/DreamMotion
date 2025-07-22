@@ -55,12 +55,23 @@ export default function FAQ() {
         }}
         src="/background-video3.mp4"
       />
+      {/* Dark overlay to match dashboard */}
       <div style={{
-        zIndex: 3,
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100vw',
+        height: '100vh',
+        background: 'rgba(0, 0, 0, 0.7)',
+        zIndex: 1,
+        pointerEvents: 'none'
+      }} />
+      <div style={{
+        zIndex: 10,
         fontSize: '1.04rem',
         fontWeight: 500,
         color: '#222',
-        background: 'rgba(255,255,255,0.98)',
+        background: 'rgba(255,255,255,0.95)',
         boxShadow: '0 2px 16px rgba(0,0,0,0.13)',
         borderRadius: '16px',
         padding: '32px 24px',

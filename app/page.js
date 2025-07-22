@@ -94,6 +94,18 @@ export default function Home() {
       )}
       {/* Professional Cookie Banner - Centered White Design */}
       {showCookieBar ? (
+        <>
+          {/* Dark overlay for cookie banner */}
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100vh',
+            background: 'rgba(0, 0, 0, 0.7)',
+            zIndex: 10000,
+            pointerEvents: 'none'
+          }} />
         <div style={{
           position: 'fixed',
           top: '50%',
@@ -212,6 +224,7 @@ export default function Home() {
             </div>
           </div>
         </div>
+        </>
       ) : (
         <>
           {/* Overlay */}
