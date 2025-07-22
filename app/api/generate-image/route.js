@@ -309,27 +309,34 @@ async function generateContent(params) {
         console.error('❌ Replicate API call failed:', replicateError);
         throw replicateError;
       }
-    }
-    
-    // Check if it's a text-to-image request (Flux image model)
-    if (prompt && !image) {
-      // Default: Flux image model
+    } else if (type === 'genimage') {
+      // Text-to-image request (Flux image model)
+      console.log('🖼️ Processing genimage request with Flux model');
+      
       const allowedRatios = ['1:1', '3:4', '4:3', '16:9', '9:16'];
       const safeAspect = allowedRatios.includes(aspect_ratio) ? aspect_ratio : '1:1';
-      console.log('Received aspect ratio:', aspect_ratio);
+      console.log('🔧 Received aspect ratio:', aspect_ratio);
+      console.log('🔧 Safe aspect ratio:', safeAspect);
       
       // Sanitize prompt before sending to API
       const sanitizedPrompt = sanitizePrompt(prompt);
+      console.log('🔧 Sanitized prompt for Flux:', sanitizedPrompt);
       
-      prediction = await replicate.predictions.create({
-        version: 'c6e5086a542c99e7e523a83d3017654e8618fe64ef427c772a1def05bb599f0c', // Flux 1.1 Pro Ultra (Latest)
-        input: {
-          prompt: sanitizedPrompt,
-          aspect_ratio: safeAspect,
-          output_format: 'jpg',
-          disable_safety_checker: true,
-        },
-      });
+      try {
+        prediction = await replicate.predictions.create({
+          version: 'c6e5086a542c99e7e523a83d3017654e8618fe64ef427c772a1def05bb599f0c', // Flux 1.1 Pro Ultra (Latest)
+          input: {
+            prompt: sanitizedPrompt,
+            aspect_ratio: safeAspect,
+            output_format: 'jpg',
+            disable_safety_checker: true,
+          },
+        });
+        console.log('✅ Flux image generation started, prediction ID:', prediction.id);
+      } catch (replicateError) {
+        console.error('❌ Flux API call failed:', replicateError);
+        throw replicateError;
+      }
     }
     let result = prediction;
     let logs = [];
