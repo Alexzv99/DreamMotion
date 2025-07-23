@@ -7,6 +7,11 @@ export function useAsyncGeneration(predictionId, onComplete, onError) {
   const [result, setResult] = useState(null);
   
   useEffect(() => {
+    // DISABLED: All models now use sync processing, no async monitoring needed
+    console.log(`🚫 ASYNC MONITORING DISABLED - All models use sync processing now`);
+    console.log(`🚫 PredictionId: ${predictionId} - Hook will not monitor (async disabled)`);
+    return;
+    
     if (!predictionId) {
       console.log(`🔍 useAsyncGeneration: Hook loaded but no predictionId yet - waiting for generation to start`);
       return;

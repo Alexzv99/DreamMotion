@@ -684,7 +684,7 @@ export default function GenerateToolClient() {
     setGenerationTime(Date.now());
     startTimer(); // Start the countdown timer
     
-    let isAsyncResponse = false; // Track if this is an async generation
+    // All models now use sync processing - no async responses
     
     try {
       if (type === "image2video" && file) {
@@ -940,37 +940,12 @@ export default function GenerateToolClient() {
         const data = await response.json();
         console.log('API Response:', data);
 
-        // Check if this is an async response (202 status with prediction_id)
-        if (response.status === 202 && data.prediction_id) {
-          console.log(`🔄 Async generation started: ${data.prediction_id}`);
-          console.log(`📝 Message: ${data.message}`);
-          console.log(`🔧 Switching from sync to async mode...`);
-          
-          // IMMEDIATELY stop sync progress to prevent race conditions
-          stopSyncProgress();
-          console.log(`✅ Sync progress stopped immediately`);
-          
-          // Set async state immediately (no delay to prevent race conditions)
-          setIsAsyncGeneration(true);
-          setAsyncPredictionId(data.prediction_id);
-          isAsyncResponse = true;
-          console.log(`✅ Async state set: isAsyncGeneration=true, predictionId=${data.prediction_id}`);
-          
-          // Credits are deducted immediately for async generations
-          const newCredits = credits - calculateCreditCost();
-          console.log(`[ASYNC VIDEO] Credit deducted: ${credits} -> ${newCredits}`);
-          setCredits(newCredits);
-          localStorage.setItem('creditsUpdated', Date.now().toString());
-          
-          // Keep loading state active with proper message
-          setGenerationTimeString(`Processing ${videoModel}... Monitoring started.`);
-          
-          // For async generations, we don't expect immediate output
-          // The monitoring hook will handle completion
-        }
+        // ASYNC PROCESSING DISABLED - All models now use sync processing
+        // Backend no longer returns 202 status, all models return 200 with immediate results
+        console.log(`🔧 All models use sync processing - expecting immediate output`);
 
-        // Handle synchronous response (fast models) - only if not async
-        if (data.output && !isAsyncResponse) {
+        // Handle all responses as synchronous (all models are now sync)
+        if (data.output) {
           const videoUrl = Array.isArray(data.output) ? data.output[0] : data.output;
           completeSyncProgress(); // Complete progress to 100%
           setPreviewUrl(videoUrl);
@@ -989,8 +964,8 @@ export default function GenerateToolClient() {
           const timeDiff = endTime - generationTime;
           const seconds = Math.round(timeDiff / 1000);
           setGenerationTimeString(`Generated in ${seconds}s`);
-        } else if (!isAsyncResponse && !data.output) {
-          // Only throw error if this is not an async generation and no output
+        } else {
+          // No output received - this is an error for sync models
           throw new Error(data.error || 'No video generated');
         }
       } else {
@@ -1021,15 +996,11 @@ export default function GenerateToolClient() {
         localStorage.setItem('creditsUpdated', Date.now().toString());
       }, 2000);
     } finally {
-      // Only stop loading if it's not an async generation
-      if (!isAsyncResponse) {
-        setLoading(false);
-        setIsGenerating(false); // Unlock generation for sync models
-        stopTimer();
-        stopSyncProgress(); // Stop sync progress for non-async generations
-      }
-      // For async generations, keep loading=true and timer running
-      // They will be stopped by the async hook when complete
+      // All models are now sync - always stop loading and cleanup
+      setLoading(false);
+      setIsGenerating(false); // Unlock generation
+      stopTimer();
+      stopSyncProgress(); // Stop sync progress
     }
   };
 
