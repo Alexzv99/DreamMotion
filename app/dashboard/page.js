@@ -362,8 +362,8 @@ export default function Dashboard() {
                 link="/generate-tool?type=text2video"
               />
               <ToolBox 
-                title="🔞 NSFW Video Generation"
-                desc="Generate realistic adult animations with fewer content restrictions."
+                title="🧪 Experimental Tool Coming Soon"
+                desc="We're working on something powerful, creative, and unlike anything you've seen. Stay tuned — this new tool will break boundaries"
                 price=""
                 link=""
                 disabled={true}
