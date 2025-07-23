@@ -11,6 +11,7 @@ export default function Register() {
   const [confirm, setConfirm] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
   const router = useRouter();
 
   // Google login handler (moved inside component)
@@ -36,6 +37,16 @@ export default function Register() {
     }
   }, [errorMsg]);
 
+  useEffect(() => {
+    if (successMsg) {
+      const timer = setTimeout(() => {
+        setSuccessMsg('');
+        router.push('/login');
+      }, 2000); // Show success message for 2 seconds, then redirect
+      return () => clearTimeout(timer);
+    }
+  }, [successMsg, router]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (password !== confirm) {
@@ -48,8 +59,7 @@ export default function Register() {
     if (error) {
       setErrorMsg(error.message.includes('already registered') ? 'User already exists.' : 'Registration failed: ' + error.message);
     } else {
-      alert('Check your email to confirm your registration.');
-      router.push('/login');
+      setSuccessMsg('Registration successful! Redirecting to login...');
     }
   };
 
@@ -138,6 +148,23 @@ export default function Register() {
             marginBottom: '18px',
           }}>
             {errorMsg}
+          </div>
+        )}
+        {successMsg && (
+          <div style={{
+            background: '#22c55e',
+            color: 'white',
+            padding: '16px 24px',
+            fontWeight: 'bold',
+            textAlign: 'center',
+            borderRadius: '12px',
+            boxShadow: '0 2px 16px rgba(0,0,0,0.25)',
+            minWidth: '260px',
+            fontSize: '1.2rem',
+            marginBottom: '18px',
+            animation: 'fadeIn 0.3s ease-in-out',
+          }}>
+            ✅ {successMsg}
           </div>
         )}
         <h1 style={{ fontSize: '2rem', marginBottom: '30px', color: '#222', fontWeight: 'bold' }}>Create Your Account</h1>
@@ -257,6 +284,10 @@ export default function Register() {
         zIndex: 0
       }}></div>
       <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(-10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
         @media (max-width: 480px) {
           main {
             padding: 20px !important;
