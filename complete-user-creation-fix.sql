@@ -1,3 +1,8 @@
+-- Alternative Solution: Update Registration Page to Create User Record
+-- If the trigger approach doesn't work, we can modify the registration logic
+
+-- First, run this updated trigger script:
+
 -- Automatic User Creation Trigger for DreamMotion (BYPASS RLS)
 -- This trigger will automatically create a user record in the public.users table
 -- whenever someone signs up through Supabase Auth
@@ -42,7 +47,12 @@ SELECT trigger_name, event_manipulation, event_object_table, action_statement
 FROM information_schema.triggers 
 WHERE trigger_name = 'on_auth_user_created';
 
--- 4. Test function exists
+-- 6. Test function exists
 SELECT 'handle_new_user function exists: ' || CASE WHEN EXISTS (
   SELECT 1 FROM pg_proc WHERE proname = 'handle_new_user'
 ) THEN 'YES' ELSE 'NO' END as function_status;
+
+-- 7. Check if RLS is properly configured
+SELECT 'Users table RLS enabled: ' || CASE WHEN EXISTS (
+  SELECT 1 FROM pg_tables WHERE tablename = 'users' AND rowsecurity = true
+) THEN 'YES' ELSE 'NO' END as rls_status;
