@@ -3,6 +3,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import Button from '../components/Button';
 import { supabase } from '../supabaseClient';
+import { useAsyncGeneration } from '../../hooks/useAsyncGeneration';
 import Script from 'next/script';
 
 export default function GenerateToolClient() {
@@ -192,9 +193,146 @@ export default function GenerateToolClient() {
   const [contentWarning, setContentWarning] = useState('');
   const [blockedWords, setBlockedWords] = useState([]);
   const [isContentBlocked, setIsContentBlocked] = useState(false);
+  
+  // Async generation state
+  const [asyncPredictionId, setAsyncPredictionId] = useState(null);
+  const [isAsyncGeneration, setIsAsyncGeneration] = useState(false);
+  
+  // Universal progress tracking for all models
+  const [syncProgress, setSyncProgress] = useState(0);
+  const [syncProgressInterval, setSyncProgressInterval] = useState(null);
+  
+  // Generation lock to prevent multiple simultaneous generations
+  const [isGenerating, setIsGenerating] = useState(false);
+  
+  // Error banner state
+  const [showErrorBanner, setShowErrorBanner] = useState(false);
+  const [errorBannerMessage, setErrorBannerMessage] = useState('');
+  const [errorBannerType, setErrorBannerType] = useState(''); // 'image' or 'video'
+  
+  // Function to show error banner with credit refund message
+  const showErrorWithRefund = (isImageGeneration, customMessage = null) => {
+    const baseMessage = isImageGeneration 
+      ? 'Error generating image. Your credits will be refunded.' 
+      : 'Error generating video. Your credits will be refunded.';
+    
+    setErrorBannerMessage(customMessage || baseMessage);
+    setErrorBannerType(isImageGeneration ? 'image' : 'video');
+    setShowErrorBanner(true);
+    
+    // Auto-hide after 8 seconds
+    setTimeout(() => {
+      setShowErrorBanner(false);
+    }, 8000);
+  };
+  
+  // Function to hide error banner
+  const hideErrorBanner = () => {
+    setShowErrorBanner(false);
+  };
+  
+  // Setup async generation monitoring
+  const asyncGeneration = useAsyncGeneration(
+    asyncPredictionId,
+    (data) => {
+      // On completion
+      console.log('🎉 ===== ASYNC COMPLETION CALLBACK TRIGGERED ===== 🎉');
+      console.log('✅ Async generation completed:', data);
+      console.log('📹 Video output URL:', data.output);
+      console.log('🔧 About to call setPreviewUrl with:', data.output);
+      
+      setPreviewUrl(data.output);
+      setLoading(false);
+      setIsAsyncGeneration(false);
+      setAsyncPredictionId(null);
+      setIsGenerating(false); // Unlock generation
+      
+      console.log('🔧 State updates completed - loading should be false now');
+      
+      // Don't update credits here - they were already deducted when starting
+      // Just trigger a credit refresh for the UI
+      localStorage.setItem('creditsUpdated', Date.now().toString());
+      
+      // Calculate final time
+      setGenerationTimeString(`Generated in ${data.completed_at ? 
+        Math.round((new Date(data.completed_at) - generationTime) / 1000) : 
+        asyncGeneration.timeElapsedSeconds}s`);
+      
+      stopTimer();
+      
+      console.log('🎉 ===== ASYNC COMPLETION CALLBACK FINISHED ===== 🎉');
+    },
+    (error) => {
+      // On error - show refund message
+      console.error('❌ Async generation failed:', error);
+      
+      // Show error banner with refund message
+      const isImageGeneration = type === 'genimage';
+      showErrorWithRefund(isImageGeneration, error);
+      
+      setError(''); // Clear regular error since we're showing banner
+      setLoading(false);
+      setIsAsyncGeneration(false);
+      setAsyncPredictionId(null);
+      setIsGenerating(false); // Unlock generation
+      stopTimer();
+      
+      // Refresh credits to show refund
+      setTimeout(() => {
+        localStorage.setItem('creditsUpdated', Date.now().toString());
+      }, 2000);
+    }
+  );
   useEffect(() => {
     if (typeParam && typeParam !== type) setType(typeParam);
   }, [typeParam]);
+
+  // Listen for credit updates from localStorage (for async generations and refunds)
+  useEffect(() => {
+    const handleCreditsUpdate = () => {
+      // Re-fetch credits when updated
+      if (user) {
+        const refetchCredits = async () => {
+          try {
+            const { data: userData, error } = await supabase
+              .from('users')
+              .select('credits')
+              .eq('id', user.id)
+              .single();
+
+            if (!error && userData) {
+              console.log('🔄 Credits refreshed:', userData.credits);
+              setCredits(userData.credits);
+            }
+          } catch (err) {
+            console.error('Error refreshing credits:', err);
+          }
+        };
+        refetchCredits();
+      }
+    };
+
+    // Listen for storage events (from other tabs or async operations)
+    window.addEventListener('storage', handleCreditsUpdate);
+    
+    // Also listen for custom creditsUpdated events
+    const handleCustomUpdate = () => {
+      handleCreditsUpdate();
+    };
+    
+    // Check for updates every few seconds during async operations
+    let creditCheckInterval;
+    if (isAsyncGeneration) {
+      creditCheckInterval = setInterval(handleCreditsUpdate, 3000);
+    }
+
+    return () => {
+      window.removeEventListener('storage', handleCreditsUpdate);
+      if (creditCheckInterval) {
+        clearInterval(creditCheckInterval);
+      }
+    };
+  }, [user, isAsyncGeneration]);
 
   // Clear preview when type changes
   useEffect(() => {
@@ -240,8 +378,11 @@ export default function GenerateToolClient() {
       if (timerInterval) {
         clearInterval(timerInterval);
       }
+      if (syncProgressInterval) {
+        clearInterval(syncProgressInterval);
+      }
     };
-  }, [timerInterval]);
+  }, [timerInterval, syncProgressInterval]);
 
   // Cleanup preview URL on component unmount
   useEffect(() => {
@@ -499,12 +640,51 @@ export default function GenerateToolClient() {
     setLoadingMinutes(0);
   };
 
+  // Sync progress management functions
+  const startSyncProgress = () => {
+    setSyncProgress(0);
+    const interval = setInterval(() => {
+      setSyncProgress(prev => {
+        // Much slower, more realistic progress simulation for sync generations
+        if (prev < 10) return prev + 1; // Slow start
+        if (prev < 30) return prev + 0.8; // Steady but slower progress
+        if (prev < 60) return prev + 0.5; // Slower middle
+        if (prev < 85) return prev + 0.3; // Very slow near end
+        return Math.min(prev + 0.1, 93); // Crawl to 93% max
+      });
+    }, 2000); // Update every 2 seconds for slower, smoother animation
+    setSyncProgressInterval(interval);
+  };
+
+  const stopSyncProgress = () => {
+    if (syncProgressInterval) {
+      clearInterval(syncProgressInterval);
+      setSyncProgressInterval(null);
+    }
+    setSyncProgress(0);
+  };
+
+  const completeSyncProgress = () => {
+    setSyncProgress(100);
+    setTimeout(() => {
+      stopSyncProgress();
+    }, 500); // Show 100% briefly before clearing
+  };
+
   const handleGenerate = async () => {
-    setError("");
+    // Prevent multiple simultaneous generations
+    if (isGenerating) {
+      console.log('🚫 Generation already in progress, ignoring duplicate request');
+      return;
+    }
     
+    setError("");
+    setIsGenerating(true); // Lock generation
     setLoading(true);
     setGenerationTime(Date.now());
     startTimer(); // Start the countdown timer
+    
+    let isAsyncResponse = false; // Track if this is an async generation
     
     try {
       if (type === "image2video" && file) {
@@ -532,14 +712,10 @@ export default function GenerateToolClient() {
           // Also ensure duration is 5 or 10 (schema constraint)
           basePrompt = prompt || "animate smoothly";
           console.log('🔧 Using ultra-minimal prompt for Seedance Pro image preservation');
-        } else if (videoModel === 'wan-2.1-i2v-720p') {
-          // WAN-2.1 works well with standard prompt
+        } else if (videoModel === 'wan-2.1-i2v-720p' || videoModel === 'hailuo-02') {
+          // WAN-2.1 and Hailuo-02 work well with standard prompt and focus on image preservation
           basePrompt = prompt || "animate this image smoothly, keeping the original content and style";
-          console.log('🔧 Using standard prompt for WAN-2.1 (proven to work well)');
-        } else if (videoModel === 'hailuo-02') {
-          // Hailuo-02 for image2video should focus on preserving the image
-          basePrompt = prompt || "smooth animation, preserve original image";
-          console.log('🔧 Using image-focused prompt for Hailuo-02 image2video');
+          console.log(`🔧 Using standard image-focused prompt for ${videoModel} (proven to work well)`);
         }
         
         const safePrompt = replaceBlockedWords(basePrompt).text;
@@ -554,6 +730,9 @@ export default function GenerateToolClient() {
         
         // Add image_strength parameter to prioritize image over prompt (will be handled per-model in backend)
         formData.append("image_strength", "0.95"); // High image strength for image focus
+
+        // Start sync progress tracking for image2video
+        startSyncProgress();
 
         const response = await fetch('/api/generate-image', {
           method: 'POST',
@@ -570,6 +749,7 @@ export default function GenerateToolClient() {
 
         const data = await response.json();
         if (data.url) {
+          completeSyncProgress(); // Complete progress to 100%
           setPreviewUrl(data.url);
         } else {
           throw new Error('No video URL received from server');
@@ -585,6 +765,9 @@ export default function GenerateToolClient() {
         if (!session) {
           throw new Error('Authentication session expired. Please log in again.');
         }
+
+        // Start sync progress tracking for image generation
+        startSyncProgress();
 
         // Generate image using Flux API
         const response = await fetch('/api/generate-image', {
@@ -605,6 +788,20 @@ export default function GenerateToolClient() {
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
           console.error('API Error Response:', errorData);
+          
+          // Check if error includes refund information
+          if (errorData.refunded && errorData.refundMessage) {
+            const isImageGeneration = errorData.isImageGeneration || type === 'genimage';
+            showErrorWithRefund(isImageGeneration, `${errorData.error}. ${errorData.refundMessage}`);
+            
+            // Refresh credits after a delay to show refund
+            setTimeout(() => {
+              localStorage.setItem('creditsUpdated', Date.now().toString());
+            }, 2000);
+            
+            return; // Don't throw error, banner will handle it
+          }
+          
           throw new Error(`API request failed with status ${response.status}: ${errorData.error || errorData.detail || 'Unknown error'}`);
         }
 
@@ -614,6 +811,7 @@ export default function GenerateToolClient() {
         if (data.output && data.output.length > 0) {
           // Replicate returns an array of URLs for images
           const imageUrl = Array.isArray(data.output) ? data.output[0] : data.output;
+          completeSyncProgress(); // Complete progress to 100%
           setPreviewUrl(imageUrl);
           
           // Update credits after successful generation (deduct the cost)
@@ -662,6 +860,9 @@ export default function GenerateToolClient() {
             duration
           });
 
+          // Start sync progress tracking for text2video
+          startSyncProgress();
+
           response = await fetch('/api/generate-image', {
             method: 'POST',
             headers: {
@@ -699,6 +900,9 @@ export default function GenerateToolClient() {
             hasFile: !!file 
           });
 
+          // Start sync progress tracking for genvideo
+          startSyncProgress();
+
           response = await fetch('/api/generate-image', {
             method: 'POST',
             headers: {
@@ -716,31 +920,77 @@ export default function GenerateToolClient() {
             statusText: response.statusText,
             error: errorData 
           });
+          
+          // Check if error includes refund information
+          if (errorData.refunded && errorData.refundMessage) {
+            const isImageGeneration = errorData.isImageGeneration || false;
+            showErrorWithRefund(isImageGeneration, `${errorData.error}. ${errorData.refundMessage}`);
+            
+            // Refresh credits after a delay to show refund
+            setTimeout(() => {
+              localStorage.setItem('creditsUpdated', Date.now().toString());
+            }, 2000);
+            
+            return; // Don't throw error, banner will handle it
+          }
+          
           throw new Error(`API request failed with status ${response.status}`);
         }
 
         const data = await response.json();
         console.log('API Response:', data);
 
-        if (data.output) {
+        // Check if this is an async response (202 status with prediction_id)
+        if (response.status === 202 && data.prediction_id) {
+          console.log(`🔄 Async generation started: ${data.prediction_id}`);
+          console.log(`📝 Message: ${data.message}`);
+          console.log(`🔧 Switching from sync to async mode...`);
+          
+          // IMMEDIATELY stop sync progress to prevent race conditions
+          stopSyncProgress();
+          console.log(`✅ Sync progress stopped immediately`);
+          
+          // Set async state immediately (no delay to prevent race conditions)
+          setIsAsyncGeneration(true);
+          setAsyncPredictionId(data.prediction_id);
+          isAsyncResponse = true;
+          console.log(`✅ Async state set: isAsyncGeneration=true, predictionId=${data.prediction_id}`);
+          
+          // Credits are deducted immediately for async generations
+          const newCredits = credits - calculateCreditCost();
+          console.log(`[ASYNC VIDEO] Credit deducted: ${credits} -> ${newCredits}`);
+          setCredits(newCredits);
+          localStorage.setItem('creditsUpdated', Date.now().toString());
+          
+          // Keep loading state active with proper message
+          setGenerationTimeString(`Processing ${videoModel}... Monitoring started.`);
+          
+          // For async generations, we don't expect immediate output
+          // The monitoring hook will handle completion
+        }
+
+        // Handle synchronous response (fast models) - only if not async
+        if (data.output && !isAsyncResponse) {
           const videoUrl = Array.isArray(data.output) ? data.output[0] : data.output;
+          completeSyncProgress(); // Complete progress to 100%
           setPreviewUrl(videoUrl);
           
           // Update credits after successful generation (deduct the cost)
           const newCredits = credits - calculateCreditCost();
-          console.log(`[VIDEO] Credit update: ${credits} -> ${newCredits} (deducted ${calculateCreditCost()})`);
+          console.log(`[SYNC VIDEO] Credit update: ${credits} -> ${newCredits} (deducted ${calculateCreditCost()})`);
           setCredits(newCredits);
           
           // Trigger storage event to notify other tabs/windows (like dashboard)
           localStorage.setItem('creditsUpdated', Date.now().toString());
-          console.log('[VIDEO] Triggered creditsUpdated localStorage event');
+          console.log('[SYNC VIDEO] Triggered creditsUpdated localStorage event');
           
           // Calculate generation time
           const endTime = Date.now();
           const timeDiff = endTime - generationTime;
           const seconds = Math.round(timeDiff / 1000);
           setGenerationTimeString(`Generated in ${seconds}s`);
-        } else {
+        } else if (!isAsyncResponse && !data.output) {
+          // Only throw error if this is not an async generation and no output
           throw new Error(data.error || 'No video generated');
         }
       } else {
@@ -751,10 +1001,35 @@ export default function GenerateToolClient() {
       }
     } catch (err) {
       console.error('Generation error:', err);
-      setError("Error generating content: " + err.message);
-    } finally {
+      
+      // Stop sync progress on error
+      stopSyncProgress();
+      
+      // Show error banner instead of regular error message
+      const isImageGeneration = type === 'genimage';
+      showErrorWithRefund(isImageGeneration, `Error generating ${isImageGeneration ? 'image' : 'video'}. Your credits will be refunded.`);
+      
+      setError(''); // Clear regular error since we're showing banner
       setLoading(false);
-      stopTimer(); // Stop the countdown timer
+      setIsAsyncGeneration(false);
+      setAsyncPredictionId(null);
+      setIsGenerating(false); // Unlock generation
+      stopTimer();
+      
+      // Refresh credits after a delay to show potential refund
+      setTimeout(() => {
+        localStorage.setItem('creditsUpdated', Date.now().toString());
+      }, 2000);
+    } finally {
+      // Only stop loading if it's not an async generation
+      if (!isAsyncResponse) {
+        setLoading(false);
+        setIsGenerating(false); // Unlock generation for sync models
+        stopTimer();
+        stopSyncProgress(); // Stop sync progress for non-async generations
+      }
+      // For async generations, keep loading=true and timer running
+      // They will be stopped by the async hook when complete
     }
   };
 
@@ -1360,6 +1635,122 @@ export default function GenerateToolClient() {
   return (
     <>
       <Script src="/test-supabase.js" />
+      
+      {/* Error Banner with Credit Refund Message */}
+      {showErrorBanner && (
+        <div style={{
+          position: 'fixed',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          background: '#f5f5f5',
+          color: '#333',
+          border: '2px solid #ddd',
+          borderRadius: '12px',
+          padding: '20px 28px',
+          zIndex: 10002,
+          width: '500px',
+          maxWidth: '90vw',
+          fontSize: '1rem',
+          fontWeight: '500',
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.2)',
+          display: 'flex',
+          alignItems: 'flex-start',
+          gap: '16px',
+          backdropFilter: 'blur(8px)',
+          animation: 'fadeInScale 0.3s ease-out'
+        }}>
+          <div style={{
+            width: '24px',
+            height: '24px',
+            borderRadius: '50%',
+            background: '#ff4444',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'white',
+            fontSize: '14px',
+            fontWeight: 'bold',
+            flexShrink: 0
+          }}>
+            ✕
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ 
+              fontWeight: '600', 
+              marginBottom: '8px',
+              fontSize: '1.1rem',
+              color: '#333'
+            }}>
+              Generation Failed
+            </div>
+            <div style={{ 
+              opacity: 0.9,
+              fontSize: '0.95rem',
+              lineHeight: 1.4,
+              marginBottom: '16px',
+              color: '#555'
+            }}>
+              {errorBannerMessage}
+            </div>
+            <div style={{
+              display: 'flex',
+              gap: '10px',
+              flexWrap: 'wrap'
+            }}>
+              <button
+                onClick={hideErrorBanner}
+                style={{
+                  padding: '8px 16px',
+                  fontSize: '0.9rem',
+                  border: 'none',
+                  background: '#333',
+                  color: '#fff',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontWeight: '600',
+                  transition: 'background 0.2s'
+                }}
+                onMouseOver={(e) => e.target.style.background = '#555'}
+                onMouseOut={(e) => e.target.style.background = '#333'}
+              >
+                OK
+              </button>
+              <button
+                onClick={() => {
+                  hideErrorBanner();
+                  // Trigger credit refresh
+                  if (user) {
+                    localStorage.setItem('creditsUpdated', Date.now().toString());
+                  }
+                }}
+                style={{
+                  padding: '8px 16px',
+                  fontSize: '0.9rem',
+                  border: '2px solid #ccc',
+                  backgroundColor: '#fff',
+                  color: '#555',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontWeight: '600',
+                  transition: 'all 0.2s'
+                }}
+                onMouseOver={(e) => {
+                  e.target.style.borderColor = '#999';
+                  e.target.style.backgroundColor = '#f9f9f9';
+                }}
+                onMouseOut={(e) => {
+                  e.target.style.borderColor = '#ccc';
+                  e.target.style.backgroundColor = '#fff';
+                }}
+              >
+                Refresh Credits
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
       <main style={{
       minHeight: '100vh',
       width: '100vw',
@@ -2060,18 +2451,60 @@ export default function GenerateToolClient() {
         )}
         {loading && (
           <div style={{ marginBottom: 12, color: '#444', fontWeight: 600, fontSize: '1.08rem' }}>
-            {(type === 'text2video' || type === 'genvideo' || type === 'image2video') ? (() => {
-              const totalEstimate = getTimeEstimate();
-              const left = Math.max(totalEstimate - loadingMinutes, 0);
-              return `Generating video... (~${left} minute${left !== 1 ? 's' : ''} left)`;
-            })() : 'Generating image...'}
+            {isAsyncGeneration ? (
+              <div>
+                <div style={{ fontSize: '1.08rem', color: '#444', fontWeight: 600, marginBottom: 8 }}>
+                  Progress: {asyncGeneration.progress}%
+                </div>
+                <div style={{ 
+                  width: '100%', 
+                  height: 8, 
+                  backgroundColor: '#eee', 
+                  borderRadius: 4, 
+                  marginTop: 8,
+                  overflow: 'hidden',
+                  boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.1)'
+                }}>
+                  <div style={{
+                    width: `${asyncGeneration.progress}%`,
+                    height: '100%',
+                    backgroundColor: asyncGeneration.progress < 95 ? '#4CAF50' : '#FF9800',
+                    transition: 'width 0.5s ease',
+                    borderRadius: 4
+                  }} />
+                </div>
+              </div>
+            ) : (
+              <div>
+                <div style={{ fontSize: '1.08rem', color: '#444', fontWeight: 600, marginBottom: 8 }}>
+                  Progress: {Math.round(syncProgress)}%
+                </div>
+                <div style={{ 
+                  width: '100%', 
+                  height: 8, 
+                  backgroundColor: '#eee', 
+                  borderRadius: 4, 
+                  marginTop: 8,
+                  overflow: 'hidden',
+                  boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.1)'
+                }}>
+                  <div style={{
+                    width: `${syncProgress}%`,
+                    height: '100%',
+                    backgroundColor: syncProgress < 95 ? '#4CAF50' : '#FF9800',
+                    transition: 'width 0.3s ease',
+                    borderRadius: 4
+                  }} />
+                </div>
+              </div>
+            )}
           </div>
         )}
         {(tool.inputType !== 'none') && (
           <Button
-            onClick={hasEnoughCredits ? handleGenerate : undefined}
+            onClick={hasEnoughCredits && !isGenerating ? handleGenerate : undefined}
             className="creative-btn"
-            disabled={!hasEnoughCredits || loading}
+            disabled={!hasEnoughCredits || loading || isGenerating}
             style={{
               marginTop: 20,
               fontWeight: 'bold',
@@ -2188,11 +2621,22 @@ export default function GenerateToolClient() {
         )}
       </div>
       
-      {/* CSS for spinner animation */}
+      {/* CSS for animations */}
       <style jsx>{`
         @keyframes spin {
           0% { transform: rotate(0deg); }
           100% { transform: rotate(360deg); }
+        }
+        
+        @keyframes fadeInScale {
+          0% { 
+            opacity: 0; 
+            transform: translate(-50%, -50%) scale(0.9);
+          }
+          100% { 
+            opacity: 1; 
+            transform: translate(-50%, -50%) scale(1);
+          }
         }
       `}</style>
     </main>

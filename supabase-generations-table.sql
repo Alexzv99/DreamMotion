@@ -12,7 +12,8 @@ CREATE TABLE IF NOT EXISTS generations (
   status TEXT DEFAULT 'starting', -- 'starting', 'processing', 'succeeded', 'failed'
   output TEXT, -- URL to generated content
   error TEXT, -- Error message if failed
-  credits_cost INTEGER NOT NULL,
+  credit_cost INTEGER NOT NULL, -- Fixed column name
+  refunded BOOLEAN DEFAULT FALSE, -- Track if credits were refunded
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   completed_at TIMESTAMP WITH TIME ZONE
 );
@@ -42,10 +43,40 @@ CREATE INDEX IF NOT EXISTS idx_generations_prediction_id ON generations(predicti
 CREATE INDEX IF NOT EXISTS idx_generations_status ON generations(status);
 CREATE INDEX IF NOT EXISTS idx_generations_created_at ON generations(created_at);
 
--- 7. Verify the setup
+-- 7. Add missing columns if they don't exist (for existing tables)
+DO $$ 
+BEGIN
+    -- Add refunded column if it doesn't exist
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                   WHERE table_name = 'generations' AND column_name = 'refunded') THEN
+        ALTER TABLE generations ADD COLUMN refunded BOOLEAN DEFAULT FALSE;
+    END IF;
+    
+    -- Rename credits_cost to credit_cost if needed
+    IF EXISTS (SELECT 1 FROM information_schema.columns 
+               WHERE table_name = 'generations' AND column_name = 'credits_cost') THEN
+        ALTER TABLE generations RENAME COLUMN credits_cost TO credit_cost;
+    END IF;
+END $$;
+
+-- 8. Verify the setup
 SELECT 'Generations table setup complete!' as status;
 
 -- Show current policies
 SELECT schemaname, tablename, policyname, cmd, roles 
 FROM pg_policies 
+WHERE tablename = 'generations'; 
 WHERE tablename = 'generations';
+
+-- 8. Create RPC function to increase user credits (for refunds)
+CREATE OR REPLACE FUNCTION increase_user_credits(amount INTEGER, uid UUID)
+RETURNS VOID AS $$
+BEGIN
+  UPDATE users 
+  SET credits = credits + amount 
+  WHERE id = uid;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Grant execute permission to authenticated users
+GRANT EXECUTE ON FUNCTION increase_user_credits TO authenticated;

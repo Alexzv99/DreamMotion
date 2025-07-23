@@ -90,6 +90,460 @@ function sanitizePrompt(prompt) {
   return sanitized;
 }
 
+// Helper function to refund credits on generation failure
+async function refundCredits(userId, creditAmount, token) {
+  try {
+    console.log(`💰 Refunding ${creditAmount} credits to user ${userId}`);
+    
+    const authenticatedSupabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      {
+        global: {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      }
+    );
+
+    // Use RPC to increase credits (refund)
+    const { error: refundError } = await authenticatedSupabase.rpc('increase_user_credits', {
+      amount: creditAmount,
+      uid: userId,
+    });
+
+    if (refundError) {
+      console.error('❌ Credit refund failed:', refundError);
+      return false;
+    }
+
+    console.log('✅ Credits refunded successfully');
+    return true;
+  } catch (error) {
+    console.error('❌ Credit refund exception:', error);
+    return false;
+  }
+}
+
+// All models now use simple sync processing - no more async complications
+
+// Start async generation for long-running models
+async function startAsyncGeneration(params) {
+  const { prompt, aspect_ratio, type, video_model, duration, image, userId, creditCost, token } = params;
+  
+  console.log(`🚀 Starting async generation for ${video_model}`);
+  
+  // Create Supabase client with service role for database operations
+  const supabaseAdmin = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  );
+  
+  // Create authenticated Supabase client for user operations
+  const authenticatedSupabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    {
+      global: {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      },
+    }
+  );
+  
+  try {
+    // Start the Replicate prediction
+    const prediction = await startReplicatePrediction({ 
+      prompt, 
+      aspect_ratio, 
+      type, 
+      video_model, 
+      duration, 
+      image 
+    });
+    
+    console.log(`✅ Replicate prediction started: ${prediction.id}`);
+    console.log(`🔧 Prediction details:`, {
+      id: prediction.id,
+      status: prediction.status,
+      created_at: prediction.created_at,
+      model: prediction.model,
+      input_keys: prediction.input ? Object.keys(prediction.input) : 'No input'
+    });
+    
+    // Store generation in database
+    console.log(`📝 Inserting database record for ${prediction.id}...`);
+    const generationData = {
+      user_id: userId,
+      prediction_id: prediction.id,
+      type: type,
+      model: video_model,
+      prompt: prompt,
+      status: 'processing',
+      credit_cost: creditCost
+    };
+    console.log(`📝 Generation data:`, generationData);
+    
+    const { data: generation, error: dbError } = await authenticatedSupabase
+      .from('generations')
+      .insert([generationData])
+      .select()
+      .single();
+    
+    if (dbError) {
+      console.error('❌ CRITICAL: Database insert failed:', dbError);
+      console.error('❌ This will cause frontend status checks to fail immediately!');
+      console.error('❌ Database error details:', {
+        code: dbError.code,
+        message: dbError.message,
+        details: dbError.details,
+        hint: dbError.hint
+      });
+      // Continue anyway - the prediction is already started
+    } else {
+      console.log('✅ Generation record created in database:', {
+        id: generation.id,
+        prediction_id: generation.prediction_id,
+        status: generation.status,
+        created_at: generation.created_at
+      });
+    }
+    
+    // Start background monitoring (don't await)
+    console.log(`🔄 Starting background monitoring for ${prediction.id}...`);
+    monitorPrediction(prediction.id, userId, authenticatedSupabase).catch(err => {
+      console.error('❌ Background monitoring startup failed:', err);
+      console.error('❌ This could cause the 30-second fallback issue!');
+    });
+    
+    return prediction;
+    
+  } catch (error) {
+    console.error('❌ Failed to start async generation:', error);
+    console.error('❌ Error details:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    });
+    
+    // If database record was created but prediction failed, clean it up
+    if (error.message.includes('prediction') || error.message.includes('replicate')) {
+      console.log('🧹 Cleaning up database record due to prediction failure');
+      // Note: We could add cleanup logic here if needed
+    }
+    
+    throw error;
+  }
+}
+
+// Start Replicate prediction (extracted from generateContent)
+async function startReplicatePrediction(params) {
+  const { prompt, aspect_ratio, type, video_model, duration, image } = params;
+  
+  // This is the same logic as in generateContent, but only for starting the prediction
+  let version;
+  if (video_model === 'hailuo-02') {
+    version = '0d9f5f2f92cfd480087dfe7aa91eadbc1d48fbb1a0260379e2b30ca739fb20bd';
+  } else if (video_model === 'veo-3-fast') {
+    version = '590348ebd4cb656f3fc5b9270c4c19fb2abc5d1ae6101f7874413a3ec545260d';
+  } else if (video_model === 'veo-3') {
+    version = 'aa61b11710dc016f1f292a41808c94dadf23f549ccaf6755a852c491c6edc248';
+  } else if (video_model === 'luma-ray') {
+    version = '4d6dcb3b96dce9e9e33b5eb1c37cf2ce03e1e7e57cb59c99e67a1c3040b3ff9f';
+  } else {
+    version = '0d9f5f2f92cfd480087dfe7aa91eadbc1d48fbb1a0260379e2b30ca739fb20bd'; // Default to Hailuo
+  }
+  
+  // Sanitize prompt
+  const sanitizedPrompt = sanitizePrompt(prompt);
+  
+  // Set duration based on model
+  let modelDuration = parseInt(duration) || 6;
+  if (video_model === 'veo-3-fast' || video_model === 'veo-3') {
+    modelDuration = parseInt(duration) || 8;
+  }
+  
+  const inputData = {
+    prompt: sanitizedPrompt,
+    aspect_ratio,
+    duration: modelDuration,
+  };
+  
+  // Add image file if provided
+  if (image) {
+    const imageBase64 = await fileToBase64(image);
+    const mimeType = image.type || 'image/jpeg';
+    const dataUri = `data:${mimeType};base64,${imageBase64}`;
+    
+    if (video_model === 'hailuo-02') {
+      inputData.first_frame_image = dataUri;
+      console.log('✅ Image added to Hailuo-02 as first_frame_image');
+    } else if (video_model === 'veo-3' || video_model === 'veo-3-fast') {
+      inputData.image = dataUri;
+      console.log('✅ Image added to Veo-3 models');
+    } else if (video_model === 'luma-ray') {
+      // Luma Ray is text-to-video only, don't add image
+      console.log('ℹ️ Luma Ray is text-to-video only, ignoring image');
+    }
+  }
+  
+  console.log(`🚀 Creating Replicate prediction for ${video_model}`);
+  console.log(`📋 Input data:`, { 
+    prompt: sanitizedPrompt, 
+    aspect_ratio, 
+    duration: modelDuration,
+    hasImage: !!image 
+  });
+  
+  const prediction = await replicate.predictions.create({
+    version,
+    input: inputData,
+  });
+  
+  console.log(`✅ Replicate prediction created:`, {
+    id: prediction.id,
+    status: prediction.status,
+    created_at: prediction.created_at
+  });
+  
+  return prediction;
+}
+
+// Background monitoring function
+async function monitorPrediction(predictionId, userId, authenticatedSupabase = null) {
+  console.log(`👀 Starting background monitoring for ${predictionId} at ${new Date().toISOString()}`);
+  console.log(`🔧 Monitor params: predictionId=${predictionId}, userId=${userId}`);
+  
+  // Use the authenticated client if provided, otherwise fall back to service role
+  const supabaseForMonitoring = authenticatedSupabase || createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  );
+  
+  console.log(`🔧 Using ${authenticatedSupabase ? 'authenticated user client' : 'service role client'} for monitoring`);
+  
+  // First, verify the database record was created (with retry logic)
+  let recordFound = false;
+  let retryCount = 0;
+  const maxRetries = 5;
+  
+  while (!recordFound && retryCount < maxRetries) {
+    try {
+      console.log(`🔍 Verifying database record exists for ${predictionId}... (attempt ${retryCount + 1}/${maxRetries})`);
+      
+      // Try to find the record using the monitoring client
+      const { data: initialRecord, error: recordError } = await supabaseForMonitoring
+        .from('generations')
+        .select('*')
+        .eq('prediction_id', predictionId)
+        .eq('user_id', userId)
+        .maybeSingle(); // Use maybeSingle instead of single to avoid error if not found
+      
+      if (recordError) {
+        console.error(`❌ Database lookup error for ${predictionId} (attempt ${retryCount + 1}):`, recordError);
+      } else if (!initialRecord) {
+        console.log(`⚠️ Database record not found for ${predictionId} (attempt ${retryCount + 1})`);
+        
+        if (retryCount < maxRetries - 1) {
+          console.log(`⏳ Waiting 2 seconds before retry...`);
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          retryCount++;
+          continue;
+        }
+      } else {
+        console.log(`✅ Database record confirmed for ${predictionId}:`, {
+          id: initialRecord.id,
+          status: initialRecord.status,
+          created_at: initialRecord.created_at,
+          user_id: initialRecord.user_id
+        });
+        recordFound = true;
+        break;
+      }
+    } catch (recordCheckError) {
+      console.error(`❌ Failed to verify database record for ${predictionId} (attempt ${retryCount + 1}):`, recordCheckError);
+    }
+    
+    retryCount++;
+    if (retryCount < maxRetries) {
+      console.log(`⏳ Waiting 2 seconds before retry...`);
+      await new Promise(resolve => setTimeout(resolve, 2000));
+    }
+  }
+  
+  if (!recordFound) {
+    console.error(`❌ CRITICAL: Could not find database record for ${predictionId} after ${maxRetries} attempts!`);
+    console.error(`❌ This explains why frontend status checks fail!`);
+    return;
+  }
+  
+  // Create admin client for database updates (we need admin privileges for updates)
+  const supabaseAdmin = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  );
+  
+  const maxAttempts = 120; // 20 minutes max (10 second intervals) - increased for Veo models
+  let attempts = 0;
+  
+  while (attempts < maxAttempts) {
+    try {
+      await new Promise(resolve => setTimeout(resolve, 10000)); // Wait 10 seconds
+      attempts++;
+      
+      console.log(`🔍 [${new Date().toISOString()}] Checking prediction ${predictionId} (attempt ${attempts}/${maxAttempts})`);
+      console.log(`⏱️ Time elapsed: ${attempts * 10} seconds`);
+      
+      // Use the monitoring client to check database record (respects RLS)
+      const { data: currentRecord, error: dbError } = await supabaseForMonitoring
+        .from('generations')
+        .select('status, error')
+        .eq('prediction_id', predictionId)
+        .eq('user_id', userId) // Add user filter to match RLS policies
+        .maybeSingle(); // Use maybeSingle to avoid errors if not found
+      
+      if (dbError) {
+        console.error(`❌ Database record access error for ${predictionId}:`, dbError);
+        console.error(`❌ This would cause frontend status checks to fail!`);
+        break;
+      }
+      
+      if (!currentRecord) {
+        console.error(`❌ Database record no longer exists for ${predictionId}`);
+        console.error(`❌ This would cause frontend status checks to fail!`);
+        break;
+      }
+      
+      console.log(`📊 Database status: ${currentRecord.status}`);
+      
+      if (currentRecord.status === 'succeeded' || currentRecord.status === 'failed') {
+        console.log(`✅ Generation already completed in database: ${currentRecord.status}`);
+        break;
+      }
+      
+      // Now check Replicate
+      const prediction = await replicate.predictions.get(predictionId);
+      console.log(`📊 Replicate response for ${predictionId}:`, {
+        status: prediction.status,
+        created_at: prediction.created_at,
+        started_at: prediction.started_at,
+        completed_at: prediction.completed_at,
+        error: prediction.error,
+        logs: prediction.logs ? `${prediction.logs.length} log entries` : 'No logs'
+      });
+      
+      if (prediction.status === 'succeeded') {
+        console.log(`✅ Prediction ${predictionId} completed successfully`);
+        
+        const output = Array.isArray(prediction.output) ? prediction.output[0] : prediction.output;
+        
+        await supabaseAdmin
+          .from('generations')
+          .update({
+            status: 'succeeded',
+            output: output,
+            completed_at: new Date().toISOString()
+          })
+          .eq('prediction_id', predictionId)
+          .eq('user_id', userId); // Add user filter for RLS compatibility
+          
+        console.log(`✅ Database updated for ${predictionId}`);
+        break;
+        
+      } else if (prediction.status === 'failed' || prediction.status === 'canceled') {
+        console.log(`❌ Prediction ${predictionId} failed: ${prediction.error}`);
+        
+        // Get generation details for credit refund
+        const { data: generation } = await supabaseAdmin
+          .from('generations')
+          .select('credit_cost, user_id')
+          .eq('prediction_id', predictionId)
+          .single();
+        
+        if (generation) {
+          // Refund credits using service role key
+          try {
+            const { error: refundError } = await supabaseAdmin.rpc('increase_user_credits', {
+              amount: generation.credit_cost,
+              uid: generation.user_id
+            });
+            
+            if (refundError) {
+              console.error(`❌ Credit refund failed for ${predictionId}:`, refundError);
+            } else {
+              console.log(`✅ Credits refunded for failed prediction ${predictionId}`);
+            }
+          } catch (refundError) {
+            console.error(`❌ Credit refund exception for ${predictionId}:`, refundError);
+          }
+        }
+        
+        await supabaseAdmin
+          .from('generations')
+          .update({
+            status: 'failed',
+            error: prediction.error || `Status: ${prediction.status}`,
+            completed_at: new Date().toISOString()
+          })
+          .eq('prediction_id', predictionId)
+          .eq('user_id', userId); // Add user filter for RLS compatibility
+          
+        console.log(`✅ Database updated with failure for ${predictionId}`);
+        break;
+        
+      } else {
+        console.log(`⏳ Prediction ${predictionId} still ${prediction.status}...`);
+        // Continue monitoring
+      }
+      
+    } catch (error) {
+      console.error(`❌ Error monitoring ${predictionId}:`, error);
+      attempts++; // Count errors as attempts
+    }
+  }
+  
+  if (attempts >= maxAttempts) {
+    console.log(`⏰ Monitoring timeout for ${predictionId}`);
+    
+    // Get generation details for credit refund on timeout
+    const { data: generation } = await supabaseAdmin
+      .from('generations')
+      .select('credit_cost, user_id')
+      .eq('prediction_id', predictionId)
+      .single();
+    
+    if (generation) {
+      // Refund credits for timeout
+      try {
+        const { error: refundError } = await supabaseAdmin.rpc('increase_user_credits', {
+          amount: generation.credit_cost,
+          uid: generation.user_id
+        });
+        
+        if (refundError) {
+          console.error(`❌ Timeout credit refund failed for ${predictionId}:`, refundError);
+        } else {
+          console.log(`✅ Credits refunded for timeout ${predictionId}`);
+        }
+      } catch (refundError) {
+        console.error(`❌ Timeout credit refund exception for ${predictionId}:`, refundError);
+      }
+    }
+    
+    await supabaseAdmin
+      .from('generations')
+      .update({
+        status: 'failed',
+        error: `Monitoring timeout after ${maxAttempts} attempts`,
+        completed_at: new Date().toISOString()
+      })
+      .eq('prediction_id', predictionId)
+      .eq('user_id', userId); // Add user filter for RLS compatibility
+  }
+}
+
 async function generateContent(params) {
   try {
     // Extract all parameters
@@ -122,7 +576,7 @@ async function generateContent(params) {
       } else if (video_model === 'veo-3') {
         version = 'aa61b11710dc016f1f292a41808c94dadf23f549ccaf6755a852c491c6edc248'; // Veo 3
       } else if (video_model === 'luma-ray') {
-        version = '4d204a98-8a4b-4e17-9c3b-c8a2bb2f5e84'; // Luma Ray (placeholder - needs correct version)
+        version = '4d6dcb3b96dce9e9e33b5eb1c37cf2ce03e1e7e57cb59c99e67a1c3040b3ff9f'; // Luma Ray
       } else {
         version = '0d9f5f2f92cfd480087dfe7aa91eadbc1d48fbb1a0260379e2b30ca739fb20bd'; // Default to Hailuo 02
       }
@@ -142,22 +596,6 @@ async function generateContent(params) {
         aspect_ratio,
         duration: modelDuration,
       };
-      
-      // Add model-specific optimizations for text2video
-      if (video_model === 'hailuo-02') {
-        console.log('🚀 Configuring Hailuo-02 model for TEXT2VIDEO (Text-to-Video)');
-        console.log('🔧 Hailuo-02 text2video duration:', modelDuration);
-        console.log('🔧 Hailuo-02 text2video prompt:', sanitizedPrompt);
-        console.log('🔧 Hailuo-02 text2video aspect_ratio:', aspect_ratio);
-        
-        // Hailuo-02 text2video only supports 16:9, so force it
-        inputData.aspect_ratio = '16:9';
-        
-        // Text-focused settings for text2video - prioritize prompt text
-        inputData.cfg_scale = 8.5; // Higher guidance - follow text prompt closely
-        inputData.num_inference_steps = 50; // More steps for better text adherence
-        console.log('📝 Hailuo-02 TEXT2VIDEO settings: aspect_ratio=16:9 (forced), cfg_scale=8.5, steps=50 (TEXT-FOCUSED)');
-      }
       
       prediction = await replicate.predictions.create({
         version,
@@ -231,59 +669,11 @@ async function generateContent(params) {
         console.log('❌ No image file found in parameters');
       }
 
-      // Try to add safety settings for Kling v2.1 to reduce false positives
-      if (video_model === 'kling-v2.1') {
-        inputData.safety_tolerance = 'high'; // Try to be more permissive with content
-        inputData.image_strength = 0.8; // Good image preservation for Kling v2.1
-        inputData.guidance_scale = 6.5; // Balanced guidance
-        console.log('🛡️ Added safety_tolerance: high for Kling v2.1');
-        console.log('🖼️ Kling v2.1 image preservation: strength=0.8, guidance_scale=6.5');
-      }
+      // Simple configuration for all models - no complex optimizations
+      console.log('🎬 Using simple configuration for', video_model);
 
-      // Add model-specific optimizations
-      if (video_model === 'hailuo-02') {
-        console.log('🌟 Configuring Hailuo-02 model (HYBRID: WAN-2.1 + Schema)');
-        console.log('🔧 Hailuo-02 using first_frame_image parameter:', !!image);
-        console.log('🔧 Hailuo-02 duration:', duration);
-        console.log('🔧 Hailuo-02 prompt:', prompt);
-        
-        // FIRST: Use WAN-2.1's proven image preservation approach
-        inputData.image_strength = 0.85; // COPY WAN-2.1's proven value
-        inputData.guidance_scale = 7.0; // COPY WAN-2.1's proven value
-        
-        // SECOND: Add Hailuo-02 specific schema parameters
-        inputData.prompt_optimizer = false; // Disable prompt optimization to preserve image fidelity
-        
-        console.log('🖼️ Hailuo-02 HYBRID: WAN-2.1 approach (strength=0.85, guidance=7.0) + Schema (prompt_optimizer=false)');
-      }
-
-      if (video_model === 'seedance-1-pro') {
-        console.log('� Configuring Seedance-1-Pro model (HYBRID: WAN-2.1 + Schema)');
-        console.log('🔧 Seedance Pro using image parameter:', !!image);
-        console.log('🔧 Seedance Pro duration:', duration);
-        console.log('🔧 Seedance Pro prompt:', prompt);
-        
-        // FIRST: Use WAN-2.1's proven image preservation approach
-        inputData.image_strength = 0.85; // COPY WAN-2.1's proven value
-        inputData.guidance_scale = 7.0; // COPY WAN-2.1's proven value
-        
-        // SECOND: Add schema-correct parameters for extra preservation
-        inputData.resolution = "1080p"; // High quality output
-        inputData.camera_fixed = true; // CRITICAL: Fix camera to prevent image distortion
-        inputData.fps = 24; // Standard frame rate
-        
-        // CRITICAL FIX: Seedance Pro expects URI format, not base64
-        if (image) {
-          // Replace base64 with the File object - let Replicate handle the upload
-          inputData.image = image; // Use File object instead of base64
-          console.log('� Using File object for Seedance Pro (Replicate will handle upload)');
-          
-          delete inputData.aspect_ratio;
-          console.log('🔧 Removed aspect_ratio - Seedance Pro uses image natural ratio');
-        }
-        
-        console.log('🖼️ Seedance Pro HYBRID: WAN-2.1 approach (strength=0.85, guidance=7.0) + Schema (1080p, camera_fixed=true)');
-      }
+      // Keep models simple like Kling v2.1 - no complex configurations
+      console.log('🎬 Using simple configuration for', video_model);
 
       // Add model-specific optimizations for WAN-2.1
       if (video_model === 'wan-2.1-i2v-720p') {
@@ -375,6 +765,13 @@ export async function POST(req) {
   console.log('🔗 Request URL:', req.url);
   console.log('📋 Request headers:', Object.fromEntries(req.headers.entries()));
 
+  // Declare variables at function scope so they're accessible in catch block
+  let user = null;
+  let userData = null;
+  let creditCost = 2; // Default for genimage
+  let token = null;
+  let type = null;
+
   try {
     console.log('📦 Parsing request data...');
     
@@ -426,19 +823,20 @@ export async function POST(req) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
-    const token = authHeader.split(' ')[1];
+    token = authHeader.split(' ')[1];
 
     // Verify the token with Supabase
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    if (authError || !user) {
+    const { data: { user: authenticatedUser }, error: authError } = await supabase.auth.getUser(token);
+    if (authError || !authenticatedUser) {
       console.error('Authentication error:', authError); // Log authentication errors
       return NextResponse.json({ error: 'Invalid authentication token' }, { status: 401 });
     }
 
+    user = authenticatedUser;
     console.log('📥 Incoming API request:', { prompt, aspect_ratio, type, video_model, duration, user: user.id });
 
     // Determine credit cost based on generation type
-    let creditCost = 2; // Default for genimage
+    creditCost = 2; // Default for genimage
     if (type === 'genvideo' || type === 'text2video') {
       const costMapping = {
         'kling-v2.1': 4,
@@ -464,7 +862,6 @@ export async function POST(req) {
     console.log('Fetching user credits for user ID:', user.id);
 
     let currentCredits = 0;
-    let userData = null;
     let userExists = false;
 
     try {
@@ -656,11 +1053,96 @@ export async function POST(req) {
       console.log('This means the user will have unlimited credits until database issues are resolved');
     }
 
-    // For now, use synchronous processing for all models
-    // TODO: Implement proper async processing later
-    console.log(`🔄 Using SYNC processing for ${type}/${video_model || 'flux'}`);
+    // ALL MODELS NOW USE SIMPLE SYNC PROCESSING - no more async complications  
+    // DISABLED async processing - it was causing frontend completion detection issues
+    const isAsync = false;
     
-    const result = await generateContent({ prompt, aspect_ratio, type, video_model, duration, image: imageFile });
+    if (isAsync) {
+      console.log(`🔄 Using ASYNC processing for ${video_model} (long-running model)`);
+      
+      // Start the generation without waiting
+      const prediction = await startAsyncGeneration({ 
+        prompt, 
+        aspect_ratio, 
+        type, 
+        video_model, 
+        duration, 
+        image: imageFile,
+        userId: user.id,
+        creditCost: creditCost,
+        token: token
+      });
+      
+      // Return immediately with prediction ID for polling
+      return NextResponse.json({ 
+        prediction_id: prediction.id,
+        status: 'processing',
+        message: `${video_model} video generation started. This may take 2-10 minutes. Poll /api/generation-status?id=${prediction.id} for updates.`
+      }, { status: 202 });
+      
+    } else {
+      console.log(`🔄 Using SYNC processing for ${type}/${video_model || 'flux'} (fast model)`);
+      
+      const result = await generateContent({ prompt, aspect_ratio, type, video_model, duration, image: imageFile });
+      
+      if (result.status !== 'succeeded' || !result.output) {
+        console.error('❌ Generation failed:', result.error || result.logs || 'Unknown');
+        
+        // Refund credits for failed generation
+        if (userData && !userData.temporary) {
+          console.log('💰 Attempting to refund credits due to generation failure');
+          await refundCredits(user.id, creditCost, token);
+        }
+        
+        // Check if it's a content moderation issue
+        const errorMessage = result.error || result.logs || 'Unknown error';
+        const isContentFlagged = errorMessage.includes('Content flagged') || 
+                                errorMessage.includes('sexual') || 
+                                errorMessage.includes('inappropriate') ||
+                                errorMessage.includes('NSFW content detected') ||
+                                errorMessage.includes('NSFW') ||
+                                errorMessage.includes('moderation');
+        
+        if (isContentFlagged) {
+          console.log('🚫 Content was flagged by moderation system');
+          return NextResponse.json(
+            {
+              error: 'Content moderation issue',
+              detail: `The AI detected potentially inappropriate content in your prompt. The system flagged: "${errorMessage}". Please try rephrasing your prompt with more general terms and avoid specific themes that might be misinterpreted.`,
+              logs: result.allLogs || [],
+              status: result.status,
+              suggestion: 'Try using more general descriptions like "people at a table", "card game", "social gathering" instead of specific gambling/casino references.',
+              refunded: true
+            },
+            { status: 400 } // Use 400 instead of 500 for content issues
+          );
+        }
+        
+        // Determine error message based on generation type
+        const isImageGeneration = type === 'genimage';
+        const errorTitle = isImageGeneration ? 'Error generating image' : 'Error generating video';
+        const refundMessage = 'Your credits will be refunded';
+        
+        return NextResponse.json(
+          {
+            error: errorTitle,
+            detail: result.logs || 'Generation failed due to technical issues',
+            logs: result.allLogs || [],
+            status: result.status,
+            refunded: true,
+            refundMessage: refundMessage,
+            isImageGeneration: isImageGeneration
+          },
+          { status: 500 }
+        );
+      }
+
+      const output = Array.isArray(result.output) ? result.output[0] : result.output;
+      const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
+
+      console.log(`✅ Success in ${elapsed}s`);
+      return NextResponse.json({ output, duration: elapsed, logs: result.allLogs || [], status: result.status }, { status: 200 });
+    }
 
     if (result.status !== 'succeeded' || !result.output) {
       console.error('❌ Generation failed:', result.error || result.logs || 'Unknown');
@@ -712,10 +1194,27 @@ export async function POST(req) {
     console.error('❌ Error stack:', err.stack);
     console.error('❌ Full error object:', err);
 
+    // Refund credits for unexpected errors (if credits were deducted)
+    try {
+      if (user && userData && !userData.temporary && typeof creditCost !== 'undefined') {
+        console.log('💰 Attempting to refund credits due to server error');
+        await refundCredits(user.id, creditCost, token);
+      }
+    } catch (refundError) {
+      console.error('❌ Failed to refund credits after server error:', refundError);
+    }
+
+    // Determine if this was an image or video generation
+    const isImageGeneration = type === 'genimage';
+    const errorTitle = isImageGeneration ? 'Error generating image' : 'Error generating video';
+
     return NextResponse.json(
       {
-        error: 'Server error',
-        detail: err?.message || 'Unknown',
+        error: errorTitle,
+        detail: err?.message || 'Unexpected server error occurred',
+        refunded: true,
+        refundMessage: 'Your credits will be refunded',
+        isImageGeneration: isImageGeneration
       },
       { status: 500 }
     );
