@@ -90,7 +90,7 @@ function sanitizePrompt(prompt) {
   return sanitized;
 }
 
-async function generateContent(params) {
+async function generateContent(params, userId = null, useWebhook = false) {
   try {
     // Extract all parameters
     const { 
@@ -108,8 +108,12 @@ async function generateContent(params) {
       type,
       video_model,
       duration,
-      image: image ? 'present' : 'missing'
+      image: image ? 'present' : 'missing',
+      useWebhook
     });
+    
+    // Determine webhook URL for async processing
+    const webhookUrl = useWebhook ? `${process.env.NEXT_PUBLIC_SITE_URL || 'https://dream-motion.vercel.app'}/api/webhook` : null;
     
     let prediction;
     if (type === 'text2video') {
@@ -157,10 +161,19 @@ async function generateContent(params) {
         console.log('📝 Hailuo-02 TEXT2VIDEO settings: aspect_ratio=16:9 (forced), cfg_scale=8.5, steps=50 (TEXT-FOCUSED)');
       }
       
-      prediction = await replicate.predictions.create({
+      const apiCall = {
         version,
         input: inputData,
-      });
+      };
+      
+      // Add webhook URL for async processing
+      if (webhookUrl) {
+        apiCall.webhook = webhookUrl;
+        apiCall.webhook_events_filter = ["start", "output", "logs", "completed"];
+        console.log('🎣 Using webhook for async processing:', webhookUrl);
+      }
+      
+      prediction = await replicate.predictions.create(apiCall);
     } else if (type === 'genvideo') {
       // Image-to-video models (Kling v2.1)
       console.log('🎬 Processing genvideo request with Kling v2.1');
@@ -305,10 +318,19 @@ async function generateContent(params) {
       console.log('📋 Input data:', inputData);
       
       try {
-        prediction = await replicate.predictions.create({
+        const apiCall = {
           version,
           input: inputData,
-        });
+        };
+        
+        // Add webhook URL for async processing
+        if (webhookUrl) {
+          apiCall.webhook = webhookUrl;
+          apiCall.webhook_events_filter = ["start", "output", "logs", "completed"];
+          console.log('🎣 Using webhook for async processing:', webhookUrl);
+        }
+        
+        prediction = await replicate.predictions.create(apiCall);
         console.log('✅ Replicate API call successful, prediction ID:', prediction.id);
       } catch (replicateError) {
         console.error('❌ Replicate API call failed:', replicateError);
@@ -343,6 +365,14 @@ async function generateContent(params) {
         throw replicateError;
       }
     }
+    
+    // For webhook-based calls, return immediately without polling
+    if (webhookUrl) {
+      console.log(`🎣 Webhook processing started - returning prediction immediately`);
+      return prediction;
+    }
+    
+    // For synchronous calls, poll for completion
     let result = prediction;
     let logs = [];
     while (['starting', 'processing'].includes(result.status)) {
@@ -652,19 +682,78 @@ export async function POST(req) {
       console.log('This means the user will have unlimited credits until database issues are resolved');
     }
 
-    const result = await generateContent({ prompt, aspect_ratio, type, video_model, duration, image: imageFile });
-
-    if (result.status !== 'succeeded' || !result.output) {
-      console.error('❌ Generation failed:', result.error || result.logs || 'Unknown');
+    // Determine if this should use async processing (long-running video models)
+    const longRunningModels = ['hailuo-02', 'veo-3', 'veo-3-fast', 'luma-ray', 'kling-v2.1'];
+    const useAsync = type === 'genvideo' && longRunningModels.includes(video_model);
+    
+    if (useAsync) {
+      console.log(`🔄 Using ASYNC processing for ${video_model} (prevents timeout)`);
       
-      // Check if it's a content moderation issue
-      const errorMessage = result.error || result.logs || 'Unknown error';
-      const isContentFlagged = errorMessage.includes('Content flagged') || 
-                              errorMessage.includes('sexual') || 
-                              errorMessage.includes('inappropriate') ||
-                              errorMessage.includes('NSFW content detected') ||
-                              errorMessage.includes('NSFW') ||
-                              errorMessage.includes('moderation');
+      // Create the generation record in database first
+      const { data: generation, error: insertError } = await supabase
+        .from('generations')
+        .insert({
+          user_id: user.id,
+          prediction_id: 'pending', // Will be updated with actual ID
+          type,
+          model: video_model,
+          prompt,
+          credits_cost,
+          status: 'starting'
+        })
+        .select()
+        .single();
+      
+      if (insertError) {
+        console.error('❌ Error creating generation record:', insertError);
+        return NextResponse.json({ error: 'Failed to create generation record' }, { status: 500 });
+      }
+      
+      // Start the async generation with webhook
+      const result = await generateContent(
+        { prompt, aspect_ratio, type, video_model, duration, image: imageFile }, 
+        user.id, 
+        true // useWebhook = true
+      );
+      
+      // Update the generation record with the actual prediction ID
+      const { error: updateError } = await supabase
+        .from('generations')
+        .update({ prediction_id: result.id })
+        .eq('id', generation.id);
+      
+      if (updateError) {
+        console.error('❌ Error updating prediction ID:', updateError);
+      }
+      
+      console.log(`✅ Async generation started - ID: ${result.id}`);
+      
+      // Return immediately with status info
+      return NextResponse.json({
+        prediction_id: result.id,
+        status: 'processing',
+        message: 'Video generation started. This may take 2-3 minutes.',
+        check_url: `/api/generation-status?id=${result.id}`,
+        estimated_time: '2-3 minutes'
+      }, { status: 202 }); // 202 = Accepted (processing)
+      
+    } else {
+      console.log(`🔄 Using SYNC processing for ${type}/${video_model || 'flux'} (fast model)`);
+      
+      // Use synchronous processing for fast models (images, short videos)
+      const result = await generateContent({ prompt, aspect_ratio, type, video_model, duration, image: imageFile });
+
+      if (result.status !== 'succeeded' || !result.output) {
+        console.error('❌ Generation failed:', result.error || result.logs || 'Unknown');
+        
+        // Check if it's a content moderation issue
+        const errorMessage = result.error || result.logs || 'Unknown error';
+        const isContentFlagged = errorMessage.includes('Content flagged') || 
+                                errorMessage.includes('sexual') || 
+                                errorMessage.includes('inappropriate') ||
+                                errorMessage.includes('NSFW content detected') ||
+                                errorMessage.includes('NSFW') ||
+                                errorMessage.includes('moderation');
       
       if (isContentFlagged) {
         console.log('🚫 Content was flagged by moderation system');
@@ -696,6 +785,8 @@ export async function POST(req) {
 
     console.log(`✅ Success in ${elapsed}s`);
     return NextResponse.json({ output, duration: elapsed, logs: result.allLogs || [], status: result.status }, { status: 200 });
+    
+    } // End of else block for sync processing
 
   } catch (err) {
     console.error('❌ CATCH BLOCK - Unexpected server error at:', new Date().toISOString());
