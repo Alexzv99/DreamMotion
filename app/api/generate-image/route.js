@@ -689,53 +689,32 @@ export async function POST(req) {
     if (useAsync) {
       console.log(`🔄 Using ASYNC processing for ${video_model} (prevents timeout)`);
       
-      // Create the generation record in database first
-      const { data: generation, error: insertError } = await supabase
-        .from('generations')
-        .insert({
-          user_id: user.id,
-          prediction_id: 'pending', // Will be updated with actual ID
-          type,
-          model: video_model,
-          prompt,
-          credits_cost,
-          status: 'starting'
-        })
-        .select()
-        .single();
-      
-      if (insertError) {
-        console.error('❌ Error creating generation record:', insertError);
-        return NextResponse.json({ error: 'Failed to create generation record' }, { status: 500 });
+      try {
+        // Start the async generation with webhook
+        const result = await generateContent(
+          { prompt, aspect_ratio, type, video_model, duration, image: imageFile }, 
+          user.id, 
+          true // useWebhook = true
+        );
+        
+        console.log(`✅ Async generation started - ID: ${result.id}`);
+        
+        // Return immediately with status info
+        return NextResponse.json({
+          prediction_id: result.id,
+          status: 'processing',
+          message: 'Video generation started. This may take 2-3 minutes.',
+          check_url: `/api/generation-status?id=${result.id}`,
+          estimated_time: '2-3 minutes'
+        }, { status: 202 }); // 202 = Accepted (processing)
+        
+      } catch (asyncError) {
+        console.error('❌ Async generation failed:', asyncError);
+        return NextResponse.json({ 
+          error: 'Failed to start async generation',
+          detail: asyncError.message 
+        }, { status: 500 });
       }
-      
-      // Start the async generation with webhook
-      const result = await generateContent(
-        { prompt, aspect_ratio, type, video_model, duration, image: imageFile }, 
-        user.id, 
-        true // useWebhook = true
-      );
-      
-      // Update the generation record with the actual prediction ID
-      const { error: updateError } = await supabase
-        .from('generations')
-        .update({ prediction_id: result.id })
-        .eq('id', generation.id);
-      
-      if (updateError) {
-        console.error('❌ Error updating prediction ID:', updateError);
-      }
-      
-      console.log(`✅ Async generation started - ID: ${result.id}`);
-      
-      // Return immediately with status info
-      return NextResponse.json({
-        prediction_id: result.id,
-        status: 'processing',
-        message: 'Video generation started. This may take 2-3 minutes.',
-        check_url: `/api/generation-status?id=${result.id}`,
-        estimated_time: '2-3 minutes'
-      }, { status: 202 }); // 202 = Accepted (processing)
       
     } else {
       console.log(`🔄 Using SYNC processing for ${type}/${video_model || 'flux'} (fast model)`);

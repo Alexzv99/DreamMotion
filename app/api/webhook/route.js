@@ -1,10 +1,4 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
 
 export async function POST(req) {
   try {
@@ -20,24 +14,9 @@ export async function POST(req) {
       return NextResponse.json({ error: 'Missing prediction ID' }, { status: 400 });
     }
     
-    // Update the generation status in database
-    const { error: updateError } = await supabase
-      .from('generations')
-      .update({
-        status,
-        output: output ? (Array.isArray(output) ? output[0] : output) : null,
-        error: error?.detail || error || null,
-        completed_at: status === 'succeeded' || status === 'failed' ? new Date().toISOString() : null
-      })
-      .eq('prediction_id', id);
+    console.log(`✅ Webhook processed for prediction ${id} with status: ${status}`);
     
-    if (updateError) {
-      console.error('❌ Error updating generation status:', updateError);
-      return NextResponse.json({ error: 'Database update failed' }, { status: 500 });
-    }
-    
-    console.log(`✅ Updated generation ${id} with status: ${status}`);
-    
+    // For now, just log the webhook data - we'll query Replicate directly for status
     return NextResponse.json({ success: true });
     
   } catch (error) {
