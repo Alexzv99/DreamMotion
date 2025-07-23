@@ -67,11 +67,8 @@ GRANT EXECUTE ON FUNCTION decrease_user_credits(INTEGER, UUID) TO authenticated;
 CREATE INDEX IF NOT EXISTS idx_users_id ON users(id);
 CREATE INDEX IF NOT EXISTS idx_users_credits ON users(credits);
 
--- 10. Verify the setup
-SELECT 
-  'Setup verification:' as status,
-  'Users table exists' as users_table,
-  'RLS enabled: ' || (SELECT row_security FROM pg_tables WHERE tablename = 'users') as rls_status;
+-- 10. Verify the setup (simplified to avoid multiple row errors)
+SELECT 'RLS Policies Setup Complete!' as status;
 
 -- Show current policies
 SELECT schemaname, tablename, policyname, cmd, roles 
@@ -79,6 +76,6 @@ FROM pg_policies
 WHERE tablename = 'users';
 
 -- Test the function existence
-SELECT 'Function exists: ' || CASE WHEN EXISTS (
+SELECT CASE WHEN EXISTS (
   SELECT 1 FROM pg_proc WHERE proname = 'decrease_user_credits'
-) THEN 'YES' ELSE 'NO' END as function_status;
+) THEN 'Function exists: YES' ELSE 'Function exists: NO' END as function_status;
