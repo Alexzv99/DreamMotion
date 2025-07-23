@@ -121,6 +121,8 @@ async function generateContent(params) {
         version = '590348ebd4cb656f3fc5b9270c4c19fb2abc5d1ae6101f7874413a3ec545260d'; // Veo 3 Fast
       } else if (video_model === 'veo-3') {
         version = 'aa61b11710dc016f1f292a41808c94dadf23f549ccaf6755a852c491c6edc248'; // Veo 3
+      } else if (video_model === 'luma-ray') {
+        version = '4d204a98-8a4b-4e17-9c3b-c8a2bb2f5e84'; // Luma Ray (placeholder - needs correct version)
       } else {
         version = '0d9f5f2f92cfd480087dfe7aa91eadbc1d48fbb1a0260379e2b30ca739fb20bd'; // Default to Hailuo 02
       }
@@ -344,13 +346,7 @@ async function generateContent(params) {
       }
     }
     
-    // For webhook-based calls, return immediately without polling
-    if (webhookUrl) {
-      console.log(`🎣 Webhook processing started - returning prediction immediately`);
-      return prediction;
-    }
-    
-    // For synchronous calls, poll for completion
+    // Poll for completion
     let result = prediction;
     let logs = [];
     while (['starting', 'processing'].includes(result.status)) {
