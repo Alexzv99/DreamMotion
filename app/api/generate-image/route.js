@@ -12,18 +12,11 @@ console.log('🔑 Token length:', process.env.REPLICATE_API_TOKEN?.length || 0);
 console.log('🏠 Environment:', process.env.NODE_ENV);
 console.log('🌐 Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL ? 'Present' : 'Missing');
 console.log('🔐 Supabase Anon Key:', process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? 'Present' : 'Missing');
-console.log('🔑 Service Role Key:', process.env.SUPABASE_SERVICE_ROLE_KEY ? 'Present' : 'Missing');
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY // Removed hardcoded fallback value
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
-
-// Create admin client for operations that bypass RLS
-const supabaseAdmin = process.env.SUPABASE_SERVICE_ROLE_KEY ? createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-) : null;
 
 // Helper function to convert File object to base64 string
 async function fileToBase64(file) {
@@ -466,10 +459,26 @@ export async function POST(req) {
 
     let currentCredits = 0;
     let userData = null;
+    let userExists = false;
 
     try {
+      // First, create a Supabase client with the user's auth token for proper RLS access
+      const authenticatedSupabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+        {
+          global: {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          },
+        }
+      );
+
+      console.log('🔍 Checking for existing user with authenticated client:', user.id);
+      
       // Use array query instead of .single() to handle duplicates
-      const { data: allUserData, error: userError } = await supabase
+      const { data: allUserData, error: userError } = await authenticatedSupabase
         .from('users')
         .select('credits')
         .eq('id', user.id);
@@ -479,49 +488,49 @@ export async function POST(req) {
           message: userError.message,
           details: userError.details,
           hint: userError.hint,
+          code: userError.code
         });
-        // For now, continue with default credits instead of failing
-        console.log('⚠️ Database query failed, using default credits');
-        currentCredits = 10;
-        userData = { credits: 10, temporary: true };
-      } else if (!allUserData || allUserData.length === 0) {
-      // No user found, try to create new user with 10 credits
-      console.log('No user found, attempting to create new user with 10 credits');
-      
-      // Strategy 1: Try using service role client if available
-      if (supabaseAdmin) {
-        console.log('Attempting user creation with service role key');
-        try {
-          const { data: newUser, error: insertError } = await supabaseAdmin
-            .from('users')
-            .insert([{ 
-              id: user.id, 
-              email: user.email, 
-              credits: 10,
-              created_at: new Date().toISOString()
-            }])
-            .select()
-            .single();
-
-          if (!insertError && newUser) {
-            console.log('✅ New user created successfully with service role');
-            currentCredits = 10;
-            userData = { credits: 10 };
-          } else {
-            console.error('❌ Service role insert failed:', insertError?.message);
-            throw new Error(insertError?.message || 'Insert failed');
-          }
-        } catch (serviceError) {
-          console.error('❌ Service role creation failed:', serviceError.message);
-          // Fall through to Strategy 2
+        
+        // If it's an RLS error, user likely doesn't exist yet
+        if (userError.message.includes('row-level security') || userError.code === '42501') {
+          console.log('🔐 RLS blocking access, user likely doesn\'t exist yet. Will attempt to create...');
+        } else {
+          console.log('⚠️ Database query failed, using default credits');
+          currentCredits = 10;
+          userData = { credits: 10, temporary: true };
         }
+      } else if (!allUserData || allUserData.length === 0) {
+        console.log('👤 No user found in database');
+      } else if (allUserData.length > 1) {
+        // Multiple users found - use the first one and clean up duplicates
+        console.warn(`Found ${allUserData.length} duplicate entries for user ${user.id}. Using the first one.`);
+        userData = allUserData[0];
+        currentCredits = userData.credits || 0;
+        userExists = true;
+        
+        // Clean up duplicates (keep the first one)
+        for (let i = 1; i < allUserData.length; i++) {
+          await authenticatedSupabase
+            .from('users')
+            .delete()
+            .eq('id', user.id)
+            .limit(1);
+        }
+        console.log('Cleaned up duplicate entries');
+      } else {
+        // Exactly one user found - normal case
+        userData = allUserData[0];
+        currentCredits = userData.credits || 0;
+        userExists = true;
+        console.log('✅ User credits found:', currentCredits);
       }
-      
-      // Strategy 2: Try with regular client (might work if RLS allows authenticated users)
-      if (!userData) {
-        console.log('Attempting user creation with authenticated user token');
+
+      // If user doesn't exist, create them
+      if (!userExists) {
+        console.log('👤 Creating new user with 10 credits...');
+        
         try {
-          const { data: newUser, error: insertError } = await supabase
+          const { data: newUser, error: insertError } = await authenticatedSupabase
             .from('users')
             .insert([{ 
               id: user.id, 
@@ -533,46 +542,44 @@ export async function POST(req) {
             .single();
 
           if (!insertError && newUser) {
-            console.log('✅ New user created successfully with user token');
+            console.log('✅ New user created successfully');
             currentCredits = 10;
             userData = { credits: 10 };
+            userExists = true;
           } else {
-            console.error('❌ User token insert failed:', insertError?.message);
-            throw new Error(insertError?.message || 'Insert failed');
+            console.error('❌ User creation failed:', {
+              message: insertError?.message,
+              details: insertError?.details,
+              hint: insertError?.hint,
+              code: insertError?.code
+            });
+            
+            // Check if it's an RLS issue
+            if (insertError?.code === '42501') {
+              console.error('🚨 CRITICAL: RLS policies are blocking user creation!');
+              console.error('📝 Please run: supabase-rls-policies.sql commands to fix RLS.');
+              
+              return NextResponse.json({ 
+                error: 'Database setup required', 
+                detail: 'Row Level Security policies need to be configured. Please contact support.',
+                code: 'RLS_SETUP_REQUIRED'
+              }, { status: 500 });
+            }
+            
+            // Fallback to temporary credits
+            console.log('⚠️ Using temporary credits due to user creation failure');
+            currentCredits = 10;
+            userData = { credits: 10, temporary: true };
           }
         } catch (userError) {
-          console.error('❌ User token creation failed:', userError.message);
-          // Fall through to Strategy 3
+          console.error('❌ User creation exception:', userError.message);
+          // Fallback to temporary credits
+          console.log('⚠️ Using temporary credits due to exception');
+          currentCredits = 10;
+          userData = { credits: 10, temporary: true };
         }
       }
-      
-      // Strategy 3: Use default credits without database entry (fallback)
-      if (!userData) {
-        console.log('⚠️ Database user creation failed, using default credits (no persistence)');
-        currentCredits = 10;
-        userData = { credits: 10, temporary: true }; // Mark as temporary
-      }
-    } else if (allUserData.length > 1) {
-      // Multiple users found - use the first one and clean up duplicates
-      console.warn(`Found ${allUserData.length} duplicate entries for user ${user.id}. Using the first one.`);
-      userData = allUserData[0];
-      currentCredits = userData.credits || 0;
-      
-      // Clean up duplicates (keep the first one)
-      for (let i = 1; i < allUserData.length; i++) {
-        await supabase
-          .from('users')
-          .delete()
-          .eq('id', user.id)
-          .limit(1);
-      }
-      console.log('Cleaned up duplicate entries');
-    } else {
-      // Exactly one user found - normal case
-      userData = allUserData[0];
-      currentCredits = userData.credits || 0;
-      console.log('User credits found:', currentCredits);
-    }
+
     } catch (generalError) {
       console.error('❌ General database error:', generalError.message);
       console.log('⚠️ Using fallback credits due to database error');
@@ -591,32 +598,56 @@ export async function POST(req) {
 
     // Deduct credits before generation using Supabase RPC (only if user exists in database)
     if (userData && !userData.temporary) {
-      console.log('Deducting credits from database user');
-      const { error: deductError } = await supabase.rpc('decrease_user_credits', {
-        amount: creditCost,
-        uid: user.id,
-      });
+      console.log('Attempting to deduct credits from database user');
+      console.log('User ID:', user.id, 'Credit Cost:', creditCost, 'Current Credits:', currentCredits);
+      
+      try {
+        // Use authenticated client for credit deduction
+        const authenticatedSupabase = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL,
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+          {
+            global: {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            },
+          }
+        );
 
-      if (deductError) {
-        console.error('Failed to deduct credits via RPC:', deductError);
-        // Try with admin client if available
-        if (supabaseAdmin) {
-          console.log('Attempting credit deduction with service role');
-          const { error: adminDeductError } = await supabaseAdmin.rpc('decrease_user_credits', {
-            amount: creditCost,
-            uid: user.id,
+        const { error: deductError } = await authenticatedSupabase.rpc('decrease_user_credits', {
+          amount: creditCost,
+          uid: user.id,
+        });
+
+        if (deductError) {
+          console.error('❌ Failed to deduct credits via RPC:', deductError);
+          console.error('❌ Error details:', {
+            message: deductError.message,
+            details: deductError.details,
+            hint: deductError.hint,
+            code: deductError.code
           });
           
-          if (adminDeductError) {
-            console.error('Failed to deduct credits via admin RPC:', adminDeductError);
-            return NextResponse.json({ error: 'Failed to deduct credits' }, { status: 500 });
-          }
+          return NextResponse.json({ 
+            error: 'Failed to deduct credits', 
+            detail: `Database error: ${deductError.message}`,
+            suggestion: 'Please check your Supabase RLS policies and database functions. Make sure you have run the SQL setup commands.'
+          }, { status: 500 });
         } else {
-          return NextResponse.json({ error: 'Failed to deduct credits' }, { status: 500 });
+          console.log('✅ Credits deducted successfully');
         }
+      } catch (deductionError) {
+        console.error('❌ Unexpected error during credit deduction:', deductionError);
+        return NextResponse.json({ 
+          error: 'Credit deduction failed', 
+          detail: deductionError.message,
+          suggestion: 'Please check your database connection and RLS policies'
+        }, { status: 500 });
       }
     } else {
-      console.log('User is temporary or not in database, skipping credit deduction');
+      console.log('⚠️ User is temporary or not in database, skipping credit deduction');
+      console.log('This means the user will have unlimited credits until database issues are resolved');
     }
 
     const result = await generateContent({ prompt, aspect_ratio, type, video_model, duration, image: imageFile });
