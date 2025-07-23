@@ -202,26 +202,28 @@ async function generateContent(params) {
         duration: modelDuration, // Use model-specific duration
       };
 
-      // Add image file if it exists - convert to base64 and use model-specific parameters
+      // Add image file if it exists - convert to base64 data URI for all models
       if (image) {
-        // Convert File object to base64 string for Replicate API
+        // Convert File object to base64 data URI for Replicate API
         const imageBase64 = await fileToBase64(image);
-        console.log('🔄 Converted image file to base64 format');
+        const mimeType = image.type || 'image/jpeg'; // Default to JPEG if type not specified
+        const dataUri = `data:${mimeType};base64,${imageBase64}`;
+        console.log('🔄 Converted image file to base64 data URI format');
         
         if (video_model === 'wan-2.1-i2v-720p') {
-          inputData.image = imageBase64; // WAN-2.1 uses 'image' instead of 'start_image'
-          console.log('✅ Image file added to WAN-2.1 input data as image');
+          inputData.image = dataUri; // WAN-2.1 uses 'image' parameter
+          console.log('✅ Image file added to WAN-2.1 input data as data URI');
         } else if (video_model === 'hailuo-02') {
-          // Hailuo-02 requires File object (URI format), not base64 - same as Seedance Pro
-          inputData.first_frame_image = image; // Use File object directly
-          console.log('✅ Image file added to Hailuo-02 input data as File object (URI format)');
+          // Hailuo-02 uses first_frame_image parameter with data URI
+          inputData.first_frame_image = dataUri;
+          console.log('✅ Image file added to Hailuo-02 input data as data URI (first_frame_image)');
         } else if (video_model === 'seedance-1-pro') {
-          // Seedance Pro requires File object (URI format), not base64
-          inputData.image = image; // Use File object directly
-          console.log('✅ Image file added to Seedance Pro input data as File object (URI format)');
+          // Seedance Pro uses image parameter with data URI
+          inputData.image = dataUri;
+          console.log('✅ Image file added to Seedance Pro input data as data URI (image)');
         } else {
-          inputData.start_image = imageBase64; // Other models use 'start_image'
-          console.log('✅ Image file added to input data as start_image');
+          inputData.start_image = dataUri; // Other models use 'start_image'
+          console.log('✅ Image file added to input data as data URI (start_image)');
         }
       } else {
         console.log('❌ No image file found in parameters');
