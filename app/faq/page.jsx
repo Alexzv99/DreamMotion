@@ -23,18 +23,20 @@ export default function FAQ() {
       {/* Back button top left */}
       <div style={{ position: 'absolute', top: 20, left: 20, zIndex: 1000 }}>
         <Link href="/dashboard" style={{
-          background: '#fff',
-          color: '#111',
-          border: '2px solid #222',
-          borderRadius: '10px',
-          padding: '10px 18px',
+          background: 'linear-gradient(135deg, #0f0f0f, #1a1a1a)',
+          color: '#ffffff',
+          border: '1px solid rgba(255, 255, 255, 0.2)',
+          borderRadius: '12px',
+          padding: '12px 20px',
           fontWeight: 'bold',
-          fontSize: '1.08rem',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
+          fontSize: '1rem',
+          boxShadow: '0 4px 15px rgba(0, 0, 0, 0.3)',
           cursor: 'pointer',
-          transition: 'background 0.2s',
+          transition: 'all 0.3s ease',
           textDecoration: 'none',
-          display: 'inline-block'
+          display: 'inline-block',
+          fontFamily: 'Inter, Helvetica, Arial, sans-serif',
+          backdropFilter: 'blur(8px)'
         }}>← Back</Link>
       </div>
       {/* Background Video */}
@@ -53,7 +55,7 @@ export default function FAQ() {
           zIndex: 0,
           pointerEvents: 'none',
         }}
-        src="/background-video3.mp4"
+        src="/background-video4.mp4"
       />
       {/* Dark overlay to match dashboard */}
       <div style={{
@@ -70,18 +72,21 @@ export default function FAQ() {
         zIndex: 10,
         fontSize: '1.04rem',
         fontWeight: 500,
-        color: '#222',
-        background: 'rgba(255,255,255,0.95)',
-        boxShadow: '0 2px 16px rgba(0,0,0,0.13)',
+        color: '#ffffff', // White text
+        background: '#0f0f0f', // Dark background like other components
+        boxShadow: '0 10px 30px rgba(0, 0, 0, 0.8)', // Enhanced shadow
         borderRadius: '16px',
         padding: '32px 24px',
         maxWidth: '540px',
+        fontFamily: "'Inter', sans-serif", // Inter font
+        backdropFilter: 'blur(8px)',
+        border: '1px solid rgba(255, 255, 255, 0.1)', // Subtle border
         width: '100%',
         margin: '0 auto',
         position: 'relative',
         marginTop: '60px'
       }}>
-        <h1 style={{ fontWeight: 'bold', color: '#111', fontSize: '1.18em', marginBottom: '18px', marginTop: 0 }}>Frequently Asked Questions</h1>
+        <h1 style={{ fontWeight: 'bold', color: '#ffffff', fontSize: '1.4em', marginBottom: '18px', marginTop: 0, letterSpacing: '0.5px' }}>Frequently Asked Questions</h1>
         <ol style={{ paddingLeft: '20px', marginTop: '0' }}>
           <li style={{ marginBottom: '16px' }}>
             <strong>How does the credit system work?</strong><br />
@@ -110,24 +115,26 @@ export default function FAQ() {
           </li>
           <li>
             <strong>Need help?</strong><br />
-            Contact our support team at <a href="mailto:support@dreammotion.com" style={{ color: '#0070f3', textDecoration: 'underline' }}>support@dreammotion.com</a>
+            Contact our support team at <a href="/contact" style={{ color: '#0070f3', textDecoration: 'underline', fontWeight: 'bold' }}>support@dreammotion.com</a>
           </li>
         </ol>
       </div>
       <div style={{ marginTop: 32, textAlign: 'center' }}>
         <Link href="/dashboard" style={{
-          color: '#fff',
-          background: '#111',
+          color: '#000000', // Black text
+          background: 'linear-gradient(to right, #ffffff, #e0e0e0)', // White gradient like other components
           padding: '12px 32px',
-          borderRadius: '8px',
-          fontWeight: 600,
-          fontSize: '0.9em',
+          borderRadius: '12px', // More rounded
+          fontWeight: '700', // Bolder
+          fontSize: '1rem',
           textDecoration: 'none',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+          boxShadow: '0 4px 15px rgba(0, 0, 0, 0.3)', // Enhanced shadow
           display: 'inline-block',
           border: 'none',
           cursor: 'pointer',
-          transition: 'background 0.2s'
+          transition: 'all 0.3s ease',
+          fontFamily: "'Inter', sans-serif", // Inter font
+          letterSpacing: '0.5px'
         }}>Back to Dashboard</Link>
       </div>
       <style>{`

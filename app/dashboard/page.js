@@ -1,4 +1,3 @@
-/* eslint-disable react/no-unescaped-entities */
 'use client';
 import dynamic from 'next/dynamic';
 import { useEffect, useState } from 'react';
@@ -12,7 +11,97 @@ export default function Dashboard() {
   const [credits, setCredits] = useState(null);
   const [userId, setUserId] = useState(null);
   const [isMobile, setIsMobile] = useState(false);
-  const router = useRouter();
+  const [paymentSuccess, setPaymentSuccess] = useState(false);
+  const [paymentMessage, setPaymentMessage] = useState('');
+  const [selectedBackground, setSelectedBackground] = useState('video4'); // Default background
+
+  useEffect(() => {
+    // Check for payment success parameter and auto-add credits
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('payment') === 'success') {
+      const productCode = urlParams.get('product');
+      const planName = urlParams.get('plan');
+      
+      // Immediately clean up URL to prevent reprocessing
+      window.history.replaceState({}, document.title, window.location.pathname);
+      
+      if (productCode && !sessionStorage.getItem('payment_processed')) {
+        // Mark payment as being processed to prevent duplicates
+        sessionStorage.setItem('payment_processed', 'true');
+        // Process automatic credit addition
+        processPaymentSuccess(productCode, planName);
+      } else if (productCode) {
+        // Payment already processed this session
+        setPaymentSuccess(true);
+        setPaymentMessage('Payment already processed this session.');
+        setTimeout(() => {
+          setPaymentSuccess(false);
+          setPaymentMessage('');
+        }, 3000);
+      } else {
+        // Fallback for old payment success without product code
+        setPaymentSuccess(true);
+        setPaymentMessage('Payment successful! Please contact support if credits are not added automatically.');
+        setTimeout(() => {
+          setPaymentSuccess(false);
+          setPaymentMessage('');
+        }, 5000);
+      }
+    }
+  }, []);
+
+  const processPaymentSuccess = async (productCode, planName) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setPaymentMessage('Payment successful, but please log in to receive credits.');
+        return;
+      }
+
+      // Call API to add credits
+      const response = await fetch('/api/add-credits', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_id: user.id,
+          product_code: productCode,
+          transaction_id: `return_${Date.now()}_${productCode}`
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        setPaymentSuccess(true);
+        setPaymentMessage(`🎉 Payment successful! ${result.credits_added} credits added to your account. New balance: ${result.new_balance} credits.`);
+        // Clear the session marker after successful processing
+        sessionStorage.removeItem('payment_processed');
+        // Refresh credits display
+        setTimeout(() => {
+          window.location.reload();
+        }, 3000);
+      } else if (result.already_processed) {
+        setPaymentSuccess(true);
+        setPaymentMessage('Payment already processed. Your credits have been added previously.');
+        sessionStorage.removeItem('payment_processed');
+      } else {
+        setPaymentMessage('Payment successful, but there was an issue adding credits. Please contact support.');
+        sessionStorage.removeItem('payment_processed');
+      }
+    } catch (error) {
+      console.error('Error processing payment:', error);
+      setPaymentMessage('Payment successful, but there was an issue adding credits. Please contact support.');
+      sessionStorage.removeItem('payment_processed');
+    }
+
+    // Hide message after 8 seconds
+    setTimeout(() => {
+      setPaymentSuccess(false);
+      setPaymentMessage('');
+    }, 8000);
+  };
 
   useEffect(() => {
     const fetchUserCredits = async () => {
@@ -171,6 +260,27 @@ export default function Dashboard() {
 
   return (
     <div>
+      {/* Payment Success Message */}
+      {paymentSuccess && (
+        <div style={{
+          position: 'fixed',
+          top: '20px',
+          right: '20px',
+          background: '#4CAF50',
+          color: 'white',
+          padding: '15px 20px',
+          borderRadius: '8px',
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+          zIndex: 10000,
+          fontSize: '16px',
+          fontWeight: 'bold',
+          maxWidth: '400px',
+          wordWrap: 'break-word'
+        }}>
+          {paymentMessage || '🎉 Payment successful! Credits added to your account.'}
+        </div>
+      )}
+      
       <main style={{
         minHeight: '100vh',
         width: '100vw',
@@ -202,7 +312,7 @@ export default function Dashboard() {
             zIndex: 0
           }}
         >
-          <source src="/background-video3.mp4" type="video/mp4" />
+          <source src="/background-video4.mp4" type="video/mp4" />
         </video>
         <div style={{
           position: 'absolute',
@@ -346,11 +456,11 @@ export default function Dashboard() {
               <ToolBox 
                 title="🖼️ Generate Image"
                 desc="Create stunning images from your prompt using our text-to-image tool."
-                price="2 credits / image"
+                price="3 credits / image"
                 link="/generate-tool?type=genimage"
               />
               <ToolBox 
-                title="🎞️ Generate Video"
+                title="🎞️ Image to Video"
                 desc="Transform images into cinematic motion with DreamMotion’s engine."
                 price="From 4 credits / second"
                 link="/generate-tool?type=genvideo"
@@ -404,32 +514,49 @@ function ToolBox({ title, desc, price, link, disabled = false }) {
   
   return (
     <div className="tool-box" style={{
-      backgroundColor: isDisabled ? '#f5f5f5' : '#fff',
-      color: isDisabled ? '#999' : '#222',
-      borderRadius: '12px',
-      boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-      padding: '14px',
+      backgroundColor: '#0f0f0f', // Dark background like generation tools
+      color: '#ffffff', // White text
+      borderRadius: '16px', // Slightly more rounded
+      boxShadow: '0 10px 30px rgba(0, 0, 0, 0.8)', // Enhanced shadow
+      padding: '24px', // Increased padding
       marginBottom: '18px',
       cursor: isDisabled ? 'not-allowed' : 'pointer',
-      transition: 'background 0.2s',
-      maxWidth: '280px', // Made smaller to fit 4 boxes
+      transition: 'all 0.2s ease',
+      maxWidth: '280px',
       flex: '1 1 0',
       textAlign: 'center',
       zIndex: 4,
       position: 'relative',
       opacity: isDisabled ? 0.7 : 1,
-      minHeight: '280px', // Fixed height for consistent alignment
+      minHeight: '300px', // Slightly taller
       display: 'flex',
       flexDirection: 'column',
-      justifyContent: 'space-between'
+      justifyContent: 'space-between',
+      fontFamily: "'Inter', sans-serif", // Inter font
+      backdropFilter: 'blur(8px)',
+      border: '1px solid rgba(255, 255, 255, 0.1)' // Subtle border
     }}>
       <div style={{ flex: '1', display: 'flex', flexDirection: 'column' }}>
-        <h3 style={{...boxTitle, color: isDisabled ? '#999' : '#333'}}>{title}</h3>
-        {title.includes('Image to Video') && (
-          <p style={{ color: '#c00', fontWeight: 'bold', marginBottom: '8px' }}>NSFW generation is allowed</p>
-        )}
-        <p style={{...boxText, color: isDisabled ? '#999' : '#444', flex: '1'}}>{desc}</p>
-        <p style={{ marginTop: '10px', fontWeight: 'bold', color: isDisabled ? '#999' : '#c00' }}>{price}</p>
+        <h3 style={{
+          fontSize: '20px',
+          fontWeight: '700',
+          marginBottom: '12px',
+          color: isDisabled ? '#666' : '#ffffff',
+          letterSpacing: '0.5px'
+        }}>{title}</h3>
+        <p style={{
+          fontSize: '14px',
+          lineHeight: '1.5',
+          color: isDisabled ? '#666' : '#cccccc',
+          flex: '1',
+          marginBottom: '16px'
+        }}>{desc}</p>
+        <p style={{ 
+          marginTop: '10px', 
+          fontWeight: 'bold', 
+          color: isDisabled ? '#666' : '#ff4b2b', // Red color for price like generation tools
+          fontSize: '16px'
+        }}>{price}</p>
       </div>
       <div style={{
         marginBottom: '12px',
@@ -442,36 +569,42 @@ function ToolBox({ title, desc, price, link, disabled = false }) {
       }}>
         {isDisabled ? (
           <button style={{
-            backgroundColor: '#ccc',
+            backgroundColor: '#333',
             color: '#888',
             border: 'none',
-            borderRadius: '8px',
+            borderRadius: '12px',
             fontWeight: 'bold',
             padding: '14px 24px',
             marginBottom: '12px',
             cursor: 'not-allowed',
             width: '100%',
             fontSize: '1rem',
-            boxSizing: 'border-box'
+            boxSizing: 'border-box',
+            fontFamily: "'Inter', sans-serif"
           }} disabled>
             Coming Soon
           </button>
         ) : (
           <Link href={link} style={{ width: '100%' }}>
             <button style={{
-              backgroundColor: '#1a1a1a',
-              color: '#fff',
+              background: 'linear-gradient(to right, #ffffff, #e0e0e0)', // White gradient like generation tools
+              color: '#000000', // Black text
               border: 'none',
-              borderRadius: '8px',
+              borderRadius: '12px',
               fontWeight: 'bold',
               padding: '14px 24px',
               marginBottom: '12px',
               cursor: 'pointer',
-              transition: 'background 0.2s',
+              transition: 'all 0.2s ease',
               width: '100%',
               fontSize: '1rem',
-              boxSizing: 'border-box'
-            }}>Open Tool</button>
+              boxSizing: 'border-box',
+              fontFamily: "'Inter', sans-serif",
+              letterSpacing: '0.5px'
+            }}
+            onMouseOver={(e) => e.target.style.transform = 'scale(1.03)'}
+            onMouseOut={(e) => e.target.style.transform = 'scale(1)'}
+            >Open Tool</button>
           </Link>
         )}
       </div>

@@ -8,7 +8,15 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorBanner, setErrorBanner] = useState('');
+  const [selectedBackground, setSelectedBackground] = useState('video4'); // Fixed background
   const router = useRouter();
+
+  // Load saved background preference from localStorage
+  useEffect(() => {
+    // Always use video4 background
+    setSelectedBackground('video4');
+  }, []);
+
   // Google login handler
   const handleGoogleLogin = async () => {
     setLoading(true);
@@ -109,9 +117,9 @@ export default function LoginPage() {
           objectFit: 'cover',
           zIndex: 0
         }}
-      >
-        <source src="/background-video3.mp4" type="video/mp4" />
-      </video>
+        src="/background-video4.mp4"
+      />
+      
       <button
         onClick={() => router.back()}
         style={{
@@ -119,16 +127,26 @@ export default function LoginPage() {
           top: 20,
           left: 20,
           zIndex: 1000,
-          background: '#fff',
-          color: '#111',
-          border: '2px solid #222',
-          borderRadius: '10px',
-          padding: '10px 18px',
+          background: 'linear-gradient(135deg, #0f0f0f, #1a1a1a)',
+          color: '#ffffff',
+          border: '1px solid rgba(255, 255, 255, 0.2)',
+          borderRadius: '12px',
+          padding: '12px 20px',
           fontWeight: 'bold',
-          fontSize: '1.08rem',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
+          fontSize: '1rem',
+          boxShadow: '0 4px 15px rgba(0, 0, 0, 0.3)',
           cursor: 'pointer',
-          transition: 'background 0.2s',
+          transition: 'all 0.3s ease',
+          fontFamily: 'Inter, Helvetica, Arial, sans-serif',
+          backdropFilter: 'blur(8px)'
+        }}
+        onMouseOver={(e) => {
+          e.target.style.transform = 'scale(1.05)';
+          e.target.style.boxShadow = '0 6px 20px rgba(0, 0, 0, 0.4)';
+        }}
+        onMouseOut={(e) => {
+          e.target.style.transform = 'scale(1)';
+          e.target.style.boxShadow = '0 4px 15px rgba(0, 0, 0, 0.3)';
         }}
       >
         ← Back
@@ -268,7 +286,7 @@ export default function LoginPage() {
             style={{
               marginTop: '12px',
               background: 'transparent',
-              color: '#666',
+              color: '#cccccc',
               border: 'none',
               borderRadius: '8px',
               padding: '8px 16px',
@@ -276,11 +294,12 @@ export default function LoginPage() {
               fontSize: '0.95rem',
               cursor: 'pointer',
               transition: 'color 0.2s',
-              textDecoration: 'underline'
+              textDecoration: 'underline',
+              fontFamily: 'Inter, Helvetica, Arial, sans-serif'
             }}
             disabled={loading}
-            onMouseOver={(e) => e.target.style.color = '#c00'}
-            onMouseOut={(e) => e.target.style.color = '#666'}
+            onMouseOver={(e) => e.target.style.color = '#ffffff'}
+            onMouseOut={(e) => e.target.style.color = '#cccccc'}
           >
             Forgot Password?
           </button>
@@ -290,22 +309,25 @@ export default function LoginPage() {
             onClick={handleGoogleLogin}
             style={{
               marginTop: '18px',
-              background: '#fff',
+              background: 'linear-gradient(135deg, #ffffff, #f0f0f0)',
               color: '#4285F4',
-              border: '2px solid #4285F4',
-              borderRadius: '10px',
+              border: '1px solid rgba(255, 255, 255, 0.2)',
+              borderRadius: '12px',
               padding: '12px 24px',
               fontWeight: 'bold',
               fontSize: '1.08rem',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
+              boxShadow: '0 4px 15px rgba(255, 255, 255, 0.2)',
               cursor: 'pointer',
-              transition: 'background 0.2s',
+              transition: 'all 0.3s ease',
               display: 'flex',
               alignItems: 'center',
               gap: '10px',
-              zIndex: 1
+              zIndex: 1,
+              fontFamily: 'Inter, Helvetica, Arial, sans-serif'
             }}
             disabled={loading}
+            onMouseOver={(e) => !loading && (e.target.style.transform = 'scale(1.03)')}
+            onMouseOut={(e) => !loading && (e.target.style.transform = 'scale(1)')}
           >
             <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" style={{ width: 24, height: 24 }} />
             Continue with Google
@@ -343,50 +365,58 @@ const styles = {
   card: {
     position: 'relative',
     zIndex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#0f0f0f',
     padding: '40px 30px',
     borderRadius: '16px',
     width: '100%',
     maxWidth: '400px',
     textAlign: 'center',
-    boxShadow: '0 0 20px rgba(0,0,0,0.3)'
+    boxShadow: '0 10px 30px rgba(0, 0, 0, 0.8)',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
+    backdropFilter: 'blur(8px)'
   },
   heading: {
     fontSize: '2rem',
     fontWeight: 'bold',
     marginBottom: '20px',
-    color: '#111'
+    color: '#ffffff',
+    fontFamily: 'Inter, Helvetica, Arial, sans-serif'
   },
   form: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '16px'
+    gap: '16px',
+    fontFamily: 'Inter, Helvetica, Arial, sans-serif'
   },
   input: {
     padding: '12px',
     fontSize: '1rem',
     borderRadius: '8px',
-    border: '1px solid #ccc',
-    backgroundColor: '#fff',
-    color: '#000'
+    border: '1px solid rgba(255, 255, 255, 0.2)',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    color: '#ffffff',
+    fontFamily: 'Inter, Helvetica, Arial, sans-serif',
+    outline: 'none'
   },
   button: {
-    backgroundColor: '#111',
-    color: '#fff',
+    background: 'linear-gradient(135deg, #ffffff, #f0f0f0)',
+    color: '#000000',
     padding: '12px',
     border: 'none',
-    borderRadius: '8px',
+    borderRadius: '12px',
     fontWeight: 'bold',
     cursor: 'pointer',
-    transition: 'background 0.2s',
-    boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
+    transition: 'all 0.3s ease',
+    boxShadow: '0 4px 15px rgba(255, 255, 255, 0.2)',
+    fontFamily: 'Inter, Helvetica, Arial, sans-serif'
   },
   note: {
     marginTop: '20px',
-    color: '#444'
+    color: '#cccccc',
+    fontFamily: 'Inter, Helvetica, Arial, sans-serif'
   },
   link: {
-    color: '#007bff',
+    color: '#ffffff',
     textDecoration: 'none',
     fontWeight: 'bold'
   }

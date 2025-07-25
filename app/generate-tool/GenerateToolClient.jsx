@@ -502,13 +502,14 @@ export default function GenerateToolClient() {
   // Calculate credit cost for current generation
   const calculateCreditCost = () => {
     if (type === 'genimage') {
-      return 2;
+      return 3;
     } else if (type === 'genvideo' || type === 'text2video' || type === 'image2video') {
       const costMapping = {
         'kling-v2.1': 4,
         'hailuo-02': 5,
         'wan-2.1-i2v-720p': 13,
         'seedance-1-pro': 4,
+        'runway-gen4': 25,
         'luma-ray': 22,
         'veo-3-fast': 20,
         'veo-3': 35
@@ -516,7 +517,7 @@ export default function GenerateToolClient() {
       const costPerSecond = costMapping[videoModel] || 2;
       return costPerSecond * (duration || 6);
     }
-    return 2;
+    return 3;
   };
 
   // Get model-specific time estimates (in minutes)
@@ -1036,21 +1037,23 @@ export default function GenerateToolClient() {
 
   const [genvideoModels] = useState([
     { value: 'kling-v2.1', name: 'Kling v2.1' },
+    { value: 'seedance-1-pro', name: 'Seedance‑1‑Pro' },
     { value: 'hailuo-02', name: 'Hailuo‑02' },
     { value: 'wan-2.1-i2v-720p', name: 'WAN‑2.1‑i2v‑720p' },
-    { value: 'seedance-1-pro', name: 'Seedance‑1‑Pro' }
+    { value: 'runway-gen4', name: 'Runway Gen4' }
   ]);
   const [text2videoModels] = useState([
-    { value: 'veo-3-fast', name: 'Veo 3 Fast' },
-    { value: 'veo-3', name: 'Veo 3' },
     { value: 'hailuo-02', name: 'Hailuo 02' },
-    { value: 'luma-ray', name: 'Luma / Ray' }
+    { value: 'luma-ray', name: 'Luma / Ray' },
+    { value: 'veo-3-fast', name: 'Veo 3 Fast' },
+    { value: 'veo-3', name: 'Veo 3' }
   ]);
   const [image2videoModels] = useState([
     { value: 'kling-v2.1', name: 'Kling v2.1' },
     { value: 'wan-2.1-i2v-720p', name: 'WAN‑2.1‑i2v‑720p' },
     { value: 'seedance-1-pro', name: 'Seedance‑1‑Pro' },
-    { value: 'hailuo-02', name: 'Hailuo‑02' }
+    { value: 'hailuo-02', name: 'Hailuo‑02' },
+    { value: 'runway-gen4', name: 'Runway Gen4' }
   ]);
   const [loadingMessage, setLoadingMessage] = useState('');
   // Helper to get initial credits and cost for genvideo
@@ -1060,6 +1063,7 @@ export default function GenerateToolClient() {
       case 'hailuo-02': return '5 credits / second';
       case 'wan-2.1-i2v-720p': return '13 credits / second';
       case 'seedance-1-pro': return '4 credits / second';
+      case 'runway-gen4': return '25 credits / second';
       default: return '2 credits / second';
     }
   }
@@ -1068,7 +1072,8 @@ export default function GenerateToolClient() {
       'kling-v2.1': { cost: 4, defaultDuration: 8 },
       'hailuo-02': { cost: 5, defaultDuration: 6 },
       'wan-2.1-i2v-720p': { cost: 13, defaultDuration: 10 },
-      'seedance-1-pro': { cost: 4, defaultDuration: 8 }
+      'seedance-1-pro': { cost: 4, defaultDuration: 8 },
+      'runway-gen4': { cost: 25, defaultDuration: 5 }
     };
     const modelData = costMapping[model] || { cost: 2, defaultDuration: durationVal };
     const costPerSecond = modelData.cost;
@@ -1080,7 +1085,7 @@ export default function GenerateToolClient() {
     if (typeParam === 'genvideo') {
       return getInitialGenVideoCredits(videoModel);
     } else if (typeParam === 'genimage') {
-      return '2 credits / image';
+      return '3 credits / image';
     } else if (typeParam === 'text2video') {
       switch (videoModel) {
         case 'veo-3-fast': return '20 credits / second';
@@ -1134,12 +1139,13 @@ export default function GenerateToolClient() {
   // Credits logic
   useEffect(() => {
     if (type === 'genimage') {
-      setToolCredits('2 credits / image');
+      setToolCredits('3 credits / image');
     } else if (type === 'genvideo') {
       if (videoModel === 'hailuo-02') setToolCredits('5 credits / second');
       else if (videoModel === 'kling-v2.1') setToolCredits('4 credits / second');
       else if (videoModel === 'wan-2.1-i2v-720p') setToolCredits('13 credits / second');
       else if (videoModel === 'seedance-1-pro') setToolCredits('4 credits / second');
+      else if (videoModel === 'runway-gen4') setToolCredits('25 credits / second');
       else if (videoModel === 'luma-ray') setToolCredits('22 credits / second');
       else setToolCredits('2 credits / second');
     } else if (type === 'image2video') {
@@ -1147,6 +1153,7 @@ export default function GenerateToolClient() {
       else if (videoModel === 'wan-2.1-i2v-720p') setToolCredits('13 credits / second');
       else if (videoModel === 'seedance-1-pro') setToolCredits('4 credits / second');
       else if (videoModel === 'hailuo-02') setToolCredits('5 credits / second');
+      else if (videoModel === 'runway-gen4') setToolCredits('25 credits / second');
       else setToolCredits('4 credits / second');
     } else if (type === 'text2video') {
       if (videoModel === 'veo-3-fast') setToolCredits('20 credits / second');
@@ -1309,6 +1316,8 @@ export default function GenerateToolClient() {
             return '13 credits / second';
           case 'seedance-1-pro':
             return '4 credits / second';
+          case 'runway-gen4':
+            return '25 credits / second';
           case 'luma-ray':
             return '22 credits / second';
           default:
@@ -1329,6 +1338,7 @@ export default function GenerateToolClient() {
         'hailuo-02': { cost: 5, defaultDuration: 6 },
         'wan-2.1-i2v-720p': { cost: 13, defaultDuration: 10 },
         'seedance-1-pro': { cost: 4, defaultDuration: 8 },
+        'runway-gen4': { cost: 25, defaultDuration: 5 },
         'luma-ray': { cost: 22, defaultDuration: 6 }
       };
       const modelData = costMapping[videoModel] || { cost: 4, defaultDuration: duration };
@@ -1346,6 +1356,7 @@ export default function GenerateToolClient() {
         'hailuo-02': 5,
         'wan-2.1-i2v-720p': 13,
         'seedance-1-pro': 4,
+        'runway-gen4': 25,
         'luma-ray': 22
       };
       const costPerSecond = costMapping[videoModel] || 2; // Default cost per second
@@ -1361,6 +1372,7 @@ export default function GenerateToolClient() {
         'kling-v2.1': 5,
         'wan-2.1-i2v-720p': 5,
         'seedance-1-pro': 5,
+        'runway-gen4': 5,
         'luma-ray': 6
       };
       const defaultDuration = defaultDurations[videoModel] || 5; // Default to 5 seconds if not specified
@@ -1430,7 +1442,7 @@ export default function GenerateToolClient() {
             zIndex: 0
           }}
         >
-          <source src="/background-video3.mp4" type="video/mp4" />
+          <source src="/background-video4.mp4" type="video/mp4" />
         </video>
         
         <div style={{
@@ -1725,17 +1737,19 @@ export default function GenerateToolClient() {
       <main style={{
       minHeight: '100vh',
       width: '100vw',
-      overflow: 'hidden',
+      overflow: 'auto', // Changed from hidden to auto to allow scrolling
       fontFamily: 'Inter, Helvetica, Arial, sans-serif',
       color: '#222',
       padding: '0',
       margin: '0',
       display: 'flex',
-      flexDirection: 'row',
+      flexDirection: 'column', // Keep column for overall page layout (back button, then content)
       alignItems: 'center',
-      justifyContent: 'center',
+      justifyContent: 'flex-start', // Changed from center to flex-start to allow content expansion
       backdropFilter: 'blur(2px)',
-      position: 'relative'
+      position: 'relative',
+      marginTop: '-43px', // Move up by 1.5cm (approximately 43px)
+      paddingBottom: '50px' // Add padding at bottom to ensure content is not cut off
     }}>
       <video
         autoPlay
@@ -1743,80 +1757,141 @@ export default function GenerateToolClient() {
         muted
         playsInline
         style={{
-          position: 'fixed',
+          position: 'absolute',
           top: 0,
           left: 0,
-          width: '100vw',
-          height: '100vh',
+          width: '100%',
+          height: '100%',
           objectFit: 'cover',
           zIndex: 0,
           pointerEvents: 'none',
+          minHeight: '100%', // Cover the full height of the container
+          minWidth: '100%'   // Cover the full width of the container
         }}
-        src="/background-video3.mp4"
+        src="/background-video4.mp4"
       />
       {/* Dark overlay */}
       <div style={{
-        position: 'absolute',
+        position: 'absolute', // Changed back to absolute to cover the full main container
         top: 0, left: 0, right: 0, bottom: 0,
         background: 'rgba(0, 0, 0, 0.65)',
-        zIndex: 1
+        zIndex: 1,
+        width: '100%',
+        height: '100%'
       }} />
       {/* All content below should have zIndex: 2 or higher if needed */}
       <button
         onClick={() => router.back()}
         style={{
           position: 'absolute',
-          top: 20,
+          top: 63, // Increased from 20 to 63 (20 + 43) to compensate for the upward movement
           left: 20,
           zIndex: 2,
-          background: '#fff',
-          color: '#111',
-          border: '2px solid #222',
-          borderRadius: '10px',
-          padding: '10px 18px',
+          background: 'linear-gradient(135deg, #0f0f0f, #1a1a1a)',
+          color: '#ffffff',
+          border: '1px solid rgba(255, 255, 255, 0.2)',
+          borderRadius: '12px',
+          padding: '12px 20px',
           fontWeight: 'bold',
-          fontSize: '1.08rem',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
+          fontSize: '1rem',
+          boxShadow: '0 4px 15px rgba(0, 0, 0, 0.3)',
           cursor: 'pointer',
-          transition: 'background 0.2s',
+          transition: 'all 0.3s ease',
+          fontFamily: 'Inter, Helvetica, Arial, sans-serif',
+          backdropFilter: 'blur(8px)'
+        }}
+        onMouseOver={(e) => {
+          e.target.style.transform = 'scale(1.05)';
+          e.target.style.boxShadow = '0 6px 20px rgba(0, 0, 0, 0.4)';
+        }}
+        onMouseOut={(e) => {
+          e.target.style.transform = 'scale(1)';
+          e.target.style.boxShadow = '0 4px 15px rgba(0, 0, 0, 0.3)';
         }}
       >
         ← Back
       </button>
-      <div className="controls-card" style={{
-        background: '#fff',
-        borderRadius: 18,
-        boxShadow: '0 2px 18px rgba(30,30,40,0.10)',
-        padding: '38px 38px 32px 38px',
-        minWidth: 340,
-        maxWidth: 480,
-        margin: '32px 0',
+      
+      {/* Connected Input-Output Container */}
+      <div style={{
+        display: 'flex',
+        flexDirection: 'row', // Side by side layout
+        alignItems: 'center', // Changed from 'flex-start' to 'center' to align output box to middle
+        justifyContent: 'center',
+        gap: '0', // No gap since they're connected
+        maxWidth: '1000px', // Wider container for side-by-side layout
+        width: '100%',
+        margin: '76px auto 0', // Increased from 38px to 76px (2cm total) to move box down by 1cm
+        zIndex: 3,
+        position: 'relative'
+      }}>
+      <div className={type === 'text2video' || type === 'genimage' || type === 'genvideo' ? "generate-box" : "controls-card"} style={(type === 'text2video' || type === 'genimage' || type === 'genvideo') ? {
+        background: '#0f0f0f',
+        borderRadius: '16px 0 0 16px', // Only left rounded corners
+        padding: '24px', // Reduced from 32px for compactness
+        boxShadow: '0 0 30px rgba(0, 0, 0, 0.8)',
+        color: '#ffffff',
+        fontFamily: "'Inter', sans-serif",
+        width: '480px', // Fixed width for input section
+        minHeight: '300px', // Reduced from 400px for more compact layout
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+        backdropFilter: 'blur(8px)',
+        border: '1px solid rgba(255, 255, 255, 0.1)',
+        borderRight: 'none' // Remove right border to connect
+      } : {
+        background: '#ffffff',
+        border: '1px solid #e0e0e0',
+        borderRadius: '12px 0 0 12px', // Only left rounded corners
+        boxShadow: '0 0 24px rgba(0, 0, 0, 0.15)',
+        padding: '24px 28px',
+        width: '480px', // Fixed width for input section
+        minHeight: '300px', // Reduced from 400px for more compact layout
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'stretch',
         justifyContent: 'flex-start',
         gap: 0,
-        zIndex: 3,
-        position: 'relative'
+        backdropFilter: 'blur(8px)',
+        borderRight: 'none' // Remove right border to connect
       }}>
-        <span style={{
-          fontSize: '2.1rem',
-          fontWeight: 800,
-          letterSpacing: '1px',
-          marginBottom: 8,
-          color: '#111'
+        <span style={(type === 'text2video' || type === 'genimage' || type === 'genvideo') ? {
+          fontSize: '24px', // Reduced from 28px
+          fontWeight: '700',
+          marginBottom: '8px', // Reduced from 10px
+          color: '#ffffff'
+        } : {
+          fontSize: '1.5rem', // Reduced from 1.6rem
+          fontWeight: 600,
+          letterSpacing: '0.5px',
+          marginBottom: 6, // Reduced from 8
+          color: '#000000'
         }}>{tool.title}</span>
-        <span style={{ fontSize: '1.18rem', fontWeight: 500, color: '#444', lineHeight: 1.5 }}>{tool.desc}</span>
+        <span style={(type === 'text2video' || type === 'genimage' || type === 'genvideo') ? {
+          fontSize: '14px', // Reduced from 16px
+          color: '#ffffff',
+          marginBottom: '12px', // Reduced from 16px
+          lineHeight: 1.3 // Reduced from 1.4
+        } : { 
+          fontSize: '0.9rem', // Reduced from 0.95rem
+          fontWeight: 500, 
+          color: '#333333', 
+          lineHeight: 1.3, // Reduced from 1.4
+          opacity: 0.8,
+          marginBottom: '12px' // Reduced from 16px
+        }}>{tool.desc}</span>
         {credits !== null && (
           <div style={{ 
-            fontSize: '1.1rem', 
-            color: '#0070f3', 
-            marginBottom: 8, 
-            fontWeight: 'bold',
-            background: '#f0f9ff',
-            padding: '8px 16px',
+            fontSize: '0.85rem', // Reduced from 0.9rem
+            color: '#000000', 
+            marginBottom: 12, // Reduced from 16
+            fontWeight: 600,
+            background: '#f5f5f5',
+            border: '1px solid #e0e0e0',
+            padding: '10px 14px', // Reduced from 12px 16px
             borderRadius: 8,
-            marginTop: 12,
+            marginTop: 6, // Reduced from 8
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center'
@@ -1856,33 +1931,66 @@ export default function GenerateToolClient() {
         )}
         {tool.note && <div style={{ color: '#0070f3', fontWeight: 500, marginBottom: 8 }}>{tool.note}</div>}
         {type === 'text2video' && totalCost !== null && (
+          <div className="credits-info" style={{
+            fontSize: '14px',
+            color: '#ff4b2b',
+            marginBottom: '16px'
+          }}>
+            <span className="credits-total" style={{
+              color: '#4fc3f7',
+              fontWeight: '500'
+            }}>Total Cost: {totalCost} credits</span>
+          </div>
+        )}
+        {type !== 'text2video' && type === 'text2video' && totalCost !== null && (
           <div style={{ fontSize: '1.05rem', color: '#0070f3', marginBottom: 8, fontWeight: 'bold' }}>
             Total Cost: <b>{totalCost} credits</b>
           </div>
         )}
         {type === 'genvideo' && (
-          <div style={{ fontSize: '1.05rem', color: '#0070f3', marginBottom: 8, fontWeight: 'bold' }}>
-            Total Cost: <b>{totalGenVideoCost} credits</b>
+          <div className="credits-info" style={{
+            fontSize: '14px',
+            color: '#ff4b2b',
+            marginBottom: '16px'
+          }}>
+            <span className="credits-total" style={{
+              color: '#4fc3f7',
+              fontWeight: '500'
+            }}>Total Cost: {totalGenVideoCost} credits</span>
           </div>
         )}
-        <div style={{ fontSize: '0.95rem', color: '#c00', marginBottom: 16, fontWeight: 'bold' }}>Credits: <b>{toolCredits}</b></div>
+        <div style={{ 
+          fontSize: '0.9rem', // Reduced from 0.95rem
+          color: (type === 'text2video' || type === 'genimage' || type === 'genvideo') ? '#ff4b2b' : '#c00', 
+          marginBottom: 12, // Reduced from 16
+          fontWeight: 'bold' 
+        }}>Credits: <b>{toolCredits}</b></div>
         {(type === 'genvideo') && (
           <div style={{
-            marginBottom: 18,
-            background: '#fff',
-            borderRadius: 14,
-            boxShadow: '0 2px 12px rgba(30,30,40,0.10)',
-            padding: '18px 28px',
+            marginBottom: 12, // Reduced from 16
+            background: (type === 'genvideo') ? '#1a1a1a' : '#ffffff',
+            borderRadius: 8,
+            border: (type === 'genvideo') ? 'none' : '1px solid #e0e0e0',
+            padding: '12px 16px', // Reduced from 16px 20px
             display: 'flex',
             alignItems: 'center',
-            gap: 18,
-            fontSize: '1.08rem',
-            fontWeight: 600,
-            color: '#222',
-            border: '1.5px solid #e5e7eb'
+            gap: 12, // Reduced from 16
+            fontSize: '0.85rem', // Reduced from 0.9rem
+            fontWeight: 500,
+            color: (type === 'genvideo') ? '#ffffff' : '#000000',
+            boxShadow: (type === 'genvideo') ? '0 4px 15px rgba(0, 0, 0, 0.5)' : 'none'
           }}>
-            <label htmlFor="videoModel" style={{ fontWeight: 600, marginRight: 8 }}>Model:</label>
-            <select id="videoModel" value={videoModel} onChange={e => setVideoModel(e.target.value)} style={{ padding: '7px 18px', borderRadius: 10, border: '1.5px solid #d1d5db', background: '#f3f4f6', color: '#222', fontWeight: 600, fontSize: '1.05rem', boxShadow: '0 1px 6px rgba(60,60,60,0.08)' }}>
+            <label htmlFor="videoModel" style={{ fontWeight: 600, marginRight: 8, color: (type === 'genvideo') ? '#ffffff' : '#000000' }}>Model:</label>
+            <select id="videoModel" value={videoModel} onChange={e => setVideoModel(e.target.value)} style={{ 
+              padding: '8px 12px', 
+              borderRadius: 6, 
+              border: (type === 'genvideo') ? 'none' : '1px solid #e0e0e0', 
+              background: (type === 'genvideo') ? '#2a2a2a' : '#ffffff', 
+              color: (type === 'genvideo') ? '#ffffff' : '#000000', 
+              fontWeight: 500, 
+              fontSize: '0.9rem',
+              flex: 1
+            }}>
               {genvideoModels.map(m => (
                 <option key={m.value} value={m.value}>{m.name}</option>
               ))}
@@ -1921,21 +2029,30 @@ export default function GenerateToolClient() {
         )}
         {(type === 'text2video') && (
           <div style={{
-            marginBottom: 18,
-            background: '#fff',
-            borderRadius: 14,
-            boxShadow: '0 2px 12px rgba(30,30,40,0.10)',
-            padding: '18px 28px',
+            marginBottom: 12, // Reduced from 16
+            background: type === 'text2video' ? '#1a1a1a' : '#ffffff',
+            borderRadius: 8,
+            border: type === 'text2video' ? 'none' : '1px solid #e0e0e0',
+            padding: '12px 16px', // Reduced from 16px 20px
             display: 'flex',
             alignItems: 'center',
-            gap: 18,
-            fontSize: '1.08rem',
-            fontWeight: 600,
-            color: '#222',
-            border: '1.5px solid #e5e7eb'
+            gap: 12, // Reduced from 16
+            fontSize: '0.85rem', // Reduced from 0.9rem
+            fontWeight: 500,
+            color: type === 'text2video' ? '#ffffff' : '#000000',
+            boxShadow: type === 'text2video' ? '0 4px 15px rgba(0, 0, 0, 0.5)' : 'none'
           }}>
-            <label htmlFor="videoModel" style={{ fontWeight: 600, marginRight: 8 }}>Model:</label>
-            <select id="videoModel" value={videoModel} onChange={e => setVideoModel(e.target.value)} style={{ padding: '7px 18px', borderRadius: 10, border: '1.5px solid #d1d5db', background: '#f3f4f6', color: '#222', fontWeight: 600, fontSize: '1.05rem', boxShadow: '0 1px 6px rgba(60,60,60,0.08)' }}>
+            <label htmlFor="videoModel" style={{ fontWeight: 600, marginRight: 8, color: type === 'text2video' ? '#ffffff' : '#000000' }}>Model:</label>
+            <select id="videoModel" value={videoModel} onChange={e => setVideoModel(e.target.value)} style={{ 
+              padding: '8px 12px', 
+              borderRadius: 6, 
+              border: type === 'text2video' ? 'none' : '1px solid #e0e0e0', 
+              background: type === 'text2video' ? '#2a2a2a' : '#ffffff', 
+              color: type === 'text2video' ? '#ffffff' : '#000000', 
+              fontWeight: 500, 
+              fontSize: '0.9rem',
+              flex: 1
+            }}>
               {text2videoModels.map(m => (
                 <option key={m.value} value={m.value}>{m.name}</option>
               ))}
@@ -1944,21 +2061,29 @@ export default function GenerateToolClient() {
         )}
         {(type === 'image2video') && (
           <div style={{
-            marginBottom: 18,
-            background: '#fff',
-            borderRadius: 14,
-            boxShadow: '0 2px 12px rgba(30,30,40,0.10)',
-            padding: '18px 28px',
+            marginBottom: 16,
+            background: '#ffffff',
+            borderRadius: 8,
+            border: '1px solid #e0e0e0',
+            padding: '16px 20px',
             display: 'flex',
             alignItems: 'center',
-            gap: 18,
-            fontSize: '1.08rem',
-            fontWeight: 600,
-            color: '#222',
-            border: '1.5px solid #e5e7eb'
+            gap: 16,
+            fontSize: '0.9rem',
+            fontWeight: 500,
+            color: '#000000'
           }}>
-            <label htmlFor="videoModel" style={{ fontWeight: 600, marginRight: 8 }}>Model:</label>
-            <select id="videoModel" value={videoModel} onChange={e => setVideoModel(e.target.value)} style={{ padding: '7px 18px', borderRadius: 10, border: '1.5px solid #d1d5db', background: '#f3f4f6', color: '#222', fontWeight: 600, fontSize: '1.05rem', boxShadow: '0 1px 6px rgba(60,60,60,0.08)' }}>
+            <label htmlFor="videoModel" style={{ fontWeight: 600, marginRight: 8, color: '#000000' }}>Model:</label>
+            <select id="videoModel" value={videoModel} onChange={e => setVideoModel(e.target.value)} style={{ 
+              padding: '8px 12px', 
+              borderRadius: 6, 
+              border: '1px solid #e0e0e0', 
+              background: '#ffffff', 
+              color: '#000000', 
+              fontWeight: 500, 
+              fontSize: '0.9rem',
+              flex: 1
+            }}>
               {image2videoModels.map(m => (
                 <option key={m.value} value={m.value}>{m.name}</option>
               ))}
@@ -1966,36 +2091,36 @@ export default function GenerateToolClient() {
           </div>
         )}
         {type === 'genimage' && (
-          <div style={{
-            marginBottom: 18,
-            background: '#fff',
-            borderRadius: 14,
-            boxShadow: '0 2px 12px rgba(30,30,40,0.10)',
-            padding: '18px 28px',
-            fontSize: '1.08rem',
-            fontWeight: 600,
-            color: '#222',
-            border: '1.5px solid #e5e7eb'
+          <div className="aspect-options" style={{
+            marginBottom: 16,
+            background: (type === 'genimage') ? '#1a1a1a' : '#ffffff',
+            borderRadius: 8,
+            border: (type === 'genimage') ? 'none' : '1px solid #e0e0e0',
+            padding: '16px 20px',
+            fontSize: '0.9rem',
+            fontWeight: 500,
+            color: (type === 'genimage') ? '#ffffff' : '#000000',
+            boxShadow: (type === 'genimage') ? '0 4px 15px rgba(0, 0, 0, 0.5)' : 'none'
           }}>
-            <label style={{ fontWeight: 600, marginRight: 8 }}>Aspect Ratio:</label>
-            <div style={{ display: 'flex', gap: 12, marginTop: 0 }}>
+            <label style={{ fontWeight: 600, marginRight: 8, color: (type === 'genimage') ? '#ffffff' : '#000000', marginBottom: '8px', display: 'block' }}>Aspect Ratio:</label>
+            <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
               {['1:1', '3:4', '4:3', '16:9', '9:16'].map((ratio) => (
-                <label key={ratio} style={{ display: 'flex', alignItems: 'center', gap: 4, fontWeight: 500 }}>
+                <label key={ratio} style={{ display: 'flex', alignItems: 'center', gap: 4, fontWeight: 500, color: (type === 'genimage') ? '#ffffff' : '#333333' }}>
                   <input
                     type="radio"
                     name="aspectRatio"
                     value={ratio}
                     checked={aspectRatio === ratio}
                     onChange={() => setAspectRatio(ratio)}
-                    style={{ accentColor: '#6366f1', marginRight: 4 }}
+                    style={{ accentColor: (type === 'genimage') ? '#4fc3f7' : '#000000', marginRight: 4 }}
                   />
                   {ratio}
                 </label>
               ))}
             </div>
 
-            <div style={{ marginTop: 24 }}>
-              <label htmlFor="prompt" style={{ fontWeight: 600, fontSize: '1rem', marginBottom: 6, display: 'block' }}>Prompt</label>
+            <div style={{ marginTop: 16 }}> {/* Reduced from 24 */}
+              <label htmlFor="prompt" style={{ fontWeight: 600, fontSize: '0.95rem', marginBottom: 4, display: 'block', color: (type === 'genimage') ? '#ffffff' : '#000000' }}>Prompt</label> {/* Reduced font and margin */}
               <textarea
                 id="prompt"
                 placeholder="Describe your scene or image..."
@@ -2003,17 +2128,19 @@ export default function GenerateToolClient() {
                 onChange={(e) => setPrompt(e.target.value)}
                 style={{
                   width: '90%',
-                  height: '120px',
-                  padding: '12px 16px',
-                  borderRadius: 10,
-                  border: blockedWords.length > 0 ? '2px solid #22c55e' : '1.5px solid #d1d5db',
-                  background: blockedWords.length > 0 ? '#f0fdf4' : '#f3f4f6',
-                  color: '#222',
+                  height: '80px', // Reduced from 120px
+                  padding: '10px 14px', // Reduced from 12px 16px
+                  borderRadius: 8, // Reduced from 10
+                  border: blockedWords.length > 0 ? '2px solid #22c55e' : (type === 'genimage' ? 'none' : '1.5px solid #d1d5db'),
+                  background: blockedWords.length > 0 ? '#f0fdf4' : (type === 'genimage' ? '#2a2a2a' : '#f3f4f6'),
+                  color: type === 'genimage' ? '#ffffff' : '#222',
                   fontWeight: 500,
-                  fontSize: '0.9rem',
-                  lineHeight: '1.4',
-                  boxShadow: '0 1px 6px rgba(60,60,60,0.08)',
-                  outline: 'none'
+                  fontSize: '0.85rem', // Reduced from 0.9rem
+                  lineHeight: '1.3', // Reduced from 1.4
+                  boxShadow: type === 'genimage' ? 'none' : '0 1px 6px rgba(60,60,60,0.08)',
+                  outline: 'none',
+                  resize: 'vertical',
+                  fontFamily: "'Inter', sans-serif"
                 }}
               />
               {/* Content Warning */}
@@ -2041,22 +2168,22 @@ export default function GenerateToolClient() {
           </div>
         )}
         {(type === 'text2video') && videoModel === 'hailuo-02' && (
-          <div style={{
-            marginBottom: 18,
-            background: '#fff',
-            borderRadius: 14,
-            boxShadow: '0 2px 12px rgba(30,30,40,0.10)',
-            padding: '18px 28px',
-            fontSize: '1.08rem',
+          <div className="aspect-options" style={{
+            marginBottom: 12, // Reduced from 18
+            background: type === 'text2video' ? '#1a1a1a' : '#fff',
+            borderRadius: 10, // Reduced from 14
+            boxShadow: type === 'text2video' ? '0 4px 15px rgba(0, 0, 0, 0.5)' : '0 2px 12px rgba(30,30,40,0.10)',
+            padding: '12px 20px', // Reduced from 18px 28px
+            fontSize: '0.95rem', // Reduced from 1.08rem
             fontWeight: 600,
-            color: '#222',
-            border: '1.5px solid #e5e7eb'
+            color: type === 'text2video' ? '#ffffff' : '#222',
+            border: type === 'text2video' ? 'none' : '1.5px solid #e5e7eb'
           }}>
-            <label style={{ fontWeight: 600, marginRight: 8 }}>Aspect Ratio:</label>
+            <label style={{ fontWeight: 600, marginRight: 8, color: type === 'text2video' ? '#ffffff' : '#222' }}>Aspect Ratio:</label>
             <div style={{ display: 'flex', gap: 12, marginTop: 0 }}>
               {getAspectOptions(type, videoModel).map(opt => (
-                <label key={opt.value} style={{ display: 'flex', alignItems: 'center', gap: 4, fontWeight: 500 }}>
-                  <input type="radio" name="aspectRatio" value={opt.value} checked={aspectRatio === opt.value} onChange={() => setAspectRatio(opt.value)} style={{ accentColor: '#6366f1', marginRight: 4 }} />
+                <label key={opt.value} style={{ display: 'flex', alignItems: 'center', gap: 4, fontWeight: 500, color: type === 'text2video' ? '#ffffff' : '#222' }}>
+                  <input type="radio" name="aspectRatio" value={opt.value} checked={aspectRatio === opt.value} onChange={() => setAspectRatio(opt.value)} style={{ accentColor: type === 'text2video' ? '#4fc3f7' : '#6366f1', marginRight: 4 }} />
                   {opt.label}
                 </label>
               ))}
@@ -2064,22 +2191,22 @@ export default function GenerateToolClient() {
           </div>
         )}
         {(type === 'text2video') && (videoModel === 'veo-3-fast' || videoModel === 'veo-3') && (
-          <div style={{
+          <div className="aspect-options" style={{
             marginBottom: 18,
-            background: '#fff',
+            background: type === 'text2video' ? '#1a1a1a' : '#fff',
             borderRadius: 14,
-            boxShadow: '0 2px 12px rgba(30,30,40,0.10)',
+            boxShadow: type === 'text2video' ? '0 4px 15px rgba(0, 0, 0, 0.5)' : '0 2px 12px rgba(30,30,40,0.10)',
             padding: '18px 28px',
             fontSize: '1.08rem',
             fontWeight: 600,
-            color: '#222',
-            border: '1.5px solid #e5e7eb'
+            color: type === 'text2video' ? '#ffffff' : '#222',
+            border: type === 'text2video' ? 'none' : '1.5px solid #e5e7eb'
           }}>
-            <label style={{ fontWeight: 600, marginRight: 8 }}>Aspect Ratio:</label>
+            <label style={{ fontWeight: 600, marginRight: 8, color: type === 'text2video' ? '#ffffff' : '#222' }}>Aspect Ratio:</label>
             <div style={{ display: 'flex', gap: 12, marginTop: 0 }}>
               {getAspectOptions(type, videoModel).map(opt => (
-                <label key={opt.value} style={{ display: 'flex', alignItems: 'center', gap: 4, fontWeight: 500 }}>
-                  <input type="radio" name="aspectRatio" value={opt.value} checked={aspectRatio === opt.value} onChange={() => setAspectRatio(opt.value)} style={{ accentColor: '#6366f1', marginRight: 4 }} />
+                <label key={opt.value} style={{ display: 'flex', alignItems: 'center', gap: 4, fontWeight: 500, color: type === 'text2video' ? '#ffffff' : '#222' }}>
+                  <input type="radio" name="aspectRatio" value={opt.value} checked={aspectRatio === opt.value} onChange={() => setAspectRatio(opt.value)} style={{ accentColor: type === 'text2video' ? '#4fc3f7' : '#6366f1', marginRight: 4 }} />
                   {opt.label}
                 </label>
               ))}
@@ -2087,22 +2214,22 @@ export default function GenerateToolClient() {
           </div>
         )}
         {(type === 'text2video') && videoModel === 'luma-ray' && (
-          <div style={{
+          <div className="aspect-options" style={{
             marginBottom: 18,
-            background: '#fff',
+            background: type === 'text2video' ? '#1a1a1a' : '#fff',
             borderRadius: 14,
-            boxShadow: '0 2px 12px rgba(30,30,40,0.10)',
+            boxShadow: type === 'text2video' ? '0 4px 15px rgba(0, 0, 0, 0.5)' : '0 2px 12px rgba(30,30,40,0.10)',
             padding: '18px 28px',
             fontSize: '1.08rem',
             fontWeight: 600,
-            color: '#222',
-            border: '1.5px solid #e5e7eb'
+            color: type === 'text2video' ? '#ffffff' : '#222',
+            border: type === 'text2video' ? 'none' : '1.5px solid #e5e7eb'
           }}>
-            <label style={{ fontWeight: 600, marginRight: 8 }}>Aspect Ratio:</label>
+            <label style={{ fontWeight: 600, marginRight: 8, color: type === 'text2video' ? '#ffffff' : '#222' }}>Aspect Ratio:</label>
             <div style={{ display: 'flex', gap: 12, marginTop: 0 }}>
               {getAspectOptions(type, videoModel).map(opt => (
-                <label key={opt.value} style={{ display: 'flex', alignItems: 'center', gap: 4, fontWeight: 500 }}>
-                  <input type="radio" name="aspectRatio" value={opt.value} checked={aspectRatio === opt.value} onChange={() => setAspectRatio(opt.value)} style={{ accentColor: '#6366f1', marginRight: 4 }} />
+                <label key={opt.value} style={{ display: 'flex', alignItems: 'center', gap: 4, fontWeight: 500, color: type === 'text2video' ? '#ffffff' : '#222' }}>
+                  <input type="radio" name="aspectRatio" value={opt.value} checked={aspectRatio === opt.value} onChange={() => setAspectRatio(opt.value)} style={{ accentColor: type === 'text2video' ? '#4fc3f7' : '#6366f1', marginRight: 4 }} />
                   {opt.label}
                 </label>
               ))}
@@ -2110,8 +2237,20 @@ export default function GenerateToolClient() {
           </div>
         )}
         {(type === 'text2video') && videoModel === 'hailuo-02' && (
-          <div style={{ marginBottom: 18 }}>
-            <label htmlFor="duration" style={{ fontWeight: 600, fontSize: '1rem', marginBottom: 6, display: 'block' }}>Duration (seconds)</label>
+          <div className="duration-options" style={{ 
+            marginBottom: 18,
+            background: type === 'text2video' ? '#1a1a1a' : '#fff',
+            borderRadius: 14,
+            padding: '18px 28px',
+            boxShadow: type === 'text2video' ? '0 4px 15px rgba(0, 0, 0, 0.5)' : 'none'
+          }}>
+            <label htmlFor="duration" style={{ 
+              fontWeight: 600, 
+              fontSize: '1rem', 
+              marginBottom: 6, 
+              display: 'block',
+              color: type === 'text2video' ? '#ffffff' : '#222'
+            }}>Duration (seconds)</label>
             <div style={{ display: 'flex', gap: 8 }}>
               {[6, 10].map(val => (
                 <button
@@ -2122,8 +2261,8 @@ export default function GenerateToolClient() {
                     padding: '7px 18px',
                     borderRadius: 18,
                     border: duration === val ? '2px solid #ff3b3b' : '2px solid #eee',
-                    background: duration === val ? 'linear-gradient(90deg,#ffb347 0%,#ff3b3b 100%)' : '#f7f7f7',
-                    color: duration === val ? '#fff' : '#222',
+                    background: duration === val ? 'linear-gradient(90deg,#ffb347 0%,#ff3b3b 100%)' : (type === 'text2video' ? '#2a2a2a' : '#f7f7f7'),
+                    color: duration === val ? '#fff' : (type === 'text2video' ? '#ffffff' : '#222'),
                     fontWeight: 600,
                     fontSize: '0.98rem',
                     cursor: 'pointer',
@@ -2140,8 +2279,20 @@ export default function GenerateToolClient() {
           </div>
         )}
         {(type === 'text2video') && videoModel === 'luma-ray' && (
-          <div style={{ marginBottom: 18 }}>
-            <label htmlFor="duration" style={{ fontWeight: 600, fontSize: '1rem', marginBottom: 6, display: 'block' }}>Duration (seconds)</label>
+          <div className="duration-options" style={{ 
+            marginBottom: 18,
+            background: type === 'text2video' ? '#1a1a1a' : '#fff',
+            borderRadius: 14,
+            padding: '18px 28px',
+            boxShadow: type === 'text2video' ? '0 4px 15px rgba(0, 0, 0, 0.5)' : 'none'
+          }}>
+            <label htmlFor="duration" style={{ 
+              fontWeight: 600, 
+              fontSize: '1rem', 
+              marginBottom: 6, 
+              display: 'block',
+              color: type === 'text2video' ? '#ffffff' : '#222'
+            }}>Duration (seconds)</label>
             <div style={{ display: 'flex', gap: 8 }}>
               {[6, 10].map(val => (
                 <button
@@ -2152,8 +2303,8 @@ export default function GenerateToolClient() {
                     padding: '7px 18px',
                     borderRadius: 18,
                     border: duration === val ? '2px solid #ff3b3b' : '2px solid #eee',
-                    background: duration === val ? 'linear-gradient(90deg,#ffb347 0%,#ff3b3b 100%)' : '#f7f7f7',
-                    color: duration === val ? '#fff' : '#222',
+                    background: duration === val ? 'linear-gradient(90deg,#ffb347 0%,#ff3b3b 100%)' : (type === 'text2video' ? '#2a2a2a' : '#f7f7f7'),
+                    color: duration === val ? '#fff' : (type === 'text2video' ? '#ffffff' : '#222'),
                     fontWeight: 600,
                     fontSize: '0.98rem',
                     cursor: 'pointer',
@@ -2170,8 +2321,20 @@ export default function GenerateToolClient() {
           </div>
         )}
         {(type === 'text2video') && (videoModel === 'veo-3-fast' || videoModel === 'veo-3') && (
-          <div style={{ marginBottom: 18 }}>
-            <label htmlFor="duration" style={{ fontWeight: 600, fontSize: '1rem', marginBottom: 6, display: 'block' }}>Duration (seconds)</label>
+          <div className="duration-options" style={{ 
+            marginBottom: 12, // Reduced from 18
+            background: type === 'text2video' ? '#1a1a1a' : '#fff',
+            borderRadius: 10, // Reduced from 14
+            padding: '12px 20px', // Reduced from 18px 28px
+            boxShadow: type === 'text2video' ? '0 4px 15px rgba(0, 0, 0, 0.5)' : 'none'
+          }}>
+            <label htmlFor="duration" style={{ 
+              fontWeight: 600, 
+              fontSize: '1rem', 
+              marginBottom: 6, 
+              display: 'block',
+              color: type === 'text2video' ? '#ffffff' : '#222'
+            }}>Duration (seconds)</label>
             <div style={{ display: 'flex', gap: 8 }}>
               {[8].map(val => (
                 <button
@@ -2182,8 +2345,8 @@ export default function GenerateToolClient() {
                     padding: '7px 18px',
                     borderRadius: 18,
                     border: duration === val ? '2px solid #ff3b3b' : '2px solid #eee',
-                    background: duration === val ? 'linear-gradient(90deg,#ffb347 0%,#ff3b3b 100%)' : '#f7f7f7',
-                    color: duration === val ? '#fff' : '#222',
+                    background: duration === val ? 'linear-gradient(90deg,#ffb347 0%,#ff3b3b 100%)' : (type === 'text2video' ? '#2a2a2a' : '#f7f7f7'),
+                    color: duration === val ? '#fff' : (type === 'text2video' ? '#ffffff' : '#222'),
                     fontWeight: 600,
                     fontSize: '0.98rem',
                     cursor: 'pointer',
@@ -2197,19 +2360,37 @@ export default function GenerateToolClient() {
                 </button>
               ))}
             </div>
-            <p style={{ fontSize: '0.85rem', color: '#666', marginTop: '8px', fontStyle: 'italic' }}>
+            <p style={{ 
+              fontSize: '0.85rem', 
+              color: type === 'text2video' ? '#999' : '#666', 
+              marginTop: '8px', 
+              fontStyle: 'italic' 
+            }}>
               Veo models generate high-quality 8-second videos
             </p>
           </div>
         )}
-        {(type === 'genvideo') && (videoModel === 'hailuo-02' || videoModel === 'kling-v2.1' || videoModel === 'wan-2.1-i2v-720p' || videoModel === 'seedance-1-pro') && (
-          <div style={{ marginBottom: 18 }}>
-            <label htmlFor="duration" style={{ fontWeight: 600, fontSize: '1rem', marginBottom: 6, display: 'block' }}>Duration (seconds)</label>
+        {(type === 'genvideo') && (videoModel === 'hailuo-02' || videoModel === 'kling-v2.1' || videoModel === 'wan-2.1-i2v-720p' || videoModel === 'seedance-1-pro' || videoModel === 'runway-gen4') && (
+          <div className="duration-options" style={{ 
+            marginBottom: 12, // Reduced from 18
+            background: type === 'genvideo' ? '#1a1a1a' : '#fff',
+            borderRadius: 10, // Reduced from 14
+            padding: '12px 20px', // Reduced from 18px 28px
+            boxShadow: type === 'genvideo' ? '0 4px 15px rgba(0, 0, 0, 0.5)' : 'none'
+          }}>
+            <label htmlFor="duration" style={{ 
+              fontWeight: 600, 
+              fontSize: '1rem', 
+              marginBottom: 6, 
+              display: 'block',
+              color: type === 'genvideo' ? '#ffffff' : '#222'
+            }}>Duration (seconds)</label>
             <div style={{ display: 'flex', gap: 8 }}>
               {(videoModel === 'hailuo-02' ? [6, 10] :
                 videoModel === 'kling-v2.1' ? [5, 10] :
                 videoModel === 'wan-2.1-i2v-720p' ? [5, 10] :
                 videoModel === 'seedance-1-pro' ? [5, 10] :
+                videoModel === 'runway-gen4' ? [5, 10] :
                 []
               ).map(val => (
                 <button 
@@ -2220,8 +2401,8 @@ export default function GenerateToolClient() {
                     padding: '7px 18px',
                     borderRadius: 18,
                     border: duration === val ? '2px solid #ff3b3b' : '2px solid #eee',
-                    background: duration === val ? 'linear-gradient(90deg,#ffb347 0%,#ff3b3b 100%)' : '#f7f7f7',
-                    color: duration === val ? '#fff' : '#222',
+                    background: duration === val ? 'linear-gradient(90deg,#ffb347 0%,#ff3b3b 100%)' : (type === 'genvideo' ? '#2a2a2a' : '#f7f7f7'),
+                    color: duration === val ? '#fff' : (type === 'genvideo' ? '#ffffff' : '#222'),
                     fontWeight: 600,
                     fontSize: '0.98rem',
                     cursor: 'pointer',
@@ -2238,21 +2419,37 @@ export default function GenerateToolClient() {
           </div>
         )}
         {(type === 'text2video') && (
-          <div style={{ marginBottom: 18 }}>
-            <label htmlFor="prompt" style={{ fontWeight: 700, fontSize: '1rem', marginBottom: 6, display: 'block' }}>Prompt:</label>
+          <div style={{ 
+            marginBottom: 12, // Reduced from 18
+            background: type === 'text2video' ? '#1a1a1a' : '#fff',
+            borderRadius: 10, // Reduced from 14
+            padding: '12px 20px', // Reduced from 18px 28px
+            boxShadow: type === 'text2video' ? '0 4px 15px rgba(0, 0, 0, 0.5)' : 'none'
+          }}>
+            <label htmlFor="prompt" style={{ 
+              fontWeight: 600, // Reduced from 700
+              fontSize: '0.95rem', // Reduced from 1rem
+              marginBottom: 4, // Reduced from 6
+              display: 'block',
+              color: type === 'text2video' ? '#ffffff' : '#222'
+            }}>Prompt:</label>
             <textarea
               id="prompt"
               value={prompt}
               onChange={e => setPrompt(e.target.value)}
-              rows={3}
+              rows={2} // Reduced from 3
               style={{ 
                 width: '100%', 
-                marginTop: 6, 
-                padding: 10, 
-                borderRadius: 8, 
-                border: blockedWords.length > 0 ? '2px solid #22c55e' : '1px solid #ccc', 
-                fontSize: '1rem',
-                backgroundColor: blockedWords.length > 0 ? '#f0fdf4' : 'white'
+                marginTop: 4, // Reduced from 6
+                padding: 10, // Reduced from 12
+                borderRadius: 6, // Reduced from 8
+                border: blockedWords.length > 0 ? '2px solid #22c55e' : (type === 'text2video' ? 'none' : '1px solid #ccc'), 
+                fontSize: '0.9rem', // Reduced from 1rem
+                backgroundColor: blockedWords.length > 0 ? '#f0fdf4' : (type === 'text2video' ? '#2a2a2a' : 'white'),
+                color: type === 'text2video' ? '#ffffff' : '#222',
+                resize: 'vertical',
+                outline: 'none',
+                fontFamily: "'Inter', sans-serif"
               }}
               placeholder="Describe your scene or image..."
             />
@@ -2261,7 +2458,7 @@ export default function GenerateToolClient() {
               <div style={{
                 marginTop: 8,
                 padding: '10px 14px',
-                backgroundColor: '#f0fdf4',
+                backgroundColor: type === 'text2video' ? '#2a4d2a' : '#f0fdf4',
                 border: '1px solid #22c55e',
                 borderRadius: 8,
                 fontSize: '0.9rem',
@@ -2279,21 +2476,37 @@ export default function GenerateToolClient() {
           </div>
         )}
         {type === 'genvideo' && (
-          <div style={{ marginBottom: 18 }}>
-            <label htmlFor="prompt" style={{ fontWeight: 700, fontSize: '1rem', marginBottom: 6, display: 'block' }}>Prompt:</label>
+          <div style={{ 
+            marginBottom: 12, // Reduced from 18
+            background: type === 'genvideo' ? '#1a1a1a' : '#fff',
+            borderRadius: 10, // Reduced from 14
+            padding: '12px 20px', // Reduced from 18px 28px
+            boxShadow: type === 'genvideo' ? '0 4px 15px rgba(0, 0, 0, 0.5)' : 'none'
+          }}>
+            <label htmlFor="prompt" style={{ 
+              fontWeight: 600, // Reduced from 700
+              fontSize: '0.95rem', // Reduced from 1rem
+              marginBottom: 4, // Reduced from 6
+              display: 'block',
+              color: type === 'genvideo' ? '#ffffff' : '#222'
+            }}>Prompt:</label>
             <textarea
               id="prompt"
               value={prompt}
               onChange={e => setPrompt(e.target.value)}
-              rows={3}
+              rows={2} // Reduced from 3
               style={{ 
                 width: '100%', 
-                marginTop: 6, 
-                padding: 10, 
-                borderRadius: 8, 
-                border: blockedWords.length > 0 ? '2px solid #22c55e' : '1px solid #ccc', 
-                fontSize: '1rem',
-                backgroundColor: blockedWords.length > 0 ? '#f0fdf4' : 'white'
+                marginTop: 4, // Reduced from 6
+                padding: 10, // Reduced from 12
+                borderRadius: 6, // Reduced from 8
+                border: blockedWords.length > 0 ? '2px solid #22c55e' : (type === 'genvideo' ? 'none' : '1px solid #ccc'), 
+                fontSize: '0.9rem', // Reduced from 1rem
+                backgroundColor: blockedWords.length > 0 ? '#f0fdf4' : (type === 'genvideo' ? '#2a2a2a' : 'white'),
+                color: type === 'genvideo' ? '#ffffff' : '#222',
+                resize: 'vertical',
+                outline: 'none',
+                fontFamily: "'Inter', sans-serif"
               }}
               placeholder="Describe your scene or image..."
             />
@@ -2302,7 +2515,7 @@ export default function GenerateToolClient() {
               <div style={{
                 marginTop: 8,
                 padding: '10px 14px',
-                backgroundColor: '#f0fdf4',
+                backgroundColor: type === 'genvideo' ? '#2a4d2a' : '#f0fdf4',
                 border: '1px solid #22c55e',
                 borderRadius: 8,
                 fontSize: '0.9rem',
@@ -2320,8 +2533,21 @@ export default function GenerateToolClient() {
           </div>
         )}
         {type === 'genvideo' && (
-          <div style={{ marginBottom: 18 }}>
-            <label htmlFor="file" style={{ fontWeight: 500 }}>Upload Image:</label>
+          <div style={{
+            marginBottom: 18,
+            background: type === 'genvideo' ? '#1a1a1a' : '#ffffff',
+            borderRadius: 8,
+            border: type === 'genvideo' ? 'none' : '1px solid #e0e0e0',
+            padding: '16px 20px',
+            boxShadow: type === 'genvideo' ? '0 4px 15px rgba(0, 0, 0, 0.5)' : 'none'
+          }}>
+            <label htmlFor="file" style={{ 
+              fontWeight: 600, 
+              fontSize: '1rem', 
+              marginBottom: 8, 
+              display: 'block',
+              color: type === 'genvideo' ? '#ffffff' : '#000000'
+            }}>Upload Image:</label>
             <input
               type="file"
               id="file"
@@ -2347,19 +2573,36 @@ export default function GenerateToolClient() {
                   setImagePreviewUrl('');
                 }
               }}
-              style={{ marginTop: 6, padding: 10, borderRadius: 8, border: '1px solid #ccc', fontSize: '1rem', width: '100%' }}
+              style={{ 
+                width: '100%',
+                padding: '12px 16px', 
+                borderRadius: 8, 
+                border: type === 'genvideo' ? 'none' : '1px solid #e0e0e0', 
+                backgroundColor: type === 'genvideo' ? '#2a2a2a' : '#ffffff',
+                fontSize: '0.9rem',
+                fontWeight: 500,
+                color: type === 'genvideo' ? '#ffffff' : '#000000',
+                cursor: 'pointer',
+                transition: 'border-color 0.2s ease',
+                outline: 'none'
+              }}
             />
             {/* Image Preview */}
             {imagePreviewUrl && (
-              <div style={{ marginTop: 12 }}>
-                <div style={{ fontWeight: 500, marginBottom: 8, fontSize: '0.9rem', color: '#555' }}>
+              <div style={{ marginTop: 16 }}>
+                <div style={{ 
+                  fontWeight: 600, 
+                  marginBottom: 12, 
+                  fontSize: '0.9rem', 
+                  color: type === 'genvideo' ? '#ffffff' : '#000000' 
+                }}>
                   Preview:
                 </div>
                 <div style={{
-                  border: '2px solid #ddd',
+                  border: type === 'genvideo' ? 'none' : '1px solid #e0e0e0',
                   borderRadius: 8,
-                  padding: 8,
-                  background: '#f9f9f9',
+                  padding: 12,
+                  background: type === 'genvideo' ? '#2a2a2a' : '#f8f9fa',
                   display: 'flex',
                   justifyContent: 'center'
                 }}>
@@ -2378,10 +2621,11 @@ export default function GenerateToolClient() {
                 </div>
                 {file && (
                   <div style={{ 
-                    marginTop: 8, 
+                    marginTop: 12, 
                     fontSize: '0.85rem', 
-                    color: '#666',
-                    textAlign: 'center'
+                    color: '#666666',
+                    textAlign: 'center',
+                    fontWeight: 500
                   }}>
                     {file.name} ({(file.size / 1024 / 1024).toFixed(2)} MB)
                   </div>
@@ -2476,52 +2720,69 @@ export default function GenerateToolClient() {
             onClick={hasEnoughCredits && !isGenerating ? handleGenerate : undefined}
             className="creative-btn"
             disabled={!hasEnoughCredits || loading || isGenerating}
-            style={{
-              marginTop: 20,
+            style={(type === 'text2video' || type === 'genimage' || type === 'genvideo') ? {
+              background: 'linear-gradient(to right, #ffffff, #e0e0e0)',
+              color: '#000',
+              border: 'none',
+              padding: '14px 26px',
+              borderRadius: '12px',
               fontWeight: 'bold',
-              fontSize: '1.18rem',
-              padding: '16px 28px',
-              borderRadius: '18px',
-              letterSpacing: '0.04em',
-              boxShadow: hasEnoughCredits && !loading ? '0 0 18px 2px #222, 0 0 8px 2px #444' : 'none',
+              cursor: hasEnoughCredits && !loading ? 'pointer' : 'not-allowed',
+              fontSize: '16px',
+              transition: 'all 0.2s ease',
+              width: '100%',
+              boxSizing: 'border-box',
+              marginTop: 20,
+              opacity: hasEnoughCredits && !loading ? 1 : 0.6
+            } : {
+              marginTop: 20,
+              fontWeight: 600,
+              fontSize: '0.9rem',
+              padding: '12px 24px',
+              borderRadius: '8px',
+              letterSpacing: '0.02em',
+              boxShadow: 'none',
               border: 'none',
               cursor: hasEnoughCredits && !loading ? 'pointer' : 'not-allowed',
-              background: hasEnoughCredits && !loading ? 'linear-gradient(90deg, #222 0%, #444 100%)' : '#ccc',
-              color: hasEnoughCredits && !loading ? '#fff' : '#fff',
+              background: hasEnoughCredits && !loading ? '#000000' : '#f5f5f5',
+              color: hasEnoughCredits && !loading ? '#ffffff' : '#999999',
               position: 'relative',
               overflow: 'hidden',
-              textTransform: 'uppercase',
-              transition: 'box-shadow 0.3s, transform 0.2s, background 0.3s',
+              transition: 'all 0.2s ease',
               opacity: hasEnoughCredits && !loading ? 1 : 0.8
             }}
+            onMouseOver={(type === 'text2video' || type === 'genimage' || type === 'genvideo') ? (e) => e.target.style.transform = 'scale(1.03)' : undefined}
+            onMouseOut={(type === 'text2video' || type === 'genimage' || type === 'genvideo') ? (e) => e.target.style.transform = 'scale(1)' : undefined}
           >
             <span style={{
               display: 'inline-block',
-              color: '#fff',
-              fontWeight: 800,
-              fontSize: '1.2em',
-              letterSpacing: '2px'
+              color: (type === 'text2video' || type === 'genimage' || type === 'genvideo') ? '#000' : (hasEnoughCredits && !loading ? '#ffffff' : '#999999'),
+              fontWeight: 600,
+              fontSize: (type === 'text2video' || type === 'genimage' || type === 'genvideo') ? '16px' : '0.9rem',
+              letterSpacing: '0.5px'
             }}>
               {!hasEnoughCredits ? 'Insufficient Credits' : 'Generate'}
             </span>
-            <style>{`
-              .creative-btn {
-                background: linear-gradient(90deg, #222 0%, #444 100%);
-                color: #fff;
-                border: none;
-                font-family: Inter, Arial, sans-serif;
-                font-weight: bold;
-                transition: box-shadow 0.3s, transform 0.2s, background 0.3s;
-                box-shadow: 0 0 18px 2px #222, 0 0 8px 2px #444;
-                position: relative;
-                overflow: hidden;
-              }
-              .creative-btn:hover {
-                background: linear-gradient(90deg, #444 0%, #222 100%);
-                box-shadow: 0 0 24px 3px #111, 0 0 12px 3px #333;
-                transform: translateY(-2px);
-              }
-            `}</style>
+            {!(type === 'text2video' || type === 'genimage' || type === 'genvideo') && (
+              <style>{`
+                .creative-btn {
+                  background: linear-gradient(90deg, #222 0%, #444 100%);
+                  color: #fff;
+                  border: none;
+                  font-family: Inter, Arial, sans-serif;
+                  font-weight: bold;
+                  transition: box-shadow 0.3s, transform 0.2s, background 0.3s;
+                  box-shadow: 0 0 18px 2px #222, 0 0 8px 2px #444;
+                  position: relative;
+                  overflow: hidden;
+                }
+                .creative-btn:hover {
+                  background: linear-gradient(90deg, #444 0%, #222 100%);
+                  box-shadow: 0 0 24px 3px #111, 0 0 12px 3px #333;
+                  transform: translateY(-2px);
+                }
+              `}</style>
+            )}
           </Button>
         )}
         {type === 'needhelp' && (
@@ -2532,39 +2793,51 @@ export default function GenerateToolClient() {
           </div>
         )}
       </div>
-      <div className="responsive-panel preview-panel" style={{
-        flex: 1.2,
-        padding: '40px 48px 40px 40px',
+      
+      {/* Connected Output Section - Right Side */}
+      <div style={{
+        padding: '24px', // Reduced from 32px for compactness
+        borderRadius: '0 16px 16px 0', // Only rounded right corners
+        background: (type === 'text2video' || type === 'genimage' || type === 'genvideo') ? '#1a1a1a' : '#f8f8f8', // Slightly different shade for visual separation
+        border: (type === 'text2video' || type === 'genimage' || type === 'genvideo') ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid #e0e0e0',
+        borderLeft: 'none', // Remove left border to connect with input box
+        boxShadow: (type === 'text2video' || type === 'genimage' || type === 'genvideo') ? '0 0 30px rgba(0, 0, 0, 0.8)' : '0 0 24px rgba(0, 0, 0, 0.15)', // Continue the shadow from input box
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        background: '#f1f1f1',
-        minWidth: 340,
-        maxWidth: 720,
-        borderRadius: '12px',
-        boxShadow: '0 0 12px rgba(0,0,0,0.05)',
-        zIndex: 3,
-        position: 'relative'
+        minHeight: '300px', // Match input box height - reduced for compactness
+        fontFamily: "'Inter', sans-serif",
+        width: '480px', // Match input box width
+        backdropFilter: 'blur(8px)'
       }}>
+        <h3 style={{ 
+          color: (type === 'text2video' || type === 'genimage' || type === 'genvideo') ? '#ffffff' : '#333',
+          fontSize: '1.2rem',
+          fontWeight: '600',
+          marginBottom: '16px',
+          marginTop: '0'
+        }}>
+          Output
+        </h3>
         {loading ? (
           // Always show loading state when generating, regardless of previous results
-          <div style={{ color: '#888', fontSize: '1.1rem', textAlign: 'center', marginTop: 80 }}>
+          <div style={{ color: (type === 'text2video' || type === 'genimage' || type === 'genvideo') ? '#ffffff' : '#888', fontSize: '1.1rem', textAlign: 'center', marginTop: 80 }}>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20 }}>
               {/* Loading Spinner */}
               <div style={{
                 width: 60,
                 height: 60,
-                border: '4px solid #f3f3f3',
+                border: (type === 'text2video' || type === 'genimage' || type === 'genvideo') ? '4px solid #333' : '4px solid #f3f3f3',
                 borderTop: '4px solid #ff3b3b',
                 borderRadius: '50%',
                 animation: 'spin 1s linear infinite'
               }}></div>
-              <div style={{ fontSize: '1.2rem', fontWeight: 600, color: '#444' }}>
+              <div style={{ fontSize: '1.2rem', fontWeight: 600, color: (type === 'text2video' || type === 'genimage' || type === 'genvideo') ? '#ffffff' : '#444' }}>
                 {type === 'genimage' ? 'Generating your image...' : 'Generating your video...'}
               </div>
               {type !== 'genimage' && (
-                <div style={{ fontSize: '0.9rem', color: '#666', textAlign: 'center', maxWidth: '300px' }}>
+                <div style={{ fontSize: '0.9rem', color: (type === 'text2video' || type === 'genimage' || type === 'genvideo') ? '#cccccc' : '#666', textAlign: 'center', maxWidth: '300px' }}>
                   {(() => {
                     const totalEstimate = getTimeEstimate();
                     const left = Math.max(totalEstimate - loadingMinutes, 0);
@@ -2576,20 +2849,76 @@ export default function GenerateToolClient() {
           </div>
         ) : previewUrl ? (
           // Show result only when not loading and result exists
-          <div>
+          <div style={{
+            background: (type === 'text2video' || type === 'genimage' || type === 'genvideo') ? '#1a1a1a' : 'transparent',
+            borderRadius: (type === 'text2video' || type === 'genimage' || type === 'genvideo') ? '16px' : '0',
+            padding: (type === 'text2video' || type === 'genimage' || type === 'genvideo') ? '24px' : '0',
+            boxShadow: (type === 'text2video' || type === 'genimage' || type === 'genvideo') ? '0 4px 15px rgba(0, 0, 0, 0.5)' : 'none'
+          }}>
             {(type === 'text2video' || type === 'genvideo') ? (
-              <video src={previewUrl} controls style={{ maxWidth: '90%', maxHeight: '60vh', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.15)', marginBottom: 18 }} />
+              <video 
+                src={previewUrl} 
+                controls 
+                style={{ 
+                  maxWidth: '90%', 
+                  maxHeight: '60vh', 
+                  borderRadius: '12px', 
+                  boxShadow: (type === 'text2video' || type === 'genvideo') ? '0 4px 12px rgba(0,0,0,0.3)' : '0 2px 8px rgba(0,0,0,0.15)', 
+                  marginBottom: 18 
+                }} 
+              />
             ) : (
-              <img src={previewUrl} alt="Generated Preview" style={{ maxWidth: '90%', maxHeight: '60vh', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.15)', marginBottom: 18 }} />
+              <img 
+                src={previewUrl} 
+                alt="Generated Preview" 
+                style={{ 
+                  maxWidth: '90%', 
+                  maxHeight: '60vh', 
+                  borderRadius: '12px', 
+                  boxShadow: (type === 'genimage') ? '0 4px 12px rgba(0,0,0,0.3)' : '0 2px 8px rgba(0,0,0,0.15)', 
+                  marginBottom: 18 
+                }} 
+              />
             )}
-            <button onClick={handleDownload} style={{ display: 'inline-block', fontSize: '1.08rem', padding: '12px 32px', borderRadius: '8px', backgroundColor: '#1a1a1a', color: '#fff', fontWeight: 'bold', marginTop: 18, boxShadow: '0 2px 8px rgba(0,0,0,0.15)', border: 'none', cursor: 'pointer', letterSpacing: '1px', transition: 'background 0.2s' }}>Download</button>
+            <button 
+              onClick={handleDownload} 
+              style={{ 
+                display: 'inline-block', 
+                fontSize: '1.08rem', 
+                padding: '12px 32px', 
+                borderRadius: '8px', 
+                backgroundColor: (type === 'text2video' || type === 'genimage' || type === 'genvideo') ? '#ffffff' : '#1a1a1a', 
+                color: (type === 'text2video' || type === 'genimage' || type === 'genvideo') ? '#000000' : '#fff', 
+                fontWeight: 'bold', 
+                marginTop: 18, 
+                boxShadow: (type === 'text2video' || type === 'genimage' || type === 'genvideo') ? '0 2px 8px rgba(255,255,255,0.15)' : '0 2px 8px rgba(0,0,0,0.15)', 
+                border: 'none', 
+                cursor: 'pointer', 
+                letterSpacing: '1px', 
+                transition: 'all 0.2s ease',
+                fontFamily: "'Inter', sans-serif"
+              }}
+              onMouseOver={(type === 'text2video' || type === 'genimage' || type === 'genvideo') ? (e) => {
+                e.target.style.transform = 'scale(1.05)';
+                e.target.style.backgroundColor = '#f0f0f0';
+              } : undefined}
+              onMouseOut={(type === 'text2video' || type === 'genimage' || type === 'genvideo') ? (e) => {
+                e.target.style.transform = 'scale(1)';
+                e.target.style.backgroundColor = '#ffffff';
+              } : undefined}
+            >
+              Download
+            </button>
           </div>
         ) : (
           // Show placeholder when no result and not loading
-          <div style={{ color: '#888', fontSize: '1.1rem', textAlign: 'center', marginTop: 80 }}>
+          <div style={{ color: (type === 'text2video' || type === 'genimage' || type === 'genvideo') ? '#cccccc' : '#888', fontSize: '1.1rem', textAlign: 'center', marginTop: 80 }}>
             Your generated content will appear here
           </div>
         )}
+      </div>
+      
+      {/* End Connected Input-Output Container */}
       </div>
       
       {/* CSS for animations */}

@@ -34,7 +34,7 @@ export default function ContactSupportPage() {
           pointerEvents: 'none',
           opacity: 0.7 // Added opacity to the background video
         }}
-        src="/background-video3.mp4"
+        src="/background-video4.mp4"
       />
 
       {/* Dark overlay */}
@@ -53,16 +53,26 @@ export default function ContactSupportPage() {
           top: 20,
           left: 20,
           zIndex: 10,
-          background: '#fff',
-          color: '#111',
-          border: '2px solid #222',
-          borderRadius: '10px',
-          padding: '10px 18px',
+          background: 'linear-gradient(135deg, #0f0f0f, #1a1a1a)',
+          color: '#ffffff',
+          border: '1px solid rgba(255, 255, 255, 0.2)',
+          borderRadius: '12px',
+          padding: '12px 20px',
           fontWeight: 'bold',
-          fontSize: '1.08rem',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
+          fontSize: '1rem',
+          boxShadow: '0 4px 15px rgba(0, 0, 0, 0.3)',
           cursor: 'pointer',
-          transition: 'background 0.2s',
+          transition: 'all 0.3s ease',
+          fontFamily: 'Inter, Helvetica, Arial, sans-serif',
+          backdropFilter: 'blur(8px)'
+        }}
+        onMouseOver={(e) => {
+          e.target.style.transform = 'scale(1.05)';
+          e.target.style.boxShadow = '0 6px 20px rgba(0, 0, 0, 0.4)';
+        }}
+        onMouseOut={(e) => {
+          e.target.style.transform = 'scale(1)';
+          e.target.style.boxShadow = '0 4px 15px rgba(0, 0, 0, 0.3)';
         }}
       >
         ← Back
@@ -74,17 +84,17 @@ export default function ContactSupportPage() {
         position: "relative",
         maxWidth: "600px",
         margin: "100px auto 0 auto",
-        backgroundColor: "#fff",
+        backgroundColor: "#0f0f0f",
         borderRadius: "24px",
         textAlign: "center",
-        boxShadow: "0 8px 32px 0 rgba(31, 38, 135, 0.37)",
-        backdropFilter: "blur(12px)",
-        border: "2px solid",
-        borderImage: "linear-gradient(90deg, #c00 0%, #007bff 100%) 1",
+        boxShadow: "0 10px 30px rgba(0, 0, 0, 0.8)",
+        backdropFilter: "blur(8px)",
+        border: "1px solid rgba(255, 255, 255, 0.1)",
         padding: "48px 40px",
         transition: "box-shadow 0.3s",
         overflow: "hidden",
-        animation: "popIn 0.7s cubic-bezier(.68,-0.55,.27,1.55)"
+        animation: "popIn 0.7s cubic-bezier(.68,-0.55,.27,1.55)",
+        fontFamily: 'Inter, Helvetica, Arial, sans-serif'
       }}>
         <style>{`
           @keyframes popIn {
@@ -93,11 +103,11 @@ export default function ContactSupportPage() {
             100% { transform: scale(1); opacity: 1; }
           }
         `}</style>
-        <h2 style={{ fontSize: "2rem", marginBottom: "10px" }}>📩 Contact Support</h2>
-        <p style={{ marginBottom: "10px", color: "#555" }}>
+        <h2 style={{ fontSize: "2rem", marginBottom: "10px", color: "#ffffff", fontFamily: 'Inter, Helvetica, Arial, sans-serif', fontWeight: 'bold' }}>📩 Contact Support</h2>
+        <p style={{ marginBottom: "10px", color: "#cccccc", fontFamily: 'Inter, Helvetica, Arial, sans-serif' }}>
           If you're experiencing issues or need help, reach out to our support team anytime.
         </p>
-        <p style={{ color: "#c00", fontWeight: "bold" }}>support@dreammotion.com</p>
+        <p style={{ color: "#ffffff", fontWeight: "bold", fontFamily: 'Inter, Helvetica, Arial, sans-serif' }}>support@dreammotion.com</p>
       </div>
     </main>
   );

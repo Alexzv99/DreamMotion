@@ -47,9 +47,15 @@ export default function Home() {
         fontWeight: 500,
         letterSpacing: '0.02em',
         zIndex: 4,
-        background: 'rgba(0,0,0,0.15)'
+        background: 'rgba(0,0,0,0.15)',
+        fontFamily: 'Inter, Helvetica, Arial, sans-serif'
       }}>
-        <div style={{ marginTop: '12px', fontSize: '0.9rem', color: '#ccc' }}>
+        <div style={{ 
+          marginTop: '12px', 
+          fontSize: '0.9rem', 
+          color: '#ccc',
+          fontFamily: 'Inter, Helvetica, Arial, sans-serif'
+        }}>
           © 2025 DreamMotion. All rights reserved.
         </div>
       </footer>
@@ -245,35 +251,55 @@ export default function Home() {
             justifyContent: 'center',
             textAlign: 'center',
             color: 'white',
-            fontFamily: 'Arial, sans-serif',
+            fontFamily: 'Inter, Helvetica, Arial, sans-serif',
             zIndex: 2,
             pointerEvents: 'auto',
           }}>
-            <h1 style={{ fontSize: 60, marginBottom: 20, fontWeight: 700 }}>DreamMotion</h1>
-            <div style={{ fontSize: 15, fontWeight: 400, marginBottom: 28, lineHeight: 1.3, color: '#b0b0b0' }}>
+            <h1 style={{ 
+              fontSize: 60, 
+              marginBottom: 20, 
+              fontWeight: 700,
+              fontFamily: 'Inter, Helvetica, Arial, sans-serif'
+            }}>DreamMotion</h1>
+            <div style={{ 
+              fontSize: 15, 
+              fontWeight: 400, 
+              marginBottom: 28, 
+              lineHeight: 1.3, 
+              color: '#b0b0b0',
+              fontFamily: 'Inter, Helvetica, Arial, sans-serif'
+            }}>
               <span style={{ fontSize: 20 }}>
                 The fastest way to create AI-powered images & videos<br />
                 Bring your creative ideas to life with cinematic motion
               </span>
-              <div style={{ color: '#c00', fontWeight: 'bold', fontSize: '1.15rem', marginTop: '14px' }}>
+              <div style={{ 
+                color: '#c00', 
+                fontWeight: 'bold', 
+                fontSize: '1.15rem', 
+                marginTop: '14px',
+                fontFamily: 'Inter, Helvetica, Arial, sans-serif'
+              }}>
                 Upload an image. Get a cinematic video in seconds.<br />
                 No experience needed. Just create.
               </div>
             </div>
             <button
               style={{
-                backgroundColor: 'white',
-                color: 'black',
+                background: 'linear-gradient(135deg, #ffffff, #f0f0f0)',
+                color: '#000000',
                 padding: '15px 30px',
                 fontSize: 18,
                 border: 'none',
-                borderRadius: 6,
+                borderRadius: '12px',
                 textDecoration: 'none',
-                fontWeight: 600,
-                transition: 'background-color 0.3s',
+                fontWeight: 'bold',
+                transition: 'all 0.3s ease',
                 display: 'inline-block',
                 marginBottom: 10,
-                cursor: 'pointer'
+                cursor: 'pointer',
+                boxShadow: '0 4px 15px rgba(255, 255, 255, 0.2)',
+                fontFamily: 'Inter, Helvetica, Arial, sans-serif'
               }}
               onClick={() => {
                 const savedCookiePreference = sessionStorage.getItem('cookiesAccepted');
@@ -292,7 +318,12 @@ export default function Home() {
             </button>
             <div style={{ marginTop: 12 }}>
               <span
-                style={{ fontSize: 17, fontWeight: 500, cursor: 'pointer' }}
+                style={{ 
+                  fontSize: 17, 
+                  fontWeight: 500, 
+                  cursor: 'pointer',
+                  fontFamily: 'Inter, Helvetica, Arial, sans-serif'
+                }}
                 onClick={e => {
                   e.preventDefault();
                   // Only check sessionStorage if component is initialized
@@ -311,7 +342,11 @@ export default function Home() {
                 }}
               >
                 <span style={{ color: '#fff' }}>Not a member yet? </span>
-                <span style={{ color: '#ff3b3b', textDecoration: 'underline' }}>Register</span>
+                <span style={{ 
+                  color: '#ff3b3b', 
+                  textDecoration: 'underline',
+                  fontFamily: 'Inter, Helvetica, Arial, sans-serif'
+                }}>Register</span>
               </span>
             </div>
           </div>

@@ -38,7 +38,7 @@ export default function PrivacyPolicyPage() {
           zIndex: 0,
           pointerEvents: 'none',
         }}
-        src="/background-video3.mp4"
+        src="/background-video4.mp4"
       />
 
       {/* Dark overlay to match dashboard */}
@@ -61,16 +61,26 @@ export default function PrivacyPolicyPage() {
           top: 20,
           left: 20,
           zIndex: 1000,
-          background: '#fff',
-          color: '#111',
-          border: '2px solid #222',
-          borderRadius: '10px',
-          padding: '10px 18px',
+          background: 'linear-gradient(135deg, #0f0f0f, #1a1a1a)', // Dark gradient
+          color: '#ffffff', // White text
+          border: '1px solid rgba(255, 255, 255, 0.2)', // Subtle white border
+          borderRadius: '12px', // More rounded
+          padding: '12px 20px', // Better padding
           fontWeight: 'bold',
-          fontSize: '1.08rem',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
+          fontSize: '1rem',
+          boxShadow: '0 4px 15px rgba(0, 0, 0, 0.3)', // Enhanced shadow
           cursor: 'pointer',
-          transition: 'background 0.2s',
+          transition: 'all 0.3s ease',
+          fontFamily: "'Inter', sans-serif", // Inter font
+          backdropFilter: 'blur(8px)'
+        }}
+        onMouseOver={(e) => {
+          e.currentTarget.style.transform = 'scale(1.05)';
+          e.currentTarget.style.boxShadow = '0 6px 20px rgba(0, 0, 0, 0.4)';
+        }}
+        onMouseOut={(e) => {
+          e.currentTarget.style.transform = 'scale(1)';
+          e.currentTarget.style.boxShadow = '0 4px 15px rgba(0, 0, 0, 0.3)';
         }}
       >
         ← Back
@@ -82,22 +92,25 @@ export default function PrivacyPolicyPage() {
           zIndex: 10,
           fontSize: '1rem', // Reduced font size for a smaller appearance
           fontWeight: 500,
-          color: '#222',
-          background: 'rgba(255,255,255,0.95)', // Adjusted opacity to work with dark overlay
-          boxShadow: '0 2px 16px rgba(0,0,0,0.13)',
-          borderRadius: '12px', // Reduced border radius for a smaller box
-          padding: '24px 20px', // Reduced padding
-          maxWidth: '480px', // Reduced max width
+          color: '#ffffff', // White text
+          background: '#0f0f0f', // Dark background like other components
+          boxShadow: '0 10px 30px rgba(0, 0, 0, 0.8)', // Enhanced shadow
+          borderRadius: '16px', // More rounded corners
+          padding: '32px 24px', // Better padding
+          maxWidth: '540px', // Slightly larger for better readability
           width: '100%',
           height: '520px', // Reduced height
           margin: '0 auto',
           position: 'relative',
           marginTop: '60px',
           overflowY: 'auto',
+          fontFamily: "'Inter', sans-serif", // Inter font
+          backdropFilter: 'blur(8px)',
+          border: '1px solid rgba(255, 255, 255, 0.1)' // Subtle border
         }}
       >
         <div>
-          <h1 style={{ fontWeight: 'bold', color: '#111', fontSize: '1.18em', marginBottom: '18px' }}>Privacy Policy</h1>
+          <h1 style={{ fontWeight: 'bold', color: '#ffffff', fontSize: '1.4em', marginBottom: '18px', letterSpacing: '0.5px' }}>Privacy Policy</h1>
           <p style={{ marginBottom: '18px' }}><strong>Effective Date:</strong> July 15, 2025</p>
           <p style={{ marginBottom: '18px' }}>At DreamMotion, your privacy is important to us. This Privacy Policy explains how we collect, use, and protect your personal information.</p>
           <ol style={{ marginBottom: '18px', paddingLeft: '18px' }}>
@@ -135,7 +148,7 @@ export default function PrivacyPolicyPage() {
             <br />
             <li>
               <strong>Your Rights</strong><br />
-              You can access, update, or delete your data at any time. Contact us at <a href="mailto:support@dreammotion.com" style={{ color: '#0070f3', textDecoration: 'underline', cursor: 'pointer' }}>support@dreammotion.com</a>.
+              You can access, update, or delete your data at any time. Contact us at <a href="/contact" style={{ color: '#0070f3', textDecoration: 'underline', cursor: 'pointer' }}>support@dreammotion.com</a>.
             </li>
           </ol>
         </div>

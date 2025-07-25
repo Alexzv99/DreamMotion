@@ -27,7 +27,7 @@ export default function CookiesPage() {
           zIndex: 0
         }}
       >
-        <source src="/background-video3.mp4" type="video/mp4" />
+        <source src="/background-video4.mp4" type="video/mp4" />
       </video>
       
       {/* Dark overlay */}
@@ -47,12 +47,14 @@ export default function CookiesPage() {
           position: 'relative',
           maxWidth: '800px',
           margin: '120px auto',
-          background: 'rgba(255, 255, 255, 0.95)',
+          background: '#0f0f0f', // Dark background like other components
           backdropFilter: 'blur(10px)',
           padding: '40px',
-          borderRadius: '18px',
-          color: '#222',
-          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)'
+          borderRadius: '16px', // More rounded
+          color: '#ffffff', // White text
+          boxShadow: '0 10px 30px rgba(0, 0, 0, 0.8)', // Enhanced shadow
+          fontFamily: "'Inter', sans-serif", // Inter font
+          border: '1px solid rgba(255, 255, 255, 0.1)' // Subtle border
         }}
       >
       <button
@@ -62,16 +64,26 @@ export default function CookiesPage() {
           top: 20,
           left: 20,
           zIndex: 10,
-          background: '#fff',
-          color: '#111',
-          border: '2px solid #222',
-          borderRadius: '10px',
-          padding: '10px 18px',
+          background: 'linear-gradient(135deg, #0f0f0f, #1a1a1a)', // Dark gradient
+          color: '#ffffff', // White text
+          border: '1px solid rgba(255, 255, 255, 0.2)', // Subtle white border
+          borderRadius: '12px', // More rounded
+          padding: '12px 20px', // Better padding
           fontWeight: 'bold',
-          fontSize: '1.08rem',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
+          fontSize: '1rem',
+          boxShadow: '0 4px 15px rgba(0, 0, 0, 0.3)', // Enhanced shadow
           cursor: 'pointer',
-          transition: 'background 0.2s',
+          transition: 'all 0.3s ease',
+          fontFamily: "'Inter', sans-serif", // Inter font
+          backdropFilter: 'blur(8px)'
+        }}
+        onMouseOver={(e) => {
+          e.currentTarget.style.transform = 'scale(1.05)';
+          e.currentTarget.style.boxShadow = '0 6px 20px rgba(0, 0, 0, 0.4)';
+        }}
+        onMouseOut={(e) => {
+          e.currentTarget.style.transform = 'scale(1)';
+          e.currentTarget.style.boxShadow = '0 4px 15px rgba(0, 0, 0, 0.3)';
         }}
       >
         ← Back

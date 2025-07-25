@@ -620,6 +620,8 @@ async function generateContent(params) {
         version = '1a3f2d7321a5f38d932d85e3ee8e286ba278990f66293f1fac2d26c2b3798b8d'; // Kling v2.1
       } else if (video_model === 'seedance-1-pro') {
         version = '567d056ac32cf4966a0a6ce60b043408e2a81493e7b0c6579af80aca19d1c070'; // Seedance Pro
+      } else if (video_model === 'runway-gen4') {
+        version = '0d5997be6feb0a5d1f296511d61d129d70cf10e1a30e2bcb25a7ec4addc034a9'; // Runway Gen4
       } else {
         version = '0d9f5f2f92cfd480087dfe7aa91eadbc1d48fbb1a0260379e2b30ca739fb20bd'; // Default to Hailuo 02
       }
@@ -629,10 +631,12 @@ async function generateContent(params) {
       // Sanitize prompt before sending to API
       const sanitizedPrompt = sanitizePrompt(prompt);
 
-      // Set duration based on model - Veo 3 and Veo 3 Fast use 8 seconds, others use 6
-      let modelDuration = parseInt(duration) || 6;
+      // Set duration based on model - different models have different defaults
+      let modelDuration = parseInt(duration) || 6; // Default 6 seconds
       if (video_model === 'veo-3-fast' || video_model === 'veo-3') {
-        modelDuration = parseInt(duration) || 8;
+        modelDuration = parseInt(duration) || 8; // Veo models default to 8 seconds
+      } else if (video_model === 'runway-gen4') {
+        modelDuration = parseInt(duration) || 5; // Runway Gen4 defaults to 5 seconds
       }
 
       // For genvideo, we need to include the image file
@@ -768,7 +772,7 @@ export async function POST(req) {
   // Declare variables at function scope so they're accessible in catch block
   let user = null;
   let userData = null;
-  let creditCost = 2; // Default for genimage
+  let creditCost = 3; // Default for genimage
   let token = null;
   let type = null;
 
@@ -836,23 +840,26 @@ export async function POST(req) {
     console.log('📥 Incoming API request:', { prompt, aspect_ratio, type, video_model, duration, user: user.id });
 
     // Determine credit cost based on generation type
-    creditCost = 2; // Default for genimage
+    creditCost = 3; // Default for genimage
     if (type === 'genvideo' || type === 'text2video') {
       const costMapping = {
         'kling-v2.1': 4,
         'hailuo-02': 5,
         'wan-2.1-i2v-720p': 13,
         'seedance-1-pro': 4,
+        'runway-gen4': 25,
         'luma-ray': 22,
         'veo-3-fast': 20,
         'veo-3': 35
       };
       const costPerSecond = costMapping[video_model] || 2;
       
-      // Use correct duration for cost calculation - Veo 3 and Veo 3 Fast use 8 seconds, others use 6
-      let calculationDuration = duration || 6;
+      // Use correct duration for cost calculation based on model defaults
+      let calculationDuration = duration || 6; // Default 6 seconds
       if (video_model === 'veo-3-fast' || video_model === 'veo-3') {
-        calculationDuration = duration || 8;
+        calculationDuration = duration || 8; // Veo models default to 8 seconds
+      } else if (video_model === 'runway-gen4') {
+        calculationDuration = duration || 5; // Runway Gen4 defaults to 5 seconds
       }
       
       creditCost = costPerSecond * calculationDuration;

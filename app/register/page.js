@@ -12,7 +12,14 @@ export default function Register() {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+  const [selectedBackground, setSelectedBackground] = useState('video4'); // Fixed background
   const router = useRouter();
+
+  // Load saved background preference from localStorage
+  useEffect(() => {
+    // Always use video4 background
+    setSelectedBackground('video4');
+  }, []);
 
   // Google login handler (moved inside component)
   const handleGoogleLogin = async () => {
@@ -80,6 +87,7 @@ export default function Register() {
     }}>
       {/* Video Background */}
       <video
+        key={selectedBackground} // Force re-render when background changes
         autoPlay
         loop
         muted
@@ -93,15 +101,15 @@ export default function Register() {
           objectFit: 'cover',
           zIndex: 0
         }}
-      >
-        <source src="/background-video3.mp4" type="video/mp4" />
-      </video>
+        src="/background-video4.mp4"
+      />
       <div style={{
         position: 'absolute',
         top: 0, left: 0, right: 0, bottom: 0,
         background: 'rgba(0, 0, 0, 0.6)',
         zIndex: 0
       }}></div>
+      
       <button
         onClick={() => router.back()}
         style={{
@@ -109,16 +117,26 @@ export default function Register() {
           top: 20,
           left: 20,
           zIndex: 1000,
-          background: '#fff',
-          color: '#111',
-          border: '2px solid #222',
-          borderRadius: '10px',
-          padding: '10px 18px',
+          background: 'linear-gradient(135deg, #0f0f0f, #1a1a1a)',
+          color: '#ffffff',
+          border: '1px solid rgba(255, 255, 255, 0.2)',
+          borderRadius: '12px',
+          padding: '12px 20px',
           fontWeight: 'bold',
-          fontSize: '1.08rem',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
+          fontSize: '1rem',
+          boxShadow: '0 4px 15px rgba(0, 0, 0, 0.3)',
           cursor: 'pointer',
-          transition: 'background 0.2s',
+          transition: 'all 0.3s ease',
+          fontFamily: 'Inter, Helvetica, Arial, sans-serif',
+          backdropFilter: 'blur(8px)'
+        }}
+        onMouseOver={(e) => {
+          e.target.style.transform = 'scale(1.05)';
+          e.target.style.boxShadow = '0 6px 20px rgba(0, 0, 0, 0.4)';
+        }}
+        onMouseOut={(e) => {
+          e.target.style.transform = 'scale(1)';
+          e.target.style.boxShadow = '0 4px 15px rgba(0, 0, 0, 0.3)';
         }}
       >
         ← Back
@@ -128,11 +146,14 @@ export default function Register() {
         position: 'relative',
         maxWidth: '400px',
         margin: '100px auto 0 auto',
-        backgroundColor: '#fff',
+        backgroundColor: '#0f0f0f',
         borderRadius: '12px',
         textAlign: 'center',
-        boxShadow: '0 0 25px rgba(0,0,0,0.3)',
+        boxShadow: '0 10px 30px rgba(0, 0, 0, 0.8)',
         padding: '25px',
+        border: '1px solid rgba(255, 255, 255, 0.1)',
+        backdropFilter: 'blur(8px)',
+        fontFamily: 'Inter, Helvetica, Arial, sans-serif'
       }}>
         {errorMsg && (
           <div style={{
@@ -167,15 +188,16 @@ export default function Register() {
             ✅ {successMsg}
           </div>
         )}
-        <h1 style={{ fontSize: '2rem', marginBottom: '30px', color: '#222', fontWeight: 'bold' }}>Create Your Account</h1>
+        <h1 style={{ fontSize: '2rem', marginBottom: '30px', color: '#ffffff', fontWeight: 'bold', fontFamily: 'Inter, Helvetica, Arial, sans-serif' }}>Create Your Account</h1>
         <form onSubmit={handleSubmit} style={{
           background: 'none',
-          color: '#000',
+          color: '#ffffff',
           borderRadius: '12px',
           width: '100%',
           display: 'flex',
           flexDirection: 'column',
-          gap: '16px'
+          gap: '16px',
+          fontFamily: 'Inter, Helvetica, Arial, sans-serif'
         }}>
           <input
             type="email"
@@ -183,7 +205,16 @@ export default function Register() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            style={{ padding: '10px', borderRadius: '6px', border: '1px solid #ccc' }}
+            style={{ 
+              padding: '12px', 
+              borderRadius: '8px', 
+              border: '1px solid rgba(255, 255, 255, 0.2)', 
+              backgroundColor: 'rgba(255, 255, 255, 0.05)',
+              color: '#ffffff',
+              fontSize: '1rem',
+              fontFamily: 'Inter, Helvetica, Arial, sans-serif',
+              outline: 'none'
+            }}
           />
           <input
             type="password"
@@ -191,7 +222,16 @@ export default function Register() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            style={{ padding: '10px', borderRadius: '6px', border: '1px solid #ccc' }}
+            style={{ 
+              padding: '12px', 
+              borderRadius: '8px', 
+              border: '1px solid rgba(255, 255, 255, 0.2)', 
+              backgroundColor: 'rgba(255, 255, 255, 0.05)',
+              color: '#ffffff',
+              fontSize: '1rem',
+              fontFamily: 'Inter, Helvetica, Arial, sans-serif',
+              outline: 'none'
+            }}
           />
           <input
             type="password"
@@ -199,19 +239,35 @@ export default function Register() {
             value={confirm}
             onChange={(e) => setConfirm(e.target.value)}
             required
-            style={{ padding: '10px', borderRadius: '6px', border: '1px solid #ccc' }}
+            style={{ 
+              padding: '12px', 
+              borderRadius: '8px', 
+              border: '1px solid rgba(255, 255, 255, 0.2)', 
+              backgroundColor: 'rgba(255, 255, 255, 0.05)',
+              color: '#ffffff',
+              fontSize: '1rem',
+              fontFamily: 'Inter, Helvetica, Arial, sans-serif',
+              outline: 'none'
+            }}
           />
           <button type="submit" disabled={loading} style={{
             padding: '12px',
-            borderRadius: '6px',
-            backgroundColor: '#1b1b1b',
-            color: 'white',
+            borderRadius: '12px',
+            background: 'linear-gradient(135deg, #ffffff, #f0f0f0)',
+            color: '#000000',
             fontWeight: 'bold',
             fontSize: '1rem',
             border: 'none',
-            cursor: 'pointer'
-          }}>
-            Register
+            cursor: 'pointer',
+            fontFamily: 'Inter, Helvetica, Arial, sans-serif',
+            boxShadow: '0 4px 15px rgba(255, 255, 255, 0.2)',
+            transition: 'all 0.3s ease',
+            transform: loading ? 'scale(0.98)' : 'scale(1)'
+          }}
+          onMouseOver={(e) => !loading && (e.target.style.transform = 'scale(1.03)')}
+          onMouseOut={(e) => !loading && (e.target.style.transform = 'scale(1)')}
+          >
+            {loading ? 'Creating Account...' : 'Register'}
           </button>
           
           <button
@@ -219,41 +275,46 @@ export default function Register() {
             onClick={handleGoogleLogin}
             style={{
               marginTop: '18px',
-              background: '#fff',
+              background: 'linear-gradient(135deg, #ffffff, #f0f0f0)',
               color: '#4285F4',
-              border: '2px solid #4285F4',
-              borderRadius: '10px',
+              border: '1px solid rgba(255, 255, 255, 0.2)',
+              borderRadius: '12px',
               padding: '12px 24px',
               fontWeight: 'bold',
               fontSize: '1.08rem',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
+              boxShadow: '0 4px 15px rgba(255, 255, 255, 0.2)',
               cursor: 'pointer',
-              transition: 'background 0.2s',
+              transition: 'all 0.3s ease',
               display: 'flex',
               alignItems: 'center',
               gap: '10px',
-              zIndex: 1
+              zIndex: 1,
+              fontFamily: 'Inter, Helvetica, Arial, sans-serif'
             }}
             disabled={loading}
+            onMouseOver={(e) => !loading && (e.target.style.transform = 'scale(1.03)')}
+            onMouseOut={(e) => !loading && (e.target.style.transform = 'scale(1)')}
           >
             <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" style={{ width: 24, height: 24 }} />
             Sign up with Google
           </button>
           <Link href="/login" style={{
             marginTop: '12px',
-            color: '#c00',
+            color: '#ffffff',
             textAlign: 'center',
             fontWeight: 'bold',
-            textDecoration: 'none'
+            textDecoration: 'none',
+            fontFamily: 'Inter, Helvetica, Arial, sans-serif'
           }}>
             ← Back to login
           </Link>
           <Link href="/dashboard" style={{
             marginTop: '6px',
-            color: '#c00',
+            color: '#cccccc',
             textAlign: 'center',
             fontWeight: 'bold',
-            textDecoration: 'none'
+            textDecoration: 'none',
+            fontFamily: 'Inter, Helvetica, Arial, sans-serif'
           }}>
             → Go to Dashboard
           </Link>
@@ -275,7 +336,7 @@ export default function Register() {
           zIndex: 0
         }}
       >
-        <source src="/background-video3.mp4" type="video/mp4" />
+        <source src="/background-video4.mp4" type="video/mp4" />
       </video>
       <div style={{
         position: 'absolute',

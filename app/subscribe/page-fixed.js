@@ -9,13 +9,6 @@ export default function SubscribePage() {
   const [payhipLoaded, setPayhipLoaded] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentUrl, setPaymentUrl] = useState('');
-  const [selectedBackground, setSelectedBackground] = useState('video4'); // Fixed background
-
-  // Load saved background preference from localStorage
-  useEffect(() => {
-    // Always use video4 background
-    setSelectedBackground('video4');
-  }, []);
 
   // Add Payhip script loading useEffect
   useEffect(() => {
@@ -37,10 +30,15 @@ export default function SubscribePage() {
     setPaymentUrl('');
   };
 
-  // Removed duplicate handlePurchase function to fix redeclaration error.
-
   const handlePurchase = (planType) => {
     setLoadingPlan(planType);
+    
+    // Wait for Payhip to load
+    if (!payhipLoaded || typeof window.Payhip === 'undefined') {
+      console.log('Payhip not loaded yet, retrying...');
+      setTimeout(() => handlePurchase(planType), 500);
+      return;
+    }
     
     // Get the product code for the selected plan
     const productCodes = {
@@ -56,7 +54,6 @@ export default function SubscribePage() {
       console.log(`🚀 Initiating Payhip Checkout for ${planType} plan with product code: ${productCode}`);
       
       // Use official Payhip checkout API
-
       window.Payhip.Checkout.open({
         product: productCode,
         method: 'overlay',
@@ -69,10 +66,6 @@ export default function SubscribePage() {
           window.location.href = `/dashboard?payment=success&product=${productCode}&plan=${planType}`;
         }
       });
-      
-      console.log('� ...');
-      
-
       
       setLoadingPlan(null);
     } else {
@@ -144,6 +137,7 @@ export default function SubscribePage() {
     const returnUrl = encodeURIComponent(
       window.location.origin + `/dashboard?payment=success&product=${productCode}&plan=${planType}`
     );
+    // DIRECT CHECKOUT: Skip product page entirely and go straight to payment
     iframe.src = `https://payhip.com/checkout/${productCode}?direct=1&minimal=1&theme=light&auto_proceed=1&skip_product_page=1&instant_checkout=1&return_url=${returnUrl}`;
     iframe.style.cssText = `
       width: 100%;
@@ -163,12 +157,13 @@ export default function SubscribePage() {
       }
     });
     
-    // Listen for payment completion
+    // Listen for messages from iframe (payment completion)
     const messageListener = (event) => {
       if (event.origin === 'https://payhip.com') {
-        if (event.data && (event.data.type === 'payment_complete' || event.data.type === 'checkout_complete')) {
-          console.log('Payment completed via direct checkout');
+        if (event.data && event.data.type === 'payment_complete') {
+          console.log('Payment completed via iframe');
           document.body.removeChild(overlay);
+          closePaymentModal();
           const successUrl = window.location.origin + `/dashboard?payment=success&product=${productCode}&plan=${planType}`;
           window.location.href = successUrl;
         }
@@ -177,18 +172,19 @@ export default function SubscribePage() {
     
     window.addEventListener('message', messageListener);
     
-    // Store cleanup function
-    overlay._cleanup = () => {
+    // Cleanup function to remove event listener
+    const cleanup = () => {
       window.removeEventListener('message', messageListener);
     };
+    
+    // Store cleanup function on overlay for later removal
+    overlay._cleanup = cleanup;
     
     // Assemble the overlay
     iframeContainer.appendChild(closeBtn);
     iframeContainer.appendChild(iframe);
     overlay.appendChild(iframeContainer);
     document.body.appendChild(overlay);
-    
-    console.log('✅ Direct checkout overlay created with URL:', directCheckoutUrl);
   };
 
   useEffect(() => {
@@ -206,15 +202,6 @@ export default function SubscribePage() {
       }
     };
     document.addEventListener('keydown', handleEsc, false);
-    
-    // Initialize Payhip buttons when modal opens
-    if (showPaymentModal && window.payhip) {
-      setTimeout(() => {
-        if (typeof window.payhip.init === 'function') {
-          window.payhip.init();
-        }
-      }, 100);
-    }
     
     return () => {
       document.removeEventListener('keydown', handleEsc, false);
@@ -254,6 +241,27 @@ export default function SubscribePage() {
         fontFamily: 'sans-serif',
         position: 'relative'
       }}>
+      <button
+        onClick={() => router.back()}
+        style={{
+          position: 'absolute',
+          top: 20,
+          left: 20,
+          zIndex: 10,
+          background: '#fff',
+          color: '#111',
+          border: '2px solid #222',
+          borderRadius: '10px',
+          padding: '10px 18px',
+          fontWeight: 'bold',
+          fontSize: '1.08rem',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
+          cursor: 'pointer',
+          transition: 'background 0.2s',
+        }}
+      >
+        ← Back
+      </button>
       <style>{`
         @media (max-width: 900px) {
           .subscribe-plans {
@@ -307,23 +315,6 @@ export default function SubscribePage() {
           div {
             font-size: 14px !important;
           }
-          /* Background selector mobile adjustments */
-          .background-selector {
-            position: absolute !important;
-            top: 80px !important;
-            right: 12px !important;
-            flex-direction: column !important;
-            gap: 4px !important;
-          }
-          .background-selector span {
-            font-size: 12px !important;
-            margin-right: 0 !important;
-            margin-bottom: 4px !important;
-          }
-          .background-selector button {
-            width: 40px !important;
-            height: 25px !important;
-          }
         }
       `}</style>
       <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', zIndex: 0 }} />
@@ -335,29 +326,17 @@ export default function SubscribePage() {
           top: 24,
           left: 24,
           zIndex: 2,
-          background: 'linear-gradient(135deg, #0f0f0f, #1a1a1a)',
-          color: '#ffffff',
-          border: '1px solid rgba(255, 255, 255, 0.2)',
-          borderRadius: '12px',
-          padding: '12px 20px',
-          fontWeight: 'bold',
-          fontSize: '1rem',
-          boxShadow: '0 4px 15px rgba(0, 0, 0, 0.3)',
+          background: 'white',
+          color: 'black',
+          border: 'none',
+          borderRadius: '6px',
+          padding: '8px 18px',
+          fontSize: '16px',
+          fontFamily: 'inherit',
           cursor: 'pointer',
-          transition: 'all 0.3s ease',
-          fontFamily: 'Inter, Helvetica, Arial, sans-serif',
-          backdropFilter: 'blur(8px)'
-        }}
-        onMouseOver={(e) => {
-          e.target.style.transform = 'scale(1.05)';
-          e.target.style.boxShadow = '0 6px 20px rgba(0, 0, 0, 0.4)';
-        }}
-        onMouseOut={(e) => {
-          e.target.style.transform = 'scale(1)';
-          e.target.style.boxShadow = '0 4px 15px rgba(0, 0, 0, 0.3)';
+          boxShadow: '0 2px 8px rgba(0,0,0,0.12)'
         }}
       >← Back</button>
-      
       <h1 style={{ fontSize: '32px', marginBottom: '16px', zIndex: 2 }}>Subscription Plans</h1>
       <div style={{ fontSize: '16px', color: 'white', marginBottom: '32px', textAlign: 'center', zIndex: 2 }}>
         Choose the best plan for your creative journey — buy credits once and use them freely on any tool, anytime.
@@ -367,8 +346,8 @@ export default function SubscribePage() {
         gap: '30px',
         flexWrap: 'wrap',
         justifyContent: 'center',
-        zIndex: 2, // Increased zIndex to ensure boxes are above the overlay
-        alignItems: 'stretch' // This ensures all cards have equal height
+        zIndex: 2,
+        alignItems: 'stretch'
       }}>
         {[
           {
@@ -423,58 +402,27 @@ export default function SubscribePage() {
           },
         ].map((plan, i) => (
           <div key={i} className="plan-card" style={{
-            background: '#0f0f0f', // Dark background like other components
-            color: '#ffffff', // White text
-            padding: '24px', // Increased padding
-            borderRadius: '16px', // More rounded corners
+            background: 'white',
+            color: 'black',
+            padding: '20px',
+            borderRadius: '10px',
             width: '220px',
             textAlign: 'center',
-            boxShadow: '0 10px 30px rgba(0, 0, 0, 0.8)', // Enhanced shadow
+            boxShadow: '0 0 20px rgba(255,255,255,0.05)',
             display: 'flex',
             flexDirection: 'column',
             height: '100%',
-            minHeight: '420px', // Slightly taller
-            fontFamily: "'Inter', sans-serif", // Inter font
-            backdropFilter: 'blur(8px)',
-            border: '1px solid rgba(255, 255, 255, 0.1)' // Subtle border
+            minHeight: '400px'
           }}>
             <div style={{ flex: '1', display: 'flex', flexDirection: 'column' }}>
-              <h2 style={{ 
-                fontSize: '20px', 
-                marginBottom: '12px',
-                fontWeight: '700',
-                letterSpacing: '0.5px',
-                color: '#ffffff'
-              }}>{plan.title}</h2>
-              <p style={{ 
-                fontSize: '28px', 
-                fontWeight: 'bold', 
-                margin: '12px 0',
-                color: '#ffffff'
-              }}>{plan.price}</p>
-              <p style={{ 
-                margin: '8px 0',
-                fontSize: '16px',
-                fontWeight: '600',
-                color: '#ffffff'
-              }}>{plan.credits}</p>
-              <p style={{ 
-                fontSize: '14px', 
-                color: '#cccccc', 
-                marginBottom: plan.features ? '16px' : '0',
-                lineHeight: '1.4'
-              }}>{plan.usage}</p>
+              <h2 style={{ fontSize: '20px', marginBottom: '10px' }}>{plan.title}</h2>
+              <p style={{ fontSize: '24px', fontWeight: 'bold', margin: '10px 0' }}>{plan.price}</p>
+              <p style={{ margin: '5px 0' }}>{plan.credits}</p>
+              <p style={{ fontSize: '14px', color: '#aaa', marginBottom: plan.features ? '8px' : '0' }}>{plan.usage}</p>
               {plan.features && (
-                <div style={{ 
-                  fontSize: '14px', 
-                  color: '#cccccc', 
-                  marginBottom: '16px', 
-                  textAlign: 'left', 
-                  flex: '1',
-                  lineHeight: '1.5'
-                }}>
+                <div style={{ fontSize: '14px', color: '#222', marginBottom: '8px', textAlign: 'left', flex: '1' }}>
                   {plan.features.map((feature, idx) => (
-                    <div key={idx} style={{ marginBottom: '4px' }}>{feature}</div>
+                    <div key={idx} style={{ marginBottom: '2px' }}>{feature}</div>
                   ))}
                 </div>
               )}
@@ -484,22 +432,16 @@ export default function SubscribePage() {
               disabled={loadingPlan === plan.type}
               style={{
                 marginTop: 'auto',
-                background: loadingPlan === plan.type ? '#333' : 'linear-gradient(to right, #ffffff, #e0e0e0)', // White gradient like other components
-                color: loadingPlan === plan.type ? '#888' : '#000000', // Black text for active state
-                padding: '14px 24px',
+                background: loadingPlan === plan.type ? '#666' : 'black',
+                color: 'white',
+                padding: '10px 20px',
                 border: 'none',
-                borderRadius: '12px',
+                borderRadius: '5px',
                 cursor: loadingPlan === plan.type ? 'not-allowed' : 'pointer',
                 alignSelf: 'stretch',
                 opacity: loadingPlan === plan.type ? 0.7 : 1,
-                transition: 'all 0.2s ease',
-                fontWeight: 'bold',
-                fontSize: '16px',
-                letterSpacing: '0.5px',
-                fontFamily: "'Inter', sans-serif"
+                transition: 'all 0.3s ease'
               }}
-              onMouseOver={loadingPlan !== plan.type ? (e) => e.target.style.transform = 'scale(1.03)' : undefined}
-              onMouseOut={loadingPlan !== plan.type ? (e) => e.target.style.transform = 'scale(1)' : undefined}
             >
               {loadingPlan === plan.type ? 'Processing...' : 'Buy Now'}
             </button>
@@ -528,7 +470,7 @@ export default function SubscribePage() {
       <div style={{
         position: 'absolute',
         top: 0, left: 0, right: 0, bottom: 0,
-        background: 'rgba(0, 0, 0, 0.7)', // Matched opacity with the dashboard
+        background: 'rgba(0, 0, 0, 0.7)',
         zIndex: 1
       }} />
       
